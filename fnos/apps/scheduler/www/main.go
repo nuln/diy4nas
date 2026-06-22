@@ -121,7 +121,7 @@ func main() {
 	var ln net.Listener
 	for i := 0; i < 100; i++ {
 		var err error
-		ln, err = net.Listen("tcp", "127.0.0.1:"+port)
+		ln, err = net.Listen("tcp", ":"+port)
 		if err == nil {
 			if port != servicePort {
 				appLogf("port %s busy, using %s", servicePort, port)
@@ -144,7 +144,7 @@ func main() {
 	}
 
 	go func() {
-		appLogf("listening on http://0.0.0.0:%s", port)
+		appLogf("listening on :%s", port)
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			appLogf("serve: %v", err)
 		}

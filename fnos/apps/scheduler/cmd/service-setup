@@ -1,15 +1,13 @@
 #!/bin/bash
+# service-setup 与 mihomo 保持一致：只做无害操作，不杀/启进程
+# 杀进程由 uninstall_callback 负责
+# 启动由 fnOS 框架调 cmd/main start 负责
 APP_VAR_DIR="${TRIM_PKGVAR}/data"
 service_postinst() {
     mkdir -p "$APP_VAR_DIR" 2>/dev/null || true
-    # 不在这里启动服务：fnOS 框架会自己调用 cmd/main start
-    # 如果再启动一次会因端口冲突导致服务没起来
 }
 service_preuninst() {
-    # 通过 PID 文件杀进程，pkill 兜底用独特名
-    if [ -f "$APP_VAR_DIR/server.pid" ]; then
-        pid=$(cat "$APP_VAR_DIR/server.pid" 2>/dev/null | tr -d '[:space:]')
-        case "$pid" in *[!0-9]*) ;; *) kill -TERM "$pid" 2>/dev/null || true; sleep 1; kill -KILL "$pid" 2>/dev/null || true ;; esac
-    fi
-    pkill -x fnos-scheduler 2>/dev/null || true
+    # 什么都不做：进程在 upgrade_callback 后由 cmd/main start 重新拉起
+    # 真正的清理在 uninstall_callback 里
+    return 0
 }
