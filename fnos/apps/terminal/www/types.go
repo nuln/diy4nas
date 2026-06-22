@@ -3,16 +3,20 @@ package main
 import "time"
 
 type SessionInfo struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	CreatedAt string `json:"created_at"`
-	Active    bool   `json:"active"`
-	Cols      int    `json:"cols"`
-	Rows      int    `json:"rows"`
-	Subs      int    `json:"subscribers"`
-	Shell     string `json:"shell"`
-	User      string `json:"user"`
-	UserShell string `json:"user_shell"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	CreatedAt  string `json:"created_at"`
+	DetachedAt string `json:"detached_at,omitempty"`
+	Active     bool   `json:"active"`
+	Detached   bool   `json:"detached"`
+	Exited     bool   `json:"exited"`
+	Cols       int    `json:"cols"`
+	Rows       int    `json:"rows"`
+	Subs       int    `json:"subscribers"`
+	Shell      string `json:"shell"`
+	User       string `json:"user"`
+	UserShell  string `json:"user_shell"`
+	Pid        int    `json:"pid,omitempty"`
 }
 
 type SessionCreate struct {

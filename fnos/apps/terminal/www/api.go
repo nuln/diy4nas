@@ -93,7 +93,8 @@ func handleHealthz(w http.ResponseWriter, r *http.Request) {
 func handleSessions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		writeJSON(w, 200, listSessions())
+		includeDetached := r.URL.Query().Get("include_detached") == "true"
+		writeJSON(w, 200, listSessions(includeDetached))
 	case http.MethodPost:
 		var in SessionCreate
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
@@ -152,16 +153,67 @@ func handleSessions(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSessionByID(w http.ResponseWriter, r *http.Request) {
+	// 支持嵌套 action: /api/sessions/{id}/kill, /api/sessions/{id}/detach
 	rest := strings.TrimPrefix(r.URL.Path, "/api/sessions/")
 	if rest == "" {
 		writeErr(w, 400, "missing id")
 		return
 	}
-	s := getSession(rest)
+	// 特殊路由: /api/sessions/kill-all
+	if rest == "kill-all" {
+		if r.Method != http.MethodPost {
+			writeErr(w, 405, "method not allowed")
+			return
+		}
+		// 杀所有 sessions
+		sessionsMu.Lock()
+		all := make([]*Session, 0, len(sessions))
+		for _, s := range sessions {
+			all = append(all, s)
+		}
+		sessions = make(map[string]*Session)
+		sessionsMu.Unlock()
+		for _, s := range all {
+			s.close()
+		}
+		writeJSON(w, 200, map[string]any{"ok": true, "killed": len(all)})
+		return
+	}
+	// 切分 id + action
+	var id, action string
+	if idx := strings.Index(rest, "/"); idx >= 0 {
+		id = rest[:idx]
+		action = rest[idx+1:]
+	} else {
+		id = rest
+	}
+	s := getSession(id)
 	if s == nil {
 		writeErr(w, 404, "session not found")
 		return
 	}
+
+	// 子路由
+	if action != "" {
+		switch action {
+		case "kill":
+			killSession(id)
+			writeJSON(w, 200, map[string]any{"ok": true, "killed": true})
+			return
+		case "detach":
+			detachSession(id)
+			writeJSON(w, 200, s.info())
+			return
+		case "attach":
+			s.reattach()
+			writeJSON(w, 200, s.info())
+			return
+		default:
+			writeErr(w, 404, "unknown action: "+action)
+			return
+		}
+	}
+
 	switch r.Method {
 	case http.MethodGet:
 		writeJSON(w, 200, s.info())
@@ -187,8 +239,10 @@ func handleSessionByID(w http.ResponseWriter, r *http.Request) {
 		s.mu.Unlock()
 		writeJSON(w, 200, s.info())
 	case http.MethodDelete:
-		removeSession(rest)
-		writeJSON(w, 200, map[string]any{"ok": true})
+		// DELETE 改语义：detach（不杀进程，进 sidebar）
+		// 真杀用 POST /api/sessions/{id}/kill
+		detachSession(id)
+		writeJSON(w, 200, s.info())
 	default:
 		writeErr(w, 405, "method not allowed")
 	}
@@ -259,7 +313,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sub := s.attach()
-	defer s.detach(sub)
+	defer s.detachSub(sub)
 
 	conn.SetReadLimit(64 * 1024)
 

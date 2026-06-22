@@ -204,6 +204,9 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
+	// 启动后台 detached session 自动清理（默认 24h）
+	startAutoCleanup()
+
 	go func() {
 		appLogf("listening on http://0.0.0.0:%s", port)
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {

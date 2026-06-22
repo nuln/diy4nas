@@ -39,6 +39,8 @@ type Session struct {
 	Cols       int
 	Rows       int
 	CreatedAt  time.Time
+	DetachedAt time.Time
+	LastInput  time.Time
 
 	mu         sync.Mutex
 	cmd        *exec.Cmd
@@ -47,6 +49,7 @@ type Session struct {
 	subs       map[string]*Subscriber
 	exited     bool
 	exitCode   int
+	detached   bool
 }
 
 type userInfo struct {
@@ -304,7 +307,7 @@ func (s *Session) attach() *Subscriber {
 	return sub
 }
 
-func (s *Session) detach(sub *Subscriber) {
+func (s *Session) detachSub(sub *Subscriber) {
 	s.mu.Lock()
 	delete(s.subs, sub.id)
 	s.mu.Unlock()
@@ -317,25 +320,59 @@ func (s *Session) info() SessionInfo {
 	shell := s.Shell
 	user := s.User
 	exited := s.exited
+	detached := s.detached
+	detachedAt := s.DetachedAt
 	count := len(s.subs)
+	var pid int
+	if s.cmd != nil && s.cmd.Process != nil {
+		pid = s.cmd.Process.Pid
+	}
 	s.mu.Unlock()
 	// 从 /etc/passwd 拿用户登录 shell（zsh / ohmyzsh 时用 zsh）
 	userShell := shell
 	if u, err := lookupUser(user); err == nil && u.sh != "" {
 		userShell = u.sh
 	}
-	return SessionInfo{
+	info := SessionInfo{
 		ID:        s.ID,
 		Title:     s.Title,
 		CreatedAt: s.CreatedAt.Format("2006-01-02 15:04:05"),
-		Active:    !exited,
+		Active:    !exited && !detached,
+		Detached:  detached,
+		Exited:    exited,
 		Cols:      cols,
 		Rows:      rows,
 		Subs:      count,
 		Shell:     shell,
 		User:      user,
 		UserShell: userShell,
+		Pid:       pid,
 	}
+	if detached {
+		info.DetachedAt = detachedAt.Format("2006-01-02 15:04:05")
+	}
+	return info
+}
+
+// detach 标记为后台运行（不杀进程，buffer 继续累积，ws 可继续 subscribe）
+func (s *Session) detach() {
+	s.mu.Lock()
+	if !s.exited && !s.detached {
+		s.detached = true
+		s.DetachedAt = time.Now()
+	}
+	s.mu.Unlock()
+}
+
+// reattach 重新 attach（从 sidebar 恢复时调用）
+// 实际上 attach 是新 ws 连接（handleWS 已支持 attach 已有 session）
+// 这个函数主要用于重置 detached 状态
+func (s *Session) reattach() {
+	s.mu.Lock()
+	if !s.exited && s.detached {
+		s.detached = false
+	}
+	s.mu.Unlock()
 }
 
 func (s *Session) close() {
@@ -350,6 +387,8 @@ func (s *Session) close() {
 		sub.close()
 	}
 	s.subs = make(map[string]*Subscriber)
+	s.exited = true
+	s.detached = false
 	s.mu.Unlock()
 }
 

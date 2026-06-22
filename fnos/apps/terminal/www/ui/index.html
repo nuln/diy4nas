@@ -21,14 +21,42 @@
   .toolbar .badge.live { color: #00b42a; }
   .toolbar .badge.live::before { content: "●"; margin-right: 4px; }
   .tabs { background: #232323; display: flex; overflow-x: auto; border-bottom: 1px solid #3a3a3a; min-height: 36px; }
-  .tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #232323; color: #86909c; cursor: pointer; border-right: 1px solid #3a3a3a; font-size: 12px; user-select: none; min-width: 120px; max-width: 200px; }
+  .tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #232323; color: #86909c; cursor: pointer; border-right: 1px solid #3a3a3a; font-size: 12px; user-select: none; min-width: 120px; max-width: 200px; position: relative; }
   .tab .title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tab .close { flex: 0 0 auto; color: #86909c; padding: 0 4px; border-radius: 3px; line-height: 1; }
+  .tab .close { flex: 0 0 auto; color: #86909c; padding: 0 4px; border-radius: 3px; line-height: 1; opacity: 0; transition: opacity 0.15s; }
+  .tab:hover .close { opacity: 1; }
   .tab:hover { background: #2a2a2a; }
   .tab.active { background: #1a1a1a; color: #fff; border-bottom: 2px solid #165dff; }
-  .tab .close { color: #86909c; padding: 0 4px; border-radius: 3px; line-height: 1; }
   .tab .close:hover { background: #4a4a4a; color: #fff; }
   .tab.exited { opacity: 0.5; }
+  /* 持久 tab (detached session 重新打开) 标识：左边蓝色竖条 + 📌 图标 */
+  .tab.detached::before { content: "📌"; margin-right: 2px; }
+  .tab.detached { border-left: 2px solid #00b42a; }
+  /* 右键菜单 */
+  .ctx-menu { position: fixed; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 4px 0; z-index: 2000; min-width: 140px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .ctx-menu .item { padding: 6px 16px; color: #e0e0e0; cursor: pointer; font-size: 13px; }
+  .ctx-menu .item:hover { background: #165dff; }
+  .ctx-menu .sep { height: 1px; background: #3a3a3a; margin: 4px 0; }
+  /* 右侧栏 */
+  .sidebar { position: fixed; top: 0; right: 0; bottom: 0; width: 320px; background: #1a1a1a; border-left: 1px solid #3a3a3a; transform: translateX(100%); transition: transform 0.25s; z-index: 1500; display: flex; flex-direction: column; }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-header { padding: 12px 16px; border-bottom: 1px solid #3a3a3a; display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-header h3 { margin: 0; font-size: 14px; color: #fff; font-weight: 500; }
+  .sidebar-header .count { background: #3a3a3a; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: #86909c; }
+  .sidebar-close { background: none; border: none; color: #86909c; cursor: pointer; font-size: 18px; padding: 0 4px; }
+  .sidebar-close:hover { color: #fff; }
+  .sidebar-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .sidebar-list .empty { padding: 40px 20px; text-align: center; color: #86909c; font-size: 13px; }
+  .sidebar-item { display: flex; align-items: center; padding: 8px 16px; cursor: pointer; gap: 8px; font-size: 13px; color: #e0e0e0; border-bottom: 1px solid #232323; }
+  .sidebar-item:hover { background: #2a2a2a; }
+  .sidebar-item .name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sidebar-item .age { color: #86909c; font-size: 11px; flex: 0 0 auto; }
+  .sidebar-item .kill { flex: 0 0 auto; color: #86909c; padding: 0 6px; border-radius: 3px; cursor: pointer; line-height: 1; font-size: 14px; opacity: 0; transition: opacity 0.15s; }
+  .sidebar-item:hover .kill { opacity: 1; }
+  .sidebar-item .kill:hover { background: #f53f3f; color: #fff; }
+  /* 遮罩 */
+  .sidebar-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 1400; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .sidebar-mask.open { opacity: 1; pointer-events: auto; }
   .term-container { flex: 1; position: relative; background: #000; overflow: hidden; }
   .term-pane { position: absolute; inset: 0; padding: 8px; display: none; }
   .term-pane.active { display: block; }
@@ -52,6 +80,7 @@
     <span class="badge" id="user-badge" style="color:#165dff">用户: -</span>
     <span class="badge" id="shell-badge" style="color:#666">shell: -</span>
     <div class="spacer"></div>
+    <button id="sidebar-toggle" title="后台会话" onclick="toggleSidebar()">≡ <span class="badge" id="sidebar-count" style="margin-left:2px">0</span></button>
     <button onclick="closeAllSessions()">关闭全部</button>
   </div>
   <div class="tabs" id="tabs"></div>
@@ -145,11 +174,12 @@ function renderTabs() {
   tabsEl.innerHTML = '';
   sessions.forEach(tab => {
     const el = document.createElement('div');
-    el.className = 'tab' + (tab.active ? ' active' : '') + (tab.exited ? ' exited' : '');
+    const detachedCls = tab.detached ? ' detached' : '';
+    el.className = 'tab' + (tab.active ? ' active' : '') + (tab.exited ? ' exited' : '') + detachedCls;
     el.onclick = () => activate(tab.id);
-    // 双击 tab 名 → 重命名
-    el.querySelector && null; // placeholder
-    el.innerHTML = `<span class="title" ondblclick="event.stopPropagation();renameTab('${tab.id}')" title="双击重命名">${escapeHtml(tab.title)}</span><span class="close" onclick="event.stopPropagation();closeSession('${tab.id}')">×</span>`;
+    el.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, tab.id); };
+    // 双击 tab 名 → 重命名；× hover 时才显示
+    el.innerHTML = `<span class="title" ondblclick="event.stopPropagation();renameTab('${tab.id}')" title="双击重命名">${escapeHtml(tab.title)}</span><span class="close" onclick="event.stopPropagation();closeSession('${tab.id}')" title="${tab.detached ? '关闭（进程继续在后台）' : '关闭'}">×</span>`;
     tab.tabEl = el;
     tabsEl.appendChild(el);
   });
@@ -371,24 +401,52 @@ function activeTab() {
   return null;
 }
 
+// 关 tab 行为：
+// - 普通 active session (tab.detached=false) → 真杀（不期望后台运行）
+// - 持久 tab (tab.detached=true)              → 重新 detach（tab 移除，session 进 sidebar）
 async function closeSession(id) {
-  if (sessions.has(id)) {
+  if (!sessions.has(id)) return;
+  const tab = sessions.get(id);
+  if (tab.ws) { tab.ws.close(); tab.ws = null; }
+  try {
+    if (tab.detached) {
+      // 已经 detached: server 端其实已经 detached, 这里只是把 tab 从前端移除
+      // session 已经在 sidebar 里 (server 端), 不需要再调接口
+    } else {
+      // 普通 session: 关 tab = 真杀（用户明确要关）
+      await fetch(API + '/api/sessions/' + id + '/kill', { method: 'POST' });
+    }
+  } catch (e) { /* ignore */ }
+  if (tab.paneEl) tab.paneEl.remove();
+  sessions.delete(id);
+  renderTabs();
+  updateCount();
+  if (sessions.size > 0) {
+    const first = sessions.values().next().value;
+    activate(first.id);
+  } else {
+    document.getElementById('status-session').textContent = '无';
+    document.getElementById('status-size').textContent = '—';
+    document.getElementById('status-shell').textContent = '—';
+  }
+  loadSidebar();
+}
+
+// 真杀所有 session（包括 detached）
+async function closeAllSessions() {
+  if (!confirm('关闭所有会话？已保存到后台的 session 也会被杀死。')) return;
+  try {
+    await fetch(API + '/api/sessions/kill-all', { method: 'POST' });
+  } catch (e) {}
+  for (const id of [...sessions.keys()]) {
     const tab = sessions.get(id);
-    if (tab.ws) tab.ws.close();
-    try { await fetch(API + '/api/sessions/' + id, { method: 'DELETE' }); } catch (e) {}
+    if (tab.ws) { tab.ws.close(); tab.ws = null; }
     if (tab.paneEl) tab.paneEl.remove();
     sessions.delete(id);
-    renderTabs();
-    updateCount();
-    if (sessions.size > 0) {
-      const first = sessions.values().next().value;
-      activate(first.id);
-    } else {
-      document.getElementById('status-session').textContent = '无';
-      document.getElementById('status-size').textContent = '—';
-      document.getElementById('status-shell').textContent = '—';
-    }
   }
+  renderTabs();
+  updateCount();
+  loadSidebar();
 }
 
 async function closeAllSessions() {
@@ -401,6 +459,206 @@ async function closeAllSessions() {
 
 function updateCount() {
   document.getElementById('session-count').textContent = sessions.size + ' 个会话';
+  loadSidebar();
+}
+
+// ============== 右侧栏 (后台 detached sessions) ==============
+
+async function loadSidebar() {
+  try {
+    const r = await fetch(API + '/api/sessions?include_detached=true');
+    const all = await r.json();
+    const detached = all.filter(s => s.detached);
+    document.getElementById('sidebar-count').textContent = detached.length;
+    document.getElementById('sidebar-count-badge').textContent = detached.length;
+    const listEl = document.getElementById('sidebar-list');
+    if (detached.length === 0) {
+      listEl.innerHTML = '<div class="empty">暂无后台会话</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    detached.forEach(s => {
+      const age = formatAge(s.detached_at);
+      const el = document.createElement('div');
+      el.className = 'sidebar-item';
+      el.title = `用户: ${s.user} | shell: ${s.user_shell || s.shell} | PID: ${s.pid || '-'} | 分离于: ${s.detached_at}`;
+      el.innerHTML = `<span class="name">${escapeHtml(s.title)}</span><span class="age">${age}</span><span class="kill" onclick="event.stopPropagation();killSession('${s.id}')" title="彻底杀死 (杀进程)">×</span>`;
+      el.onclick = () => attachFromSidebar(s.id);
+      listEl.appendChild(el);
+    });
+  } catch (e) {
+    // ignore
+  }
+}
+
+function formatAge(ts) {
+  if (!ts) return '';
+  // ts 格式 "2026-06-22 10:30:00"
+  const parts = ts.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  if (!parts) return '';
+  const t = new Date(+parts[1], +parts[2] - 1, +parts[3], +parts[4], +parts[5], +parts[6]).getTime();
+  const diff = Math.max(0, Date.now() - t);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return '刚刚';
+  if (m < 60) return m + 'm';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h' + (m % 60) + 'm';
+  const d = Math.floor(h / 24);
+  return d + 'd' + (h % 24) + 'h';
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const mask = document.getElementById('sidebar-mask');
+  if (sb.classList.contains('open')) {
+    sb.classList.remove('open');
+    mask.classList.remove('open');
+  } else {
+    sb.classList.add('open');
+    mask.classList.add('open');
+    loadSidebar();
+  }
+}
+
+// 从 sidebar 恢复 session (复用现有 session + 新建 ws)
+async function attachFromSidebar(id) {
+  if (sessions.has(id)) {
+    // 已经在 tab 里 (别的 tab 也 attach 了)
+    activate(id);
+    toggleSidebar();
+    return;
+  }
+  try {
+    const r = await fetch(API + '/api/sessions/' + id + '/attach', { method: 'POST' });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('恢复失败: ' + e.error, 'error');
+      return;
+    }
+    const info = await r.json();
+    const tab = new Tab(info.id);
+    tab.title = info.title;
+    tab.cols = info.cols;
+    tab.rows = info.rows;
+    tab.shell = info.shell;
+    tab.detached = false;  // attached 后变 active
+    tab.userShell = info.user_shell;
+    sessions.set(info.id, tab);
+    activate(info.id);
+    connectWS(tab);
+    updateCount();
+    toggleSidebar();
+    toast('已恢复: ' + info.title, 'success');
+  } catch (e) {
+    toast('恢复失败: ' + e.message, 'error');
+  }
+}
+
+// 彻底杀死 detached session (从 sidebar)
+async function killSession(id) {
+  if (!confirm('彻底结束这个后台会话？（杀进程）')) return;
+  try {
+    const r = await fetch(API + '/api/sessions/' + id + '/kill', { method: 'POST' });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('结束失败: ' + e.error, 'error');
+      return;
+    }
+    // 如果 tab 还开着, 关掉
+    if (sessions.has(id)) await closeSession(id);
+    loadSidebar();
+    toast('已结束会话', 'success');
+  } catch (e) {
+    toast('结束失败: ' + e.message, 'error');
+  }
+}
+
+// 把当前 active session 保存到后台 (tab 关闭, session 进 sidebar)
+async function saveToBackground(id) {
+  id = id || (activeTab() && activeTab().id);
+  if (!id) return;
+  const tab = sessions.get(id);
+  if (!tab) return;
+  if (tab.detached) {
+    toast('这个 session 已经在后台', 'info');
+    return;
+  }
+  try {
+    const r = await fetch(API + '/api/sessions/' + id + '/detach', { method: 'POST' });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('保存失败: ' + e.error, 'error');
+      return;
+    }
+    // tab 标 detached, 不关 tab (用户可以继续看)
+    tab.detached = true;
+    const info = await r.json();
+    tab.title = info.title;
+    renderTabs();
+    loadSidebar();
+    toast('已保存到后台，进程继续运行', 'success');
+  } catch (e) {
+    toast('保存失败: ' + e.message, 'error');
+  }
+}
+
+// ============== 右键菜单 ==============
+
+let currentCtxTabId = null;
+
+function showContextMenu(e, id) {
+  currentCtxTabId = id;
+  const tab = sessions.get(id);
+  if (!tab) return;
+  const host = document.getElementById('ctx-menu-host');
+  host.innerHTML = '';
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  const detachedItem = tab.detached
+    ? `<div class="item" onclick="ctxAction('re-detach')">重新保存到后台</div>`
+    : `<div class="item" onclick="ctxAction('detach')">保存到后台 (继续运行)</div>`;
+  menu.innerHTML = `
+    ${detachedItem}
+    <div class="sep"></div>
+    <div class="item" onclick="ctxAction('rename')">重命名</div>
+    <div class="item" onclick="ctxAction('close')">关闭标签</div>
+    ${tab.detached ? `<div class="sep"></div><div class="item" onclick="ctxAction('kill')" style="color:#f53f3f">彻底结束 (杀进程)</div>` : ''}
+  `;
+  host.appendChild(menu);
+  // 点击其他地方关掉
+  setTimeout(() => {
+    document.addEventListener('click', closeContextMenu, { once: true });
+  }, 0);
+}
+
+function closeContextMenu() {
+  const host = document.getElementById('ctx-menu-host');
+  if (host) host.innerHTML = '';
+}
+
+async function ctxAction(action) {
+  closeContextMenu();
+  const id = currentCtxTabId;
+  if (!id) return;
+  const tab = sessions.get(id);
+  if (!tab) return;
+  switch (action) {
+    case 'detach':
+    case 're-detach':
+      await saveToBackground(id);
+      break;
+    case 'rename':
+      renameTab(id);
+      break;
+    case 'close':
+      await closeSession(id);
+      break;
+    case 'kill':
+      await killSession(id);
+      break;
+  }
 }
 
 // 设置弹窗已移除（用户要求）：shell/user 自动检测，max_sessions 用默认值 8
@@ -452,5 +710,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   newSession();
 });
 </script>
+
+<!-- 右侧栏：后台 detached sessions -->
+<div class="sidebar-mask" id="sidebar-mask" onclick="toggleSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h3>后台会话 <span class="count" id="sidebar-count-badge">0</span></h3>
+    <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+  </div>
+  <div class="sidebar-list" id="sidebar-list">
+    <div class="empty">暂无后台会话</div>
+  </div>
+</div>
+
+<!-- 右键菜单容器（动态插入） -->
+<div id="ctx-menu-host"></div>
+</body>
+</html>
 </body>
 </html>
