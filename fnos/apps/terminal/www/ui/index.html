@@ -881,25 +881,75 @@ function showContextMenu(e, id) {
   host.innerHTML = '';
   const menu = document.createElement('div');
   menu.className = 'ctx-menu';
-  menu.style.left = e.clientX + 'px';
-  menu.style.top = e.clientY + 'px';
+  // 防止菜单超出右边界
+  menu.style.left = Math.min(e.clientX, window.innerWidth - 220) + 'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight - 250) + 'px';
   const detachedItem = tab.detached
-    ? `<div class="item" onclick="ctxAction('re-detach')">重新保存到后台</div>`
-    : `<div class="item" onclick="ctxAction('detach')">保存到后台 (继续运行)</div>`;
-  // "在当前 session 运行脚本" 子菜单: 用 ctx-submenu 容器
-  // 但需要异步加载 scripts 数据, 所以先 build 容器, 再 fetch
-  const runScriptItem = `<div class="item ctx-submenu" data-action="run-script" onclick="openScriptsSubmenu(event, this)">在当前 session 运行脚本 ▶</div>`;
+    ? `<div class="item" data-action="re-detach">重新保存到后台</div>`
+    : `<div class="item" data-action="detach">保存到后台 (继续运行)</div>`;
+  // "在当前 session 运行脚本" 父菜单: hover 展开子菜单
+  const runScriptItem = `<div class="item ctx-submenu" data-action="run-script-parent">在当前 session 运行脚本 ▶</div>`;
   menu.innerHTML = `
     ${detachedItem}
     <div class="sep"></div>
     ${runScriptItem}
-    <div class="item" onclick="ctxAction('rename')">重命名</div>
-    <div class="item" onclick="ctxAction('close')">关闭标签</div>
-    ${tab.detached ? `<div class="sep"></div><div class="item" onclick="ctxAction('kill')" style="color:#f53f3f">彻底结束 (杀进程)</div>` : ''}
+    <div class="sep"></div>
+    <div class="item" data-action="rename">重命名</div>
+    <div class="item" data-action="close">关闭标签</div>
+    ${tab.detached ? `<div class="sep"></div><div class="item" data-action="kill" style="color:#f53f3f">彻底结束 (杀进程)</div>` : ''}
   `;
   host.appendChild(menu);
-  // 异步加载 scripts 到子菜单
+
+  // 绑定 ctx-menu 项 click (用 event delegation)
+  menu.addEventListener('click', (ev) => {
+    const item = ev.target.closest('.item');
+    if (!item) return;
+    // 子菜单父项 click = 不关闭 (hover 触发)
+    if (item.classList.contains('ctx-submenu')) return;
+    const action = item.dataset.action;
+    if (action) {
+      ev.stopPropagation();
+      closeContextMenu();
+      ctxAction(action);
+    }
+  });
+
+  // 异步加载 scripts 到 submenu
   loadScriptsIntoCtxMenu(menu);
+
+  // hover 父菜单项展开子菜单
+  const subParent = menu.querySelector('[data-action="run-script-parent"]');
+  if (subParent) {
+    let leaveTimer = null;
+    const openSub = () => {
+      if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
+      subParent.classList.add('open');
+    };
+    const closeSubDelayed = () => {
+      if (leaveTimer) clearTimeout(leaveTimer);
+      leaveTimer = setTimeout(() => {
+        subParent.classList.remove('open');
+        leaveTimer = null;
+      }, 200);  // 200ms 延迟让用户移过去点击子项
+    };
+    subParent.addEventListener('mouseenter', openSub);
+    subParent.addEventListener('mouseleave', closeSubDelayed);
+    // 子菜单容器 hover 也保持展开
+    const submenuContainer = subParent.querySelector('.submenu');
+    if (submenuContainer) {
+      submenuContainer.addEventListener('mouseenter', openSub);
+      submenuContainer.addEventListener('mouseleave', closeSubDelayed);
+      // 子菜单项 click
+      submenuContainer.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const subItem = ev.target.closest('.item');
+        if (!subItem || !subItem.dataset.sid) return;
+        closeContextMenu();
+        runScriptInActiveSession(subItem.dataset.sid);
+      });
+    }
+  }
+
   // 点击其他地方关掉
   setTimeout(() => {
     document.addEventListener('click', closeContextMenu, { once: true });
@@ -916,7 +966,7 @@ async function loadScriptsIntoCtxMenu(menu) {
       ctxScriptsLoaded = true;
     } catch (e) { ctxScripts = []; }
   }
-  const sub = menu.querySelector('.ctx-submenu');
+  const sub = menu.querySelector('[data-action="run-script-parent"]');
   if (!sub) return;
   // 创建 submenu 容器
   let submenu = sub.querySelector('.submenu');
@@ -927,42 +977,21 @@ async function loadScriptsIntoCtxMenu(menu) {
   }
   submenu.innerHTML = '';
   if (ctxScripts.length === 0) {
-    submenu.innerHTML = '<div class="item" style="color:#666">暂无脚本,先创建</div>';
+    const empty = document.createElement('div');
+    empty.className = 'item';
+    empty.style.color = '#666';
+    empty.style.cursor = 'default';
+    empty.textContent = '暂无脚本,先创建';
+    submenu.appendChild(empty);
     return;
   }
   ctxScripts.forEach(s => {
     const item = document.createElement('div');
     item.className = 'item';
+    item.dataset.sid = s.id;
     item.textContent = s.name;
-    item.onclick = (ev) => { ev.stopPropagation(); closeContextMenu(); runScriptInActiveSession(s.id); };
     submenu.appendChild(item);
   });
-}
-
-// hover "在当前 session 运行脚本" → 打开 submenu
-function openScriptsSubmenu(e, el) {
-  e.stopPropagation();
-  e.preventDefault();
-  // 关闭其他 submenu
-  const allSubs = el.parentElement.querySelectorAll('.ctx-submenu');
-  allSubs.forEach(s => { if (s !== el) s.classList.remove('open'); });
-  el.classList.toggle('open');
-  // 阻止 menu 关闭 (因为 click 监听会关掉)
-  if (el.classList.contains('open')) {
-    // 重置 close-once 监听 (因为 hover 触发 click 在 setTimeout 内)
-    setTimeout(() => {
-      // 用 capture 拦截后续 click
-      document.addEventListener('click', function preventClose(e) {
-        if (el.contains(e.target) || (el.querySelector('.submenu') && el.querySelector('.submenu').contains(e.target))) {
-          e.stopPropagation();
-        }
-      }, { capture: true, once: false });
-      // 30s 后清理
-      setTimeout(() => {
-        document.removeEventListener('click', preventClose, { capture: true });
-      }, 30000);
-    }, 0);
-  }
 }
 
 function closeContextMenu() {

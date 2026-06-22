@@ -151,8 +151,8 @@ func (s *Session) start() error {
 }
 
 // startWithCmd 启动一个 session 跑指定的 script (不走 login shell, 用 -c 直接跑)
-// 脚本跑完后 session exited, 适合"一次性脚本"场景
-// 注意: bash 不支持同时 -l + -c, 用纯 -c (通过 env 设 HOME 等模拟 login 环境)
+// 脚本跑完后 exec $SHELL -i 进入 interactive shell, 这样 terminal 仍可继续输入
+// 注意: bash 不支持同时 -l + -c, 用纯 -c
 func (s *Session) startWithCmd(scriptCmd string) error {
 	u, err := lookupUser(s.User)
 	if err != nil {
@@ -162,7 +162,12 @@ func (s *Session) startWithCmd(scriptCmd string) error {
 	if shell == "" {
 		shell = "/bin/bash"
 	}
-	return s.startInternal(shell, []string{"-c", scriptCmd}, true)
+	// 包一层: script 跑完后 exec 进入 user login shell (-i 强制 interactive, 避免 ohmyzsh 退出)
+	// 例如 bash -c "echo hi; exec bash -i"
+	//     zsh -c "echo hi; exec zsh -i"
+	// exec 替换进程, 不创建新进程组, PTY 仍持有
+	wrappedCmd := scriptCmd + "; exec " + shell + " -i"
+	return s.startInternal(shell, []string{"-c", wrappedCmd}, true)
 }
 
 // startInternal 内部启动逻辑, isScript=true 时为脚本模式 (-c)
