@@ -1,5 +1,5 @@
 appname         = scheduler
-version         = 0.0.0
+version         = 0.1.0
 display_name    = 计划任务
 platform        = x86
 maintainer      = diy4nas
