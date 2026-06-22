@@ -887,8 +887,8 @@ function showContextMenu(e, id) {
   const detachedItem = tab.detached
     ? `<div class="item" data-action="re-detach">重新保存到后台</div>`
     : `<div class="item" data-action="detach">保存到后台 (继续运行)</div>`;
-  // "在当前 session 运行脚本" 父菜单: hover 展开子菜单
-  const runScriptItem = `<div class="item ctx-submenu" data-action="run-script-parent">在当前 session 运行脚本 ▶</div>`;
+  // 父菜单: hover 展开子菜单
+  const runScriptItem = `<div class="item ctx-submenu" data-action="run-script-parent">脚本 ▶</div>`;
   menu.innerHTML = `
     ${detachedItem}
     <div class="sep"></div>
@@ -956,7 +956,7 @@ function showContextMenu(e, id) {
   }, 0);
 }
 
-// 把 scripts 列表加载到 ctx-menu 里的 submenu (鼠标 hover "在当前 session 运行脚本" 时展开)
+// 把 scripts 列表加载到 ctx-menu 里的 submenu (鼠标 hover "脚本" 时展开)
 let ctxScriptsLoaded = false;
 let ctxScripts = [];
 async function loadScriptsIntoCtxMenu(menu) {
