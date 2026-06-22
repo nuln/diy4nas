@@ -139,6 +139,8 @@ class Tab {
     this.shell = '';
     this.tabEl = null;
     this.active = false;
+    this.detached = false;   // backend session 是否 detached
+    this.persistent = false; // 用户主动标记为持久（关 tab 永远进 sidebar，不杀）
   }
 }
 
@@ -402,18 +404,19 @@ function activeTab() {
 }
 
 // 关 tab 行为：
-// - 普通 active session (tab.detached=false) → 真杀（不期望后台运行）
-// - 持久 tab (tab.detached=true)              → 重新 detach（tab 移除，session 进 sidebar）
+// - 持久 tab (tab.persistent=true, 用户标记过)  → 重新 detach 进 sidebar（不杀进程）
+// - 普通 active session (tab.persistent=false)    → 真杀
 async function closeSession(id) {
   if (!sessions.has(id)) return;
   const tab = sessions.get(id);
   if (tab.ws) { tab.ws.close(); tab.ws = null; }
   try {
-    if (tab.detached) {
-      // 已经 detached: server 端其实已经 detached, 这里只是把 tab 从前端移除
-      // session 已经在 sidebar 里 (server 端), 不需要再调接口
+    if (tab.persistent) {
+      // 持久: 关 tab 永远只 detach，不杀
+      // server 可能已经是 detached（saveToBackground 调过），再调一次是 no-op
+      await fetch(API + '/api/sessions/' + id + '/detach', { method: 'POST' });
     } else {
-      // 普通 session: 关 tab = 真杀（用户明确要关）
+      // 普通: 真杀
       await fetch(API + '/api/sessions/' + id + '/kill', { method: 'POST' });
     }
   } catch (e) { /* ignore */ }
@@ -541,14 +544,15 @@ async function attachFromSidebar(id) {
     tab.cols = info.cols;
     tab.rows = info.rows;
     tab.shell = info.shell;
-    tab.detached = false;  // attached 后变 active
+    // sidebar 来的 = 持久 tab (关 tab 永远进 sidebar, 不杀)
+    tab.persistent = true;
     tab.userShell = info.user_shell;
     sessions.set(info.id, tab);
     activate(info.id);
     connectWS(tab);
     updateCount();
     toggleSidebar();
-    toast('已恢复: ' + info.title, 'success');
+    toast('已恢复: ' + info.title + ' (持久会话)', 'success');
   } catch (e) {
     toast('恢复失败: ' + e.message, 'error');
   }
@@ -590,13 +594,14 @@ async function saveToBackground(id) {
       toast('保存失败: ' + e.error, 'error');
       return;
     }
-    // tab 标 detached, 不关 tab (用户可以继续看)
+    // 标 persistent = 关 tab 永远进 sidebar, 不杀
+    tab.persistent = true;
     tab.detached = true;
     const info = await r.json();
     tab.title = info.title;
     renderTabs();
     loadSidebar();
-    toast('已保存到后台，进程继续运行', 'success');
+    toast('已保存到后台 (持久会话)，关 tab 也不会被杀', 'success');
   } catch (e) {
     toast('保存失败: ' + e.message, 'error');
   }

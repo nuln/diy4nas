@@ -168,6 +168,9 @@ func (s *Session) start() error {
 		"LOGNAME=" + s.User,
 		"SHELL=" + s.Shell,
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		// 显式关掉 zsh 的 PROMPT_EOL_MARK，避免 attach 时每条命令后多一个 % (SIGWINCH 触发)
+		"PROMPT_EOL_MARK=",
+		"PROMPT_SP=",
 	}
 	cmd.Dir = u.home
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -364,15 +367,13 @@ func (s *Session) detach() {
 	s.mu.Unlock()
 }
 
-// reattach 重新 attach（从 sidebar 恢复时调用）
-// 实际上 attach 是新 ws 连接（handleWS 已支持 attach 已有 session）
-// 这个函数主要用于重置 detached 状态
+// reattach 重新 attach（从 sidebar 恢复时调用，no-op，因为前端 tab.persistent 决定后续行为）
+// 我们保留 detached=true，这样 server 端知道"有 client attach 但仍标 persistent"
 func (s *Session) reattach() {
 	s.mu.Lock()
-	if !s.exited && s.detached {
-		s.detached = false
-	}
+	// 不重置 detached — 持久 tab 关掉时还要再 detach
 	s.mu.Unlock()
+	_ = s
 }
 
 func (s *Session) close() {

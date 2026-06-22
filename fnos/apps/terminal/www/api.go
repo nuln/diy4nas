@@ -308,7 +308,8 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	cols, rows := readIntParam(r, "cols", s.Cols), readIntParam(r, "rows", s.Rows)
-	if cols > 0 && rows > 0 {
+	// 只在尺寸真变化时才 resize (避免每次 attach 都触发 SIGWINCH 导致 zsh 画 PROMPT_EOL_MARK %)
+	if cols > 0 && rows > 0 && (cols != s.Cols || rows != s.Rows) {
 		s.resize(cols, rows)
 	}
 
@@ -352,7 +353,8 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 			if err := json.Unmarshal(data, &msg); err == nil {
 				switch msg.Type {
 				case WSMsgResize:
-					if msg.Cols > 0 && msg.Rows > 0 {
+					// 只在尺寸真变化时才 resize (避免频繁触发 SIGWINCH)
+					if msg.Cols > 0 && msg.Rows > 0 && (msg.Cols != s.Cols || msg.Rows != s.Rows) {
 						s.resize(msg.Cols, msg.Rows)
 					}
 				case WSMsgInput:
