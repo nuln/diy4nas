@@ -303,7 +303,7 @@ cat << 'HTM'
 </div>
 
 <script>
-const API = 'api.cgi';
+const API = '/api';
 let jobsCache = [];
 let runsCache = [];
 let logEventSource = null;
@@ -360,19 +360,8 @@ function toast(msg, type) {
 }
 
 async function api(path, opts) {
-  // 通过 fnOS CGI 代理：api.cgi?path=/api/xxx&_method=GET
-  const method = (opts && opts.method) || 'GET';
-  const params = new URLSearchParams();
-  params.set('path', path);
-  if (method !== 'GET') params.set('_method', method);
-  const url = API + '?' + params.toString();
-  const fetchOpts = { method: method };
-  if (opts && opts.body) {
-    fetchOpts.headers = { 'Content-Type': 'application/json' };
-    fetchOpts.body = opts.body;
-  }
   try {
-    const r = await fetch(url, fetchOpts);
+    const r = await fetch(API + path, opts);
     if (!r.ok) {
       const e = await r.json().catch(() => ({ error: r.statusText }));
       throw new Error(e.error || r.statusText);
@@ -569,7 +558,7 @@ function viewRunLog(id) {
   document.getElementById('log-status').textContent = '';
   document.getElementById('log-modal').style.display = 'flex';
   if (logEventSource) { logEventSource.close(); logEventSource = null; }
-  logEventSource = new EventSource(API + '?path=/api/runs/' + id + '/log');
+  logEventSource = new EventSource(API + '/runs/' + id + '/log');
   const content = document.getElementById('log-content');
   content.textContent = '';
   logEventSource.addEventListener('stdout', e => { appendLog(content, e.data, 'log-stdout'); });
@@ -636,7 +625,7 @@ async function cleanupRuns() {
 
 async function loadServerLog() {
   try {
-    const r = await fetch(API + '?path=/api/log&lines=200');
+    const r = await fetch(API + '/log?lines=200');
     const text = await r.text();
     document.getElementById('server-log').textContent = text || '（无日志）';
   } catch (e) {
