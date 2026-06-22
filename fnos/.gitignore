@@ -1,0 +1,28 @@
+# 构建产物
+dist/*.fpk
+*.tgz
+
+# 临时文件
+*.tmp
+*.swp
+.DS_Store
+__pycache__/
+*.pyc
+
+# 引用外部资源缓存
+fnos/apps/*/app/.app-cgo
+fnos/apps/*/www/go.sum.tmp
+
+# 容器测试残留
+fnos/fnos-terminal-new
+fnos/fnos-*-new
+
+# 已 build 的二进制（build.sh 重新编译）
+fnos/apps/*/fnos-terminal
+fnos/apps/*/fnos-mihomo
+fnos/apps/*/fnos-tailscale
+fnos/apps/*/fnos-scheduler
+fnos/apps/*/app/fnos-terminal
+fnos/apps/*/app/fnos-mihomo
+fnos/apps/*/app/fnos-tailscale
+fnos/apps/*/app/fnos-scheduler

@@ -1,0 +1,18 @@
+{
+    ".url": {
+        "terminal.Application": {
+            "title": "网页终端",
+            "desc": "纯 Go 实现的 Web 终端（无 ttyd/tmux 依赖）",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "port": "7682",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true,
+            "width": 1100,
+            "height": 720,
+            "minWidth": 800,
+            "minHeight": 500
+        }
+    }
+}

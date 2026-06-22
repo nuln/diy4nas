@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Mihomo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0f17;--bg2:#131822;--bg3:#1c2333;--card:#1a2130;--fg:#e8edf5;--fg2:#8892b0;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--radius:12px}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);display:flex;flex-direction:column}
+.hd{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px;max-width:960px;margin:0 auto;width:100%}
+.hd h1{font-size:1.15rem;font-weight:700;display:flex;align-items:center;gap:8px}
+.st{font-size:.72rem;padding:4px 12px;border-radius:20px;font-weight:500}
+.st.on{background:rgba(34,197,94,.12);color:var(--green)}.st.off{background:rgba(239,68,68,.12);color:var(--red)}
+.ct{flex:1;display:flex;flex-direction:column;padding:8px 14px 72px;max-width:960px;margin:0 auto;width:100%;overflow-y:auto}
+.pt{display:none}.pt.act{display:block;animation:fade .2s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.cd{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.04)}
+.cd h3{font-size:.82rem;font-weight:600;margin-bottom:10px;color:var(--fg2);letter-spacing:.3px}
+#pt-cf.act{display:flex;flex-direction:column;flex:1}
+#pt-lg.act{display:flex;flex-direction:column;flex:1}
+.pf-list{display:inline;margin-bottom:10px}
+.pf-item{display:inline-block;background:var(--bg3);border-radius:6px;padding:4px 9px;margin:3px 3px 3px 0;cursor:pointer;border:1.5px solid transparent;transition:border-color .15s,background .15s;font-size:.78rem;white-space:nowrap;line-height:1.5}
+.pf-item:hover{background:#1e2a3d}
+.pf-item.sel{border-color:var(--blue)}
+.pf-item.act{border-color:var(--green)}
+.pf-icon{font-size:.82rem;vertical-align:middle;margin-right:2px}.pf-name{vertical-align:middle}
+.editor-wrap{flex:1;display:flex;flex-direction:column;min-height:200px}
+.editor-wrap textarea{flex:1;width:100%;padding:9px 11px;background:var(--bg3);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--fg);font-size:.78rem;font-family:monospace;resize:none;min-height:200px;outline:none;transition:border-color .2s}
+.editor-wrap textarea:focus{border-color:var(--blue)}
+.editor-wrap .editor-err{font-size:.72rem;color:var(--red);margin-top:4px;min-height:1.2em}
+.sw-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sw-item:last-child{border-bottom:none}
+.sw-item .sw-l{font-size:.82rem;font-weight:500}
+.sw-item .sw-d{font-size:.68rem;color:var(--fg2);margin-top:2px}
+.sw{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;margin-left:12px}
+.sw input{opacity:0;width:0;height:0}
+.sw-sl{position:absolute;cursor:pointer;inset:0;background:var(--bg3);border-radius:24px;transition:.3s}
+.sw-sl:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:var(--fg2);border-radius:50%;transition:.3s}
+.sw input:checked+.sw-sl{background:var(--blue)}
+.sw input:checked+.sw-sl:before{background:#fff;transform:translateX(20px)}
+#lg-tab-app.act,#lg-tab-mihomo.act{background:var(--blue);color:#fff}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.si{background:var(--bg3);border-radius:10px;padding:12px;text-align:center}
+.si .l{font-size:.65rem;color:var(--fg2);margin-bottom:2px}.si .v{font-size:.95rem;font-weight:600}
+#ch{width:100%;height:100px;border-radius:8px;background:var(--bg3);display:block;margin:6px 0 2px}
+.lb{background:var(--bg3);border-radius:8px;padding:10px;font:13px/1.5 monospace;color:var(--fg2);white-space:pre-wrap;word-wrap:break-word;max-height:300px;overflow-y:auto;margin-top:6px;text-align:left}
+.p-box{background:var(--bg3);border-radius:8px;padding:8px 10px;margin-bottom:4px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.p-box .p-l{display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0}
+.p-box .pn{font-weight:500;font-size:.8rem;white-space:nowrap}
+.p-box .pt{font-size:.6rem;color:var(--fg2);background:var(--bg);padding:1px 6px;border-radius:8px;white-space:nowrap}
+.p-box .pl{font-size:.72rem;color:var(--green);white-space:nowrap;margin-left:auto}
+.p-opt{width:100%;padding:6px 0 2px;display:flex;flex-wrap:wrap;gap:4px;border-top:1px solid rgba(255,255,255,.05);margin-top:6px}
+.p-opt a{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.68rem;cursor:pointer;background:var(--bg2);color:var(--fg2);transition:all .12s;text-decoration:none}
+.p-opt a:hover{background:rgba(59,130,246,.15);color:var(--blue)}
+.p-opt a.act{background:rgba(34,197,94,.15);color:var(--green);font-weight:600}
+.bn{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);display:flex;border-top:1px solid rgba(255,255,255,.05);padding:4px 0 env(safe-area-inset-bottom)}
+.bn a{flex:1;text-align:center;padding:5px 2px;font-size:.58rem;color:var(--fg2);text-decoration:none;cursor:pointer}
+.bn a.act{color:var(--blue)}
+.bn a svg{display:block;margin:0 auto 2px;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btnw{width:100%;padding:9px;border:none;border-radius:8px;font-size:.8rem;font-weight:500;cursor:pointer;margin-top:4px}
+.btnw.p{background:var(--blue);color:#fff}.btnw.d{background:rgba(239,68,68,.15);color:var(--red)}.btnw.s{background:var(--bg3);color:var(--fg2)}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border:none;border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn.p{background:var(--blue);color:#fff}.btn.d{background:rgba(239,68,68,.15);color:var(--red)}.btn.s{background:var(--bg3);color:var(--fg2)}
+.tb{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+.dv{background:var(--bg3);border-radius:8px;padding:10px;text-align:center}
+.dv .n{font-size:.8rem;font-weight:500}.dv .tp{font-size:.68rem;color:var(--fg2);margin-top:2px}
+.flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal-box{background:var(--card);border-radius:var(--radius);padding:20px;width:90%;max-width:400px;border:1px solid rgba(255,255,255,.08)}
+.modal-box h3{font-size:.95rem;margin-bottom:14px}
+.modal-box label{display:block;font-size:.8rem;color:var(--fg2);margin-bottom:6px}
+.modal-box input{width:100%;padding:8px 12px;background:var(--bg3);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--fg);font-size:.85rem;outline:none;margin-bottom:12px}
+.modal-box input:focus{border-color:var(--blue)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1c2333;color:#e8edf5;padding:10px 18px;border-radius:8px;font-size:.8rem;z-index:999;pointer-events:none;max-width:90%;text-align:center}
+</style>
+</head>
+<body>
+<div class="hd"><h1><span class="dot" id="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%"></span> Mihomo</h1><span id="st" class="st off">停止</span></div>
+<div class="ct">
+
+<div id="pt-ov" class="pt act">
+<div class="cd"><h3>运行状态</h3><div class="sg" id="sg"></div></div>
+<div class="cd"><h3>实时流量</h3><canvas id="ch"></canvas></div>
+<div class="cd"><h3>代理组</h3><div id="proxy-groups"></div></div>
+<div class="cd" id="st-cd"><h3>设置</h3>
+<div class="sw-item"><div><div class="sw-l">启用 Mihomo 服务</div><div class="sw-d">启动或停止 Mihomo 代理进程</div></div><label class="sw"><input type="checkbox" id="sw-service" onchange="toggleService(this)"><span class="sw-sl"></span></label></div>
+<div class="sw-item"><div><div class="sw-l">TUN 模式</div><div class="sw-d">透明代理，所有流量经过 Mihomo（需重启服务）</div></div><label class="sw"><input type="checkbox" id="sw-tun" onchange="saveSettings()"><span class="sw-sl"></span></label></div>
+<div class="sw-item"><div><div class="sw-l">仅本地连接</div><div class="sw-d">仅允许 127.0.0.1:7890 本地访问代理</div></div><label class="sw"><input type="checkbox" id="sw-local" onchange="saveSettings()"><span class="sw-sl"></span></label></div>
+<div class="sw-item"><div><div class="sw-l">系统代理</div><div class="sw-d">设置 HTTP_PROXY 环境变量到 127.0.0.1:7890</div></div><label class="sw"><input type="checkbox" id="sw-sysproxy" onchange="saveSettings()"><span class="sw-sl"></span></label></div>
+</div>
+</div>
+
+<div id="pt-cf" class="pt">
+<div class="cd" style="margin-bottom:10px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<h3 style="margin:0">配置方案</h3>
+<div style="display:flex;gap:4px">
+<button class="btn s" style="font-size:.7rem;padding:4px 8px" onclick="showNewProfileModal()">＋ 新建</button>
+<button class="btn s" style="font-size:.7rem;padding:4px 8px" onclick="showImportModal()">↗ 导入</button>
+<button class="btn d" style="font-size:.7rem;padding:4px 8px" id="btn-del-pf" onclick="deleteProfile()">✕ 删除</button>
+</div>
+</div>
+<div id="pf-list" class="pf-list"></div>
+</div>
+<div class="cd" style="flex:1;display:flex;flex-direction:column;margin-bottom:0">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<h3 style="margin:0" id="editor-title">编辑配置</h3>
+<div style="display:flex;gap:4px">
+<button class="btn s" style="font-size:.7rem;padding:4px 8px" onclick="loadCurrentProfile()">刷新</button>
+<button class="btn p" style="font-size:.7rem;padding:4px 10px" onclick="saveCurrentProfile()">保存</button>
+</div>
+</div>
+<div class="editor-wrap">
+<textarea id="cfg-editor" spellcheck="false" placeholder="选择一个配置方案进行编辑..."></textarea>
+<div class="editor-err" id="cfg-err"></div>
+</div>
+</div>
+</div>
+
+<div id="pt-lg" class="pt">
+<div class="cd" style="display:flex;flex-direction:column;flex:1;margin-bottom:0">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<div class="tb" style="display:flex;gap:4px">
+<a class="btn s" style="padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer" id="lg-tab-app" onclick="switchLogTab('app')">App 日志</a>
+<a class="btn s" style="padding:5px 14px;border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer" id="lg-tab-mihomo" onclick="switchLogTab('mihomo')">Mihomo 日志</a>
+</div>
+<div style="display:flex;gap:6px;align-items:center">
+<label style="display:flex;align-items:center;gap:4px;font-size:.7rem;color:var(--fg2);cursor:pointer"><input type="checkbox" id="lg-auto" onchange="toggleAutoLog()" checked>自动</label>
+<button class="btn s" onclick="loadLog()" id="lg-btn">刷新</button>
+</div>
+</div>
+<pre class="lb" id="lbox" style="flex:1;max-height:none;height:auto;margin-top:0">加载中...</pre>
+</div>
+</div>
+
+</div>
+
+<div class="bn">
+<a class="act" data-p="ov"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>概览</a>
+<a data-p="cf"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>配置</a>
+<a data-p="lg"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>日志</a>
+</div>
+
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+<div class="modal-box" onclick="event.stopPropagation()">
+<h3 id="modal-title">新建配置方案</h3>
+<label id="modal-label1">方案名称</label>
+<input id="modal-input1" placeholder="例如: my-config" autocomplete="off">
+<label id="modal-label2" style="display:none">订阅地址</label>
+<input id="modal-input2" placeholder="https://..." style="display:none" autocomplete="off">
+<div class="modal-btns">
+<button class="btn s" onclick="closeModal()">取消</button>
+<button class="btn p" id="modal-ok" onclick="modalAction()">确定</button>
+</div>
+</div>
+</div>
+
+<script>
+const $=x=>document.getElementById(x);
+const F=b=>{if(!b)return'0 B';const u=['B','KB','MB','GB'];let i=0,v=b;while(v>=1024&&i<3){v/=1024;i++}return v.toFixed(1)+' '+u[i]};
+const api=async(p,m,b)=>{try{const r=await fetch('/api/'+p,{method:m||'GET',body:b?JSON.stringify(b):null,headers:{'Content-Type':'application/json'}});return await r.json()}catch(e){return{error:'请求失败: '+e.message}}};
+const toast=(m,t)=>{const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),t||3000)};
+
+// ─── Tab routing ─────────────────────────────────────────────────
+let ovStatusTimer=null, ovProxyTimer=null;
+let lgTab='app', lgTimer=null;
+let currentPfName='';
+
+const go=p=>{
+document.querySelectorAll('.bn a').forEach(x=>x.classList.toggle('act',x.dataset.p===p));
+document.querySelectorAll('.pt').forEach(x=>x.classList.toggle('act',x.id==='pt-'+p));
+if(p==='ov')startOverviewRefresh();else stopOverviewRefresh();
+if(p==='lg'){startLogRefresh();loadLog()}else stopLogRefresh();
+if(p==='cf'){loadProfiles();loadCurrentProfile()}
+};
+
+document.querySelectorAll('.bn a').forEach(a=>a.onclick=()=>go(a.dataset.p));
+
+// ─── Overview ────────────────────────────────────────────────────
+const st=async()=>{
+const d=await api('status');
+const r=!!d.running;
+$('dot').style.background=r?'var(--green)':'var(--red)';
+$('st').textContent=r?'运行中':'停止';$('st').className='st '+(r?'on':'off');
+if(r){
+$('sg').innerHTML=`<div class=si><div class=l>版本</div><div class=v style=font-size:.82rem>${d.version||d.api?'v'+d.version:'连接中'}</div></div><div class=si><div class=l>模式</div><div class=v>${d.mode||'-'}</div></div>`;
+if(d.rx!==undefined){td.push({rx:d.rx,tx:d.tx});if(td.length>60)td.shift();drawChart()}
+}else{
+$('sg').innerHTML=`<div class=si><div class=l>状态</div><div class=v style=color:var(--red)>未运行</div></div><div class=si><div class=l>版本</div><div class=v>-</div></div>`;}
+};
+
+const lp=async()=>{
+const p=await api('proxy/proxies');
+if(!p||p.error){$('proxy-groups').innerHTML='<div style="color:var(--fg2);font-size:.8rem;padding:10px 0">代理数据不可用</div>';return}
+if(!p.proxies)return;
+let h='';let idx=0;
+for(const [k,v] of Object.entries(p.proxies)){
+if(typeof v!=='object'||!v.type)continue;
+const isSelect=v.type==='Selector';
+const isExpanded=expandedProxy===k;
+h+=`<div class=p-box>
+<div class="p-l" onclick="${isSelect?`toggleProxy('${k}')`:''}">
+<span class=pn>${v.name||k}</span><span class=pt>${v.type}</span><span class=pl>${v.now||'-'}</span>
+</div>
+${isExpanded?`<div class=p-opt>`+(v.all||[]).map(n=>`<a class="${n===v.now?'act':''}" onclick="event.stopPropagation();selectProxy('${k}','${n}')">${n}</a>`).join('')+`</div>`:''}
+</div>`;idx++}
+$('proxy-groups').innerHTML=h||'<div style="color:var(--fg2);font-size:.8rem;padding:10px 0">无代理组数据</div>'
+};
+
+let expandedProxy=null;
+const toggleProxy=(name)=>{
+expandedProxy=expandedProxy===name?null:name;
+lp();
+};
+
+const selectProxy=async(group,name)=>{
+const d=await api('proxy/proxies/'+group,'PUT',{name:name});
+if(!d||d.error){toast('切换失败');return}
+expandedProxy=null;
+toast('已切换到 '+name);
+lp();
+};
+
+const startOverviewRefresh=()=>{
+stopOverviewRefresh();
+st();lp();
+ovStatusTimer=setInterval(st,3000);
+ovProxyTimer=setInterval(lp,10000);
+};
+
+const stopOverviewRefresh=()=>{
+if(ovStatusTimer){clearInterval(ovStatusTimer);ovStatusTimer=null}
+if(ovProxyTimer){clearInterval(ovProxyTimer);ovProxyTimer=null}
+};
+
+// Traffic chart
+let td=[];
+const drawChart=()=>{
+const c=$('ch');if(!c||td.length<2)return;
+const w=c.parentElement.clientWidth;c.width=w*2;c.height=100*2;const ctx=c.getContext('2d');ctx.scale(2,2);ctx.clearRect(0,0,w,100);
+const mx=Math.max(...td.flatMap(x=>[x.rx,x.tx]),1);
+[['rx','#3b82f6'],['tx','#22c55e']].forEach(([k,col])=>{
+ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.lineJoin='round';
+td.forEach((d,i)=>{const x=6+(i/(td.length-1))*(w-12),y=8+84-(d[k]/mx)*84;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke()})};
+
+// ─── Log ─────────────────────────────────────────────────────────
+const switchLogTab=(tab)=>{
+lgTab=tab;
+$('lg-tab-app').className='btn s'+(tab==='app'?' act':'');
+$('lg-tab-mihomo').className='btn s'+(tab==='mihomo'?' act':'');
+loadLog();
+};
+
+let lastLog='';
+const loadLog=async()=>{
+const d=await api('log/'+lgTab);
+const t=d.log||'无日志';
+if(t!==lastLog){$('lbox').textContent=t;lastLog=t}
+};
+
+const startLogRefresh=()=>{
+stopLogRefresh();
+if($('lg-auto').checked){
+lgTimer=setInterval(()=>{if(!document.hidden)loadLog()},3000);
+}
+};
+
+const stopLogRefresh=()=>{
+if(lgTimer){clearInterval(lgTimer);lgTimer=null}
+};
+
+const toggleAutoLog=()=>{
+if($('lg-auto').checked)startLogRefresh();else stopLogRefresh();
+};
+
+// ─── Profiles ────────────────────────────────────────────────────
+let profilesData=[];
+
+const loadProfiles=async()=>{
+const d=await api('profiles');
+if(d.error){$('pf-list').innerHTML='<div style="color:var(--fg2);font-size:.8rem">'+d.error+'</div>';return}
+profilesData=d.profiles||[];
+renderProfiles();
+};
+
+const renderProfiles=()=>{
+const activeName=profilesData.find(p=>p.active)?.name||'';
+currentPfName=activeName;
+const pfList=$('pf-list');
+if(!profilesData.length){pfList.innerHTML='<div style="color:var(--fg2);font-size:.78rem">暂无配置方案</div>';return}
+pfList.innerHTML=profilesData.map(p=>{
+const isAct=p.active;
+const isBuiltin=p.builtin;
+const icons=isAct?'✅':(isBuiltin?'📦':'📄');
+return`<div class="pf-item${currentPfName===p.name?' sel':''}${isAct?' act':''}" onclick="selectProfile('${p.name}')" data-name="${p.name}">
+<span class="pf-icon">${icons}</span>
+<span class="pf-name">${p.name}</span>
+${isAct?'':`<span class="pf-icon" style="cursor:pointer;color:var(--blue)" title="设为当前方案" onclick="event.stopPropagation();activatePf('${p.name}')">🔄</span>`}
+</div>`}).join('');
+$('editor-title').textContent=currentPfName?'编辑: '+currentPfName:'编辑配置';
+$('btn-del-pf').style.display=profilesData.some(p=>!p.builtin)?'':'none';
+};
+
+const selectProfile=async(name)=>{
+document.querySelectorAll('.pf-item').forEach(el=>el.classList.toggle('sel',el.dataset.name===name));
+currentPfName=name;
+await loadProfileContent(name);
+};
+
+const loadProfileContent=async(name)=>{
+$('cfg-editor').value='加载中...';
+$('cfg-err').textContent='';
+const d=await api('profiles/'+name);
+if(d.error){$('cfg-editor').value='';$('cfg-err').textContent=d.error;return}
+$('cfg-editor').value=d.content||'';
+currentPfName=name;
+};
+
+const saveCurrentProfile=async()=>{
+if(!currentPfName){toast('请先选择一个配置方案');return}
+const content=$('cfg-editor').value;
+$('cfg-err').textContent='';
+if(!content.trim()){$('cfg-err').textContent='配置内容不能为空';return}
+const d=await api('profiles/'+currentPfName,'PUT',{content:content});
+if(d.error){$('cfg-err').textContent=d.error;toast('保存失败: '+d.error);return}
+if(d.reload==='failed'){$('cfg-err').textContent='⚠ 配置已保存但重载失败: '+(d.error||'未知错误');toast('配置已保存但重载失败')}
+else{toast('配置已保存并重载')}
+await loadProfiles();
+};
+
+const activateCurrentProfile=async()=>{
+if(!currentPfName){toast('请先选择一个配置方案');return}
+const d=await api('profiles/activate','POST',{name:currentPfName});
+if(d.error){toast('切换失败: '+d.error);$('cfg-err').textContent=d.error;return}
+toast('已切换到方案: '+currentPfName);
+await loadProfiles();
+await loadProfileContent(currentPfName);
+};
+
+const activatePf=async(name)=>{
+const d=await api('profiles/activate','POST',{name:name});
+if(d.error){toast('切换失败: '+d.error);$('cfg-err').textContent=d.error;return}
+toast('已切换到方案: '+name);
+await loadProfiles();
+await loadProfileContent(name);
+};
+
+const deleteProfile=async()=>{
+if(!currentPfName){toast('请先选择一个配置方案');return}
+const pf=profilesData.find(p=>p.name===currentPfName);
+if(pf&&pf.builtin){toast('内置方案不能删除');return}
+if(!confirm('确定删除方案 "'+currentPfName+'" 吗？'))return;
+const d=await api('profiles','DELETE',{name:currentPfName});
+if(d.error){toast('删除失败: '+d.error);return}
+toast('已删除方案: '+currentPfName);
+currentPfName='';
+$('cfg-editor').value='';
+$('cfg-err').textContent='';
+await loadProfiles();
+};
+
+const loadCurrentProfile=async()=>{
+if(currentPfName){await loadProfileContent(currentPfName)}
+else{
+$('cfg-editor').value='加载中...';
+const d=await api('config');
+if(d.config)$('cfg-editor').value=d.config;
+else $('cfg-editor').value=d.error||'无法加载';
+}
+};
+
+// ─── Modal ───────────────────────────────────────────────────────
+let modalMode='new';
+const showNewProfileModal=()=>{
+modalMode='new';
+$('modal-title').textContent='新建配置方案';
+$('modal-label1').textContent='方案名称';
+$('modal-label1').style.display='';
+$('modal-input1').style.display='';
+$('modal-input1').placeholder='例如: my-config';
+$('modal-input1').value='';
+$('modal-label2').style.display='none';
+$('modal-input2').style.display='none';
+$('modal-overlay').style.display='flex';
+setTimeout(()=>$('modal-input1').focus(),50);
+};
+const showImportModal=()=>{
+modalMode='import';
+$('modal-title').textContent='从URL导入配置';
+$('modal-label1').textContent='方案名称';
+$('modal-label1').style.display='';
+$('modal-input1').style.display='';
+$('modal-input1').placeholder='例如: my-subscription';
+$('modal-input1').value='';
+$('modal-label2').textContent='订阅地址';
+$('modal-label2').style.display='';
+$('modal-input2').style.display='';
+$('modal-input2').placeholder='https://...';
+$('modal-input2').value='';
+$('modal-overlay').style.display='flex';
+setTimeout(()=>$('modal-input1').focus(),50);
+};
+const closeModal=(e)=>{
+if(e&&e.target!==$('modal-overlay'))return;
+$('modal-overlay').style.display='none';
+};
+const modalAction=async()=>{
+const name=$('modal-input1').value.trim();
+if(!name){toast('请输入方案名称');return}
+if(modalMode==='new'){
+const content='mixed-port: 7890\nallow-lan: true\nmode: rule\nlog-level: info\n\nproxies: []\nrules:\n  - MATCH,DIRECT\n';
+const d=await api('profiles','POST',{name:name,content:content});
+if(d.error){toast('创建失败: '+d.error);return}
+toast('已创建方案: '+name);
+currentPfName=name;
+await loadProfiles();
+await selectProfile(name);
+}else if(modalMode==='import'){
+const url=$('modal-input2').value.trim();
+if(!url){toast('请输入订阅地址');return}
+const d=await api('profiles','POST',{name:name,url:url});
+if(d.error){toast('导入失败: '+d.error);return}
+toast('正在导入: '+name);
+setTimeout(async()=>{await loadProfiles();await selectProfile(name)},3000);
+}
+closeModal();
+};
+
+// ─── Settings ────────────────────────────────────────────────────
+const loadSettings=async()=>{
+const d=await api('settings');
+if($('sw-tun'))$('sw-tun').checked=d.tun_enabled;
+if($('sw-local'))$('sw-local').checked=d.local_proxy_only;
+if($('sw-sysproxy'))$('sw-sysproxy').checked=d.system_proxy_enabled;
+if($('sw-service'))$('sw-service').checked=d.service_running;
+};
+
+const saveSettings=async()=>{
+const s={tun_enabled:$('sw-tun').checked,local_proxy_only:$('sw-local').checked,system_proxy_enabled:$('sw-sysproxy').checked,service_enabled:$('sw-service').checked};
+const d=await api('settings','POST',s);
+if(d.status==='saved')toast('设置已保存');
+};
+
+const toggleService=async(el)=>{
+if(el.checked){
+const d=await api('service/start','POST');
+if(d.status==='started'||d.status==='already_running'){saveSettings();toast('Mihomo 服务已启动');st()}else{toast('启动失败: '+(d.error||'未知错误'));el.checked=false}
+}else{
+const d=await api('service/stop','POST');
+if(d.status==='stopped'||d.status==='already_stopped'){saveSettings();toast('Mihomo 服务已停止');st()}else{toast('停止失败');el.checked=true}
+}
+};
+
+// ─── Touch swipe navigation ──────────────────────────────────────
+let tx=0,ty=0;
+document.addEventListener('touchstart',e=>{tx=e.changedTouches[0].screenX}, {passive:true});
+document.addEventListener('touchend',e=>{
+const diff=e.changedTouches[0].screenX-tx;
+if(Math.abs(diff)>60){
+const tabs=['ov','cf','lg'];const a=document.querySelector('.bn a.act');if(!a)return;
+const ci=tabs.indexOf(a.dataset.p);let ni=ci;
+if(diff>0&&ci>0)ni=ci-1;else if(diff<0&&ci<tabs.length-1)ni=ci+1;
+if(ni!==ci)go(tabs[ni])}}, {passive:true});
+
+// ─── Init ────────────────────────────────────────────────────────
+go('ov');
+st().then(loadSettings);
+</script>
+</body>
+</html>

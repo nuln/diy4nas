@@ -1,0 +1,23 @@
+#!/bin/sh
+APP_VAR=${TRIM_PKGVAR:-/var/apps/terminal/data}
+APP_DEST=${TRIM_APPDEST:-/var/apps/terminal}
+
+# 通过 PID 文件杀进程（最可靠），pkill 作为兜底
+if [ -f "$APP_VAR/server.pid" ]; then
+    pid=$(cat "$APP_VAR/server.pid" 2>/dev/null | tr -d '[:space:]')
+    case "$pid" in *[!0-9]*) ;; *) kill -TERM "$pid" 2>/dev/null || true; sleep 1; kill -KILL "$pid" 2>/dev/null || true ;; esac
+fi
+pkill -x fnos-terminal 2>/dev/null || true  # 兜底（独特进程名）
+
+# 始终删除：日志、缓存、PID
+rm -f "${APP_VAR}"/*.log "${APP_VAR}"/*.pid 2>/dev/null || true
+rm -f /tmp/terminal-port 2>/dev/null || true
+
+# 可选删除：会话日志和设置
+DELETE_DATA="${wizard_delete_data:-${delete_data:-false}}"
+if [ "${DELETE_DATA}" = "true" ]; then
+    rm -f "${APP_VAR}/terminal.settings.json" 2>/dev/null || true
+    rm -rf "${APP_VAR}/sessions" 2>/dev/null || true
+    rm -rf "${APP_VAR}" 2>/dev/null || true
+fi
+exit 0

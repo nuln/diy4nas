@@ -1,0 +1,1 @@
+{"port-config":{"protocol-file":"tailscale.sc"},"data-share":{"shares":[{"name":"Tailscale","permission":{"rw":["tailscale"]}}]},"systemd-unit":{}}

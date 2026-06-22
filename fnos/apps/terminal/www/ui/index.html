@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>网页终端</title>
+<link rel="stylesheet" href="vendor/xterm.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: #1a1a1a; color: #e0e0e0; }
+  .layout { display: flex; flex-direction: column; height: 100vh; }
+  .toolbar { background: #2a2a2a; padding: 8px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #3a3a3a; }
+  .toolbar h1 { font-size: 14px; margin: 0; font-weight: 500; color: #fff; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar button { background: #3a3a3a; border: 1px solid #4a4a4a; color: #e0e0e0; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .toolbar button:hover { background: #4a4a4a; }
+  .toolbar button.primary { background: #165dff; border-color: #165dff; }
+  .toolbar button.primary:hover { background: #0e4cd9; }
+  .toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .toolbar .badge { background: #3a3a3a; padding: 3px 8px; border-radius: 10px; font-size: 11px; color: #86909c; }
+  .toolbar .badge.live { color: #00b42a; }
+  .toolbar .badge.live::before { content: "●"; margin-right: 4px; }
+  .tabs { background: #232323; display: flex; overflow-x: auto; border-bottom: 1px solid #3a3a3a; min-height: 36px; }
+  .tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #232323; color: #86909c; cursor: pointer; border-right: 1px solid #3a3a3a; font-size: 12px; user-select: none; min-width: 120px; max-width: 200px; }
+  .tab:hover { background: #2a2a2a; }
+  .tab.active { background: #1a1a1a; color: #fff; border-bottom: 2px solid #165dff; }
+  .tab .close { color: #86909c; padding: 0 4px; border-radius: 3px; line-height: 1; }
+  .tab .close:hover { background: #4a4a4a; color: #fff; }
+  .tab.exited { opacity: 0.5; }
+  .term-container { flex: 1; position: relative; background: #000; overflow: hidden; }
+  .term-pane { position: absolute; inset: 0; padding: 8px; display: none; }
+  .term-pane.active { display: block; }
+  .empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #86909c; }
+  .empty-state h2 { font-weight: 400; margin: 0 0 20px 0; }
+  .empty-state button { background: #165dff; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .empty-state button:hover { background: #0e4cd9; }
+  .statusbar { background: #2a2a2a; padding: 4px 14px; font-size: 11px; color: #86909c; border-top: 1px solid #3a3a3a; display: flex; gap: 16px; }
+  .statusbar .item { display: flex; gap: 4px; align-items: center; }
+  .statusbar .item .v { color: #e0e0e0; }
+  .toast { position: fixed; top: 60px; right: 20px; background: #1f2329; color: #fff; padding: 8px 16px; border-radius: 4px; z-index: 1000; font-size: 13px; }
+  .toast.error { background: #f53f3f; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="toolbar">
+    <h1>⌨️ 网页终端</h1>
+    <button class="primary" onclick="newSession()">+ 新建标签</button>
+    <span class="badge" id="conn-status">未连接</span>
+    <span class="badge" id="session-count">0 个会话</span>
+    <span class="badge" id="user-badge" style="color:#165dff">用户: -</span>
+    <div class="spacer"></div>
+    <button onclick="showSettings()">设置</button>
+    <button onclick="closeAllSessions()">关闭全部</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="term-container" id="term-container">
+    <div class="empty-state" id="empty-state">
+      <h2>欢迎使用网页终端</h2>
+      <button onclick="newSession()">+ 打开第一个终端</button>
+    </div>
+    <div class="user-error" id="user-error" style="display:none">
+      <h2>⚠️ 无法识别当前用户</h2>
+      <p id="user-error-msg"></p>
+      <p style="color:#999;font-size:13px">
+        请在 fnOS 桌面 nginx 反代里加上：
+        <code>proxy_set_header X-Forwarded-User $remote_user;</code><br>
+        或在 fnOS 反代 CGI 配置中开启 Remote-User 透传。
+      </p>
+    </div>
+  </div>
+  <div class="statusbar">
+    <div class="item">会话: <span class="v" id="status-session">无</span></div>
+    <div class="item">大小: <span class="v" id="status-size">—</span></div>
+    <div class="item">Shell: <span class="v" id="status-shell">—</span></div>
+    <div class="item">用户: <span class="v" id="status-user">—</span></div>
+  </div>
+</div>
+
+<script src="vendor/xterm.js"></script>
+<script src="vendor/xterm-addon-fit.js"></script>
+<script>
+const xtermScript = document.createElement('script');
+const tabsEl = document.getElementById('tabs');
+const containerEl = document.getElementById('term-container');
+const emptyEl = document.getElementById('empty-state');
+const sessions = new Map();
+
+// 推断 API 基础路径（用于 WebSocket）：从 location.pathname 取出 /app/<slug>/
+const API_BASE = (() => {
+    const m = location.pathname.match(/^(\/app\/[^/]+\/)/);
+    return m ? m[1] : '/';
+})();
+// 相对路径 fetch：基于当前页面 URL，让 nginx 反代前缀自动生效
+const API = '.';
+
+class Tab {
+  constructor(id) {
+    this.id = id;
+    this.title = 'terminal';
+    this.term = null;
+    this.fitAddon = null;
+    this.ws = null;
+    this.paneEl = null;
+    this.closed = false;
+    this.exited = false;
+    this.cols = 80;
+    this.rows = 24;
+    this.shell = '';
+    this.tabEl = null;
+    this.active = false;
+  }
+}
+
+async function newSession(title) {
+  try {
+    const r = await fetch(API + '/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title || 'terminal', cols: 80, rows: 24 })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('创建失败: ' + e.error, 'error');
+      return;
+    }
+    const info = await r.json();
+    const tab = new Tab(info.id);
+    tab.title = info.title;
+    tab.cols = info.cols;
+    tab.rows = info.rows;
+    tab.shell = info.shell;
+    sessions.set(info.id, tab);
+    // 自动激活新 tab（之前默认不激活，导致需要手动点）
+    activate(info.id);
+    connectWS(tab);
+    updateCount();
+  } catch (e) {
+    toast('创建失败: ' + e.message, 'error');
+  }
+}
+
+function renderTabs() {
+  tabsEl.innerHTML = '';
+  sessions.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.active ? ' active' : '') + (tab.exited ? ' exited' : '');
+    el.onclick = () => activate(tab.id);
+    el.innerHTML = `<span class="title">${escapeHtml(tab.title)}</span><span class="close" onclick="event.stopPropagation();closeSession('${tab.id}')">×</span>`;
+    tab.tabEl = el;
+    tabsEl.appendChild(el);
+  });
+  if (sessions.size === 0) {
+    emptyEl.style.display = 'flex';
+  } else {
+    emptyEl.style.display = 'none';
+  }
+}
+
+function renderPanes() {
+  // 不要 remove + 重建所有 pane（会破坏 xterm 已经 attach 的节点 + 丢失 history）
+  // 只在 pane 不存在时创建，已存在时只更新 className
+  sessions.forEach(tab => {
+    if (!tab.paneEl) {
+      const pane = document.createElement('div');
+      pane.className = 'term-pane' + (tab.active ? ' active' : '');
+      pane.id = 'pane-' + tab.id;
+      containerEl.appendChild(pane);
+      tab.paneEl = pane;
+    } else {
+      tab.paneEl.className = 'term-pane' + (tab.active ? ' active' : '');
+    }
+  });
+  // 删除已不存在 session 的 pane
+  containerEl.querySelectorAll('.term-pane').forEach(p => {
+    let found = false;
+    sessions.forEach(t => { if (t.paneEl === p) found = true; });
+    if (!found) p.remove();
+  });
+}
+
+function updateStatus() {
+  const tab = activeTab();
+  if (tab) {
+    document.getElementById('status-session').textContent = tab.title;
+    document.getElementById('status-size').textContent = tab.cols + '×' + tab.rows;
+    document.getElementById('status-shell').textContent = tab.shell;
+  } else {
+    document.getElementById('status-session').textContent = '无';
+    document.getElementById('status-size').textContent = '—';
+    document.getElementById('status-shell').textContent = '—';
+  }
+}
+
+function activate(id) {
+  sessions.forEach(t => t.active = false);
+  const tab = sessions.get(id);
+  if (!tab) return;
+  tab.active = true;
+  renderTabs();
+  renderPanes();
+  // focus 终端（多次重试确保 focus 真的落到 xterm textarea）
+  if (tab.term) {
+    tab.term.focus();
+    requestAnimationFrame(() => {
+      if (tab.term) tab.term.focus();
+      setTimeout(() => { if (tab.term) tab.term.focus(); }, 100);
+      setTimeout(() => { if (tab.term) tab.term.focus(); }, 300);
+    });
+  }
+  // 给 xterm 一会初始化（initTerm 可能还没跑）→ 也要 focus
+  if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+    setTimeout(() => { if (tab.term) tab.term.focus(); }, 200);
+  }
+  if (tab.fitAddon) {
+    setTimeout(() => { try { tab.fitAddon.fit(); } catch (e) {} }, 0);
+  }
+  updateStatus();
+}
+
+function connectWS(tab) {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url = `${proto}//${location.host}${API_BASE}api/ws?session=${tab.id}&cols=${tab.cols}&rows=${tab.rows}`;
+  const ws = new WebSocket(url);
+  ws.binaryType = 'arraybuffer';
+  tab.ws = ws;
+
+  ws.onopen = () => {
+    document.getElementById('conn-status').textContent = '已连接';
+    document.getElementById('conn-status').classList.add('live');
+    setTimeout(() => {
+      initTerm(tab);
+      // 自动 focus 到 xterm（多次重试确保 focus 真的落到 xterm）
+      const tryFocus = () => { try { tab.term && tab.term.focus(); } catch(e){} };
+      tryFocus();
+      requestAnimationFrame(() => {
+        tryFocus();
+        setTimeout(tryFocus, 200);
+        setTimeout(tryFocus, 500);
+      });
+    }, 100);
+  };
+
+  ws.onmessage = (ev) => {
+    if (!tab.term) {
+      initTerm(tab);
+    }
+    // 等下一帧，确保 xterm 内部 attach 完再写数据
+    requestAnimationFrame(() => {
+      if (!tab.term) return;
+      if (ev.data instanceof ArrayBuffer) {
+        tab.term.write(new Uint8Array(ev.data));
+      } else {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'exit') {
+            tab.exited = true;
+            tab.term.write('\r\n\x1b[2m[会话已结束]\x1b[0m\r\n');
+            renderTabs();
+            if (tab === activeTab()) updateStatus();
+          } else if (msg.type === 'resize') {
+            // ignore
+          }
+        } catch (e) {}
+      }
+      // 收到第一帧数据后再 focus 一次（确保 focus 在 terminal 而不是其他元素）
+      try { tab.term && tab.term.focus(); } catch(e){}
+    });
+  };
+
+  ws.onclose = () => {
+    document.getElementById('conn-status').textContent = '已断开';
+    document.getElementById('conn-status').classList.remove('live');
+    if (tab.term && !tab.exited) {
+      tab.term.write('\r\n\x1b[31m[连接已断开]\x1b[0m\r\n');
+    }
+  };
+
+  ws.onerror = () => {
+    toast('WebSocket 错误', 'error');
+  };
+}
+
+function initTerm(tab) {
+  if (tab.term) return;
+  const term = new Terminal({
+    cursorBlink: true,
+    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    fontSize: 13,
+    theme: { background: '#000000', foreground: '#e0e0e0' },
+    allowProposedApi: true,
+    scrollback: 5000,
+  });
+  const fit = new FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.open(tab.paneEl);
+  // 等 DOM 稳定再 fit + refresh（修复"第一个 terminal 无光标"问题）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      try { fit.fit(); } catch (e) {}
+      try {
+        term.refresh(0, term.rows - 1);
+        term.focus();
+        term.write('\x1b[?25h');  // 强制显示光标
+      } catch (e) {}
+    });
+  });
+  // 再次 fit 防止 layout 延迟
+  setTimeout(() => { try { fit.fit(); term.refresh(0, term.rows - 1); } catch (e) {} }, 100);
+  tab.term = term;
+  tab.fitAddon = fit;
+
+  term.onData(data => {
+    if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+      tab.ws.send(new TextEncoder().encode(data).buffer);
+    }
+  });
+  term.onResize(({ cols, rows }) => {
+    tab.cols = cols; tab.rows = rows;
+    if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+      tab.ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+    }
+    if (tab === activeTab()) document.getElementById('status-size').textContent = cols + '×' + rows;
+  });
+
+  window.addEventListener('resize', () => {
+    if (tab === activeTab()) {
+      try { fit.fit(); } catch (e) {}
+    }
+  });
+}
+
+function activeTab() {
+  for (const t of sessions.values()) if (t.active) return t;
+  return null;
+}
+
+async function closeSession(id) {
+  if (sessions.has(id)) {
+    const tab = sessions.get(id);
+    if (tab.ws) tab.ws.close();
+    try { await fetch(API + '/api/sessions/' + id, { method: 'DELETE' }); } catch (e) {}
+    if (tab.paneEl) tab.paneEl.remove();
+    sessions.delete(id);
+    renderTabs();
+    updateCount();
+    if (sessions.size > 0) {
+      const first = sessions.values().next().value;
+      activate(first.id);
+    } else {
+      document.getElementById('status-session').textContent = '无';
+      document.getElementById('status-size').textContent = '—';
+      document.getElementById('status-shell').textContent = '—';
+    }
+  }
+}
+
+async function closeAllSessions() {
+  if (sessions.size === 0) return;
+  if (!confirm('关闭所有会话？')) return;
+  for (const id of [...sessions.keys()]) {
+    await closeSession(id);
+  }
+}
+
+function updateCount() {
+  document.getElementById('session-count').textContent = sessions.size + ' 个会话';
+}
+
+async function showSettings() {
+  try {
+    const s = await fetch(API + '/api/settings').then(r => r.json());
+    const shell = prompt('默认 Shell 路径：', s.default_shell || '/bin/bash');
+    if (shell === null) return;
+    const user = prompt('默认登录用户（root 表示不切用户）：', s.default_user || '');
+    if (user === null) return;
+    const max = prompt('最大会话数：', s.max_sessions || 8);
+    if (max === null) return;
+    await fetch(API + '/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        default_shell: shell,
+        default_user: user,
+        max_sessions: parseInt(max) || 8,
+        history_bytes: s.history_bytes
+      })
+    });
+    toast('设置已保存（新会话生效）', 'success');
+  } catch (e) {
+    toast('设置失败: ' + e.message, 'error');
+  }
+}
+
+// 切换用户功能已移除（用户要求）：fnOS 登录用户由 fnOS 反代 TRIM_RUN_USERNAME 自动透传
+
+function updateUserBadge(user) {
+  const el = document.getElementById('user-badge');
+  if (el) el.textContent = '用户: ' + user;
+}
+
+// 页面加载时显示当前用户
+document.addEventListener('DOMContentLoaded', () => {
+  const u = window._FNOS_USER;
+  if (u) updateUserBadge(u);
+});
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const u = window._FNOS_USER;
+  const uErr = window._FNOS_USER_ERROR;
+  if (uErr) {
+    document.getElementById('empty-state').style.display = 'none';
+    const errEl = document.getElementById('user-error');
+    errEl.style.display = 'flex';
+    document.getElementById('user-error-msg').textContent = uErr;
+    updateUserBadge('未识别');
+    return;
+  }
+  if (u) updateUserBadge(u);
+  try {
+    const h = await fetch(API + '/api/healthz').then(r => r.json());
+    if (h.default_shell) document.getElementById('status-shell').textContent = h.default_shell;
+  } catch (e) {}
+  // 默认开一个 terminal
+  newSession();
+});
+</script>
+</body>
+</html>

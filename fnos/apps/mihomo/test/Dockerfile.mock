@@ -1,0 +1,12 @@
+FROM alpine:3.19
+
+RUN apk add --no-cache curl bash
+
+COPY server /app/server
+COPY mihomo-mock /app/mihomo
+COPY test_mock.sh /test.sh
+RUN chmod +x /app/server /app/mihomo /test.sh
+
+EXPOSE 9097
+
+CMD ["/test.sh"]

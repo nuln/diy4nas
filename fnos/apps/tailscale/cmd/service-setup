@@ -1,0 +1,25 @@
+#!/bin/bash
+service_postinst() {
+    mkdir -p "${TRIM_PKGVAR}/data" 2>/dev/null || true
+    # 查找 tailscaled 二进制（兼容 app/ 前缀）
+    for base in "${TRIM_APPDEST}" "${TRIM_APPDEST}/app"; do
+        if [ -f "$base/tailscaled" ]; then
+            if command -v setcap >/dev/null 2>&1; then
+                setcap 'cap_net_admin,cap_net_raw+ep' "$base/tailscaled" 2>/dev/null || true
+                setcap 'cap_net_admin+ep' "$base/tailscale" 2>/dev/null || true
+            fi
+            break
+        fi
+    done
+}
+service_preuninst() {
+    for base in "${TRIM_APPDEST}" "${TRIM_APPDEST}/app"; do
+        if [ -f "$base/tailscaled" ]; then
+            if command -v setcap >/dev/null 2>&1; then
+                setcap --remove=cap_net_admin,cap_net_raw+ep "$base/tailscaled" 2>/dev/null || true
+                setcap --remove=cap_net_admin+ep "$base/tailscale" 2>/dev/null || true
+            fi
+            break
+        fi
+    done
+}

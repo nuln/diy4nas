@@ -1,0 +1,22 @@
+#!/bin/bash
+service_postinst() {
+    mkdir -p "${TRIM_PKGVAR}/data" 2>/dev/null || true
+    for base in "${TRIM_APPDEST}" "${TRIM_APPDEST}/app"; do
+        if [ -f "$base/mihomo" ]; then
+            if command -v setcap >/dev/null 2>&1; then
+                setcap 'cap_net_admin,cap_net_raw,cap_net_bind_service+ep' "$base/mihomo" 2>/dev/null || true
+            fi
+            break
+        fi
+    done
+}
+service_preuninst() {
+    for base in "${TRIM_APPDEST}" "${TRIM_APPDEST}/app"; do
+        if [ -f "$base/mihomo" ]; then
+            if command -v setcap >/dev/null 2>&1; then
+                setcap --remove=cap_net_admin,cap_net_raw,cap_net_bind_service+ep "$base/mihomo" 2>/dev/null || true
+            fi
+            break
+        fi
+    done
+}

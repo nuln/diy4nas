@@ -1,0 +1,12 @@
+#!/bin/sh
+mkdir -p "${TRIM_PKGVAR}/data" 2>/dev/null || true
+# 授予 mihomo 网络能力
+for base in "${TRIM_APPDEST}" "${TRIM_APPDEST}/app"; do
+    if [ -f "$base/mihomo" ]; then
+        if command -v setcap >/dev/null 2>&1; then
+            setcap 'cap_net_admin,cap_net_raw,cap_net_bind_service+eip' "$base/mihomo" 2>/dev/null || true
+        fi
+        break
+    fi
+done
+exit 0

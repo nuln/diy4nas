@@ -1,0 +1,21 @@
+#!/bin/sh
+APP_VAR=${TRIM_PKGVAR:-/var/apps/tailscale/data}
+
+# 通过 PID 文件杀进程（最可靠），pkill 作为兜底
+if [ -f "$APP_VAR/server.pid" ]; then
+    pid=$(cat "$APP_VAR/server.pid" 2>/dev/null | tr -d '[:space:]')
+    case "$pid" in *[!0-9]*) ;; *) kill -TERM "$pid" 2>/dev/null || true; sleep 1; kill -KILL "$pid" 2>/dev/null || true ;; esac
+fi
+pkill -x tailscaled 2>/dev/null || true
+pkill -x fnos-tailscale 2>/dev/null || true  # 兜底（独特进程名）
+
+# 始终删除：日志、缓存、PID
+rm -f "${APP_VAR}"/*.log "${APP_VAR}"/*.pid 2>/dev/null || true
+rm -rf /var/run/tailscale 2>/dev/null || true
+rm -f /etc/sudoers.d/tailscale 2>/dev/null || true
+# 可选删除：配置和数据（认证状态）
+if [ "${wizard_delete_data}" = "true" ]; then
+    rm -rf "${APP_VAR}" 2>/dev/null || true
+fi
+exit 0
+

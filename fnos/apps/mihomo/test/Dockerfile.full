@@ -1,0 +1,11 @@
+FROM alpine:3.19
+
+RUN apk add --no-cache curl bash
+
+COPY server /app/server
+COPY test_full.sh /test.sh
+RUN chmod +x /app/server /test.sh
+
+EXPOSE 9097
+
+CMD ["/test.sh"]

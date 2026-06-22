@@ -1,0 +1,44 @@
+#!/bin/sh
+APP_VAR="${TRIM_PKGVAR:-/var/apps/mihomo/data}"
+APP_DEST="${TRIM_APPDEST:-/var/apps/mihomo}"
+
+# 通过 PID 文件杀进程（最可靠），pkill 作为兜底
+if [ -f "$APP_VAR/server.pid" ]; then
+    pid=$(cat "$APP_VAR/server.pid" 2>/dev/null | tr -d '[:space:]')
+    case "$pid" in *[!0-9]*) ;; *) kill -TERM "$pid" 2>/dev/null || true; sleep 1; kill -KILL "$pid" 2>/dev/null || true ;; esac
+fi
+pkill -x fnos-mihomo 2>/dev/null || true  # 兜底（独特进程名，不误杀其他）
+pkill -x mihomo 2>/dev/null || true
+
+# 始终删除：日志、缓存、PID、临时文件
+rm -f "${APP_VAR}"/*.log "${APP_VAR}"/*.pid 2>/dev/null || true
+rm -f /tmp/mihomo-port /tmp/mihomo.sock 2>/dev/null || true
+
+# 清理 setcap
+if command -v setcap >/dev/null 2>&1; then
+    for base in "${APP_DEST}" "${APP_DEST}/app"; do
+        if [ -f "$base/mihomo" ]; then
+            setcap --remove=cap_net_admin,cap_net_raw,cap_net_bind_service+ep "$base/mihomo" 2>/dev/null || true
+            break
+        fi
+    done
+fi
+
+# 清理系统代理
+rm -f /etc/profile.d/mihomo-proxy.sh 2>/dev/null || true
+
+# 可选删除：配置和数据
+# FN-OS 可能以 wizard_<field> 或直接 <field> 传递向导参数
+DELETE_DATA="${wizard_delete_data:-${delete_data:-false}}"
+if [ "${DELETE_DATA}" = "true" ]; then
+    # 先删除明确的配置文件和目录
+    rm -rf "${APP_VAR}/config" 2>/dev/null || true
+    rm -rf "${APP_VAR}/profiles" 2>/dev/null || true
+    rm -f "${APP_VAR}/settings.json" 2>/dev/null || true
+    rm -f "${APP_VAR}/config.yaml" 2>/dev/null || true
+    rm -f "${APP_VAR}/.active" 2>/dev/null || true
+    # 再尝试删除整个数据目录
+    rm -rf "${APP_VAR}" 2>/dev/null || true
+fi
+
+exit 0

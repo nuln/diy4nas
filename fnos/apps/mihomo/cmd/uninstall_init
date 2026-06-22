@@ -1,0 +1,6 @@
+#!/bin/sh
+APP_DEST=${TRIM_APPDEST:-/var/apps/mihomo}
+"$APP_DEST/cmd/main" stop 2>/dev/null || true
+# 清理临时文件
+rm -f /tmp/mihomo-port /tmp/mihomo.sock 2>/dev/null || true
+exit 0

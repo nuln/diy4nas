@@ -1,0 +1,18 @@
+{
+  "port-config": {
+    "protocol-file": "terminal.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "terminal",
+        "permission": {
+          "rw": [
+            "terminal"
+          ]
+        }
+      }
+    ]
+  },
+  "systemd-unit": {}
+}

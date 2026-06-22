@@ -1,0 +1,1 @@
+{"port-config":{"protocol-file":"mihomo.sc"},"data-share":{"shares":[{"name":"Mihomo","permission":{"rw":["mihomo"]}}]},"systemd-unit":{}}

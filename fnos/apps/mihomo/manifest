@@ -1,0 +1,14 @@
+appname         = mihomo
+version         = 0.0.0
+display_name    = Mihomo
+platform        = x86
+maintainer         = MetaCubeX
+maintainer_url      = https://github.com/MetaCubeX/mihomo
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = mihomo.Application
+service_port    = 9097
+checkport       = false
+desc            = Clash.Meta 多协议代理
+source          = thirdparty
+checksum        = 

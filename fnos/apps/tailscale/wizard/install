@@ -1,0 +1,7 @@
+[{
+    "stepTitle": "Tailscale 安装说明",
+    "items": [{
+        "type": "tips",
+        "helpText": "Tailscale 安装完成后，在 fnOS 桌面点击图标打开管理界面。"
+    }]
+}]

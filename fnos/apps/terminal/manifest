@@ -1,0 +1,13 @@
+appname         = terminal
+version         = 0.0.0
+display_name    = 网页终端
+platform        = all
+maintainer      = diy4nas
+maintainer_url  = https://github.com/dukangxu/diy4nas
+distributor     = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = terminal.Application
+service_port    = 7682
+checkport       = false
+desc            = 纯 Go 实现的 Web 终端，自带 PTY 与 WebSocket 桥，无需 ttyd/tmux
+source          = thirdparty

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Tailscale</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0f17;--bg2:#131822;--bg3:#1c2333;--card:#1a2130;--fg:#e8edf5;--fg2:#8892b0;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:0;padding-bottom:64px;min-height:100vh}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px;max-width:100%;margin:0 auto}
+.hd h1{font-size:1.15rem;font-weight:700}
+.st{font-size:.72rem;padding:4px 12px;border-radius:20px;font-weight:500}
+.st.on{background:rgba(34,197,94,.12);color:var(--green)}.st.off{background:rgba(239,68,68,.12);color:var(--red)}
+.ct{padding:8px 14px;max-width:100%;margin:0 auto}
+.pt{display:none}.pt.act{display:block;animation:fade .2s}
+#pt-tp.act,#pt-lg.act{max-width:100%;margin-left:auto;margin-right:auto}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.cd{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.04)}
+.cd h3{font-size:.82rem;font-weight:600;margin-bottom:10px;color:var(--fg2);letter-spacing:.3px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.si{background:var(--bg3);border-radius:10px;padding:12px;text-align:center}
+.si .l{font-size:.65rem;color:var(--fg2);margin-bottom:2px}.si .v{font-size:.95rem;font-weight:600}
+.si .ip{font-size:.72rem;font-family:monospace;color:var(--blue)}
+#ch{width:100%;height:55px;border-radius:8px;background:var(--bg3);display:block;margin:6px 0 2px}
+.fg{margin-bottom:8px}.fg label{display:block;font-size:.72rem;color:var(--fg2);margin-bottom:3px;font-weight:500}
+.fg input,.fg select{width:100%;padding:9px 11px;background:var(--bg3);border:1px solid transparent;border-radius:8px;color:var(--fg);font-size:.82rem;outline:none}
+.fg input:focus{border-color:var(--blue)}
+.fg .rw{display:flex;gap:8px}.fg .rw>*{flex:1}
+.cx{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 10px}
+.cx label{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--fg2);cursor:pointer}
+.cx input{accent-color:var(--blue);cursor:pointer}
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.dv{background:var(--bg3);border-radius:8px;padding:10px;transition:.08s}
+.dv .hdv{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.dv .nm{font-size:.8rem;font-weight:500}.dv .ip{font-size:.68rem;color:var(--fg2);font-family:monospace;margin-top:2px}
+.dv .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.dv .dot.g{background:var(--green)}.dv .dot.r{background:var(--red)}
+.dv .act{display:flex;gap:4px;margin-top:6px}
+.dv .act button{padding:3px 8px;border:none;border-radius:4px;font-size:.65rem;cursor:pointer;background:var(--bg2);color:var(--fg2)}
+.dv .act button.pi{background:rgba(59,130,246,.15);color:var(--blue)}
+.lb{background:var(--bg3);border-radius:8px;padding:10px;font:13px/1.5 monospace;color:var(--fg2);white-space:pre-wrap;max-height:260px;overflow-y:auto;margin-top:6px}
+.bn{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);display:flex;border-top:1px solid rgba(255,255,255,.05);padding:4px 0 env(safe-area-inset-bottom)}
+.bn a{flex:1;text-align:center;padding:5px 2px;font-size:.58rem;color:var(--fg2);text-decoration:none;cursor:pointer}
+.bn a.act{color:var(--blue)}
+.bn a svg{display:block;margin:0 auto 2px;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btnw{width:100%;padding:9px;border:none;border-radius:8px;font-size:.8rem;font-weight:500;cursor:pointer;margin-top:4px}
+.btnw.p{background:var(--blue);color:#fff}.btnw.s{background:var(--bg3);color:var(--fg2)}
+.row{display:flex;flex-wrap:wrap;gap:12px}.col{flex:1;min-width:320px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal.show{display:flex}
+.modal-c{background:var(--card);border-radius:var(--radius);width:90%;max-width:400px;padding:16px;max-height:60vh;overflow-y:auto}
+.modal-c h3{margin-bottom:6px;font-size:.9rem}.modal-c .mb{font-size:.78rem;color:var(--fg2)}
+</style>
+</head>
+<body>
+<div class="hd"><h1>Tailscale</h1><span id="st" class="st off">离线</span></div>
+<div class="ct">
+
+<div id="pt-ov" class="pt act">
+<div id="login-area" style="display:block">
+<div class="cd" id="login-prompt" style="text-align:center;padding:20px">
+<p style="font-size:.85rem;color:var(--fg2);margin-bottom:10px">登录 Tailscale 网络</p>
+<div class="fg" style="margin-bottom:8px"><input id="ak" placeholder="Auth Key（可选）" style="width:100%;padding:9px 11px;background:var(--bg3);border:1px solid transparent;border-radius:8px;color:var(--fg);font-size:.82rem;outline:none"></div>
+<div class="fg" style="margin-bottom:8px"><input id="ls" placeholder="Login Server（Headscale，可选）" style="width:100%;padding:9px 11px;background:var(--bg3);border:1px solid transparent;border-radius:8px;color:var(--fg);font-size:.82rem;outline:none"></div>
+<div style="display:flex;gap:8px"><button class="btnw p" style="flex:1" onclick="ck()">Key 连接</button><button class="btnw s" style="flex:1" onclick="wb()">Web 认证</button></div>
+</div>
+<div class="cd" id="reconnect-prompt" style="display:none;text-align:center;padding:20px">
+<p style="font-size:.85rem;color:var(--fg2);margin-bottom:10px">Tailscale 已断开</p>
+<button class="btnw p" onclick="rc()">重新连接</button>
+</div>
+<div class="cd" id="reauth-prompt" style="display:none;text-align:center;padding:20px">
+<p style="font-size:.85rem;color:var(--fg2);margin-bottom:10px">认证已失效，请重新登录</p>
+<button class="btnw p" onclick="wb()">重新认证</button>
+</div>
+<div class="cd" id="pending-prompt" style="display:none;text-align:center;padding:20px">
+<p style="font-size:.85rem;color:var(--green);margin-bottom:6px">✓ 认证成功</p>
+<p style="font-size:.82rem;color:var(--fg2);margin-bottom:10px">正在等待分配 IP，请稍候...</p>
+</div>
+</div>
+<div id="dashboard-area" style="display:none">
+<div class="row" style="display:flex;gap:12px">
+<div class="col" style="flex:1;min-width:0">
+<div class="cd">
+<h3 style="display:flex;justify-content:space-between;align-items:center;">
+<span>📈 运行状态</span>
+<button id="btn-refresh" onclick="forceRefreshStatus()" style="background:none;border:none;color:var(--fg2);cursor:pointer;font-size:1.15rem;line-height:1;transition:transform 0.5s ease-in-out;padding:2px 4px;margin-right:2px;" title="强制从后台拉取最新数据">↻</button>
+</h3>
+<div class="sg" id="sg"></div>
+<div style="margin:6px 0"><canvas id="ch" height="55"></canvas></div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button id="btn-connect" class="btnw s" style="margin-top:0;flex:1" onclick="toggleConnect()">断开连接</button>
+<button class="btnw s" style="margin-top:0;flex:1;background:rgba(239,68,68,0.15);color:var(--red)" onclick="logout()">退出登录</button>
+</div>
+</div>
+</div>
+<div class="col" style="flex:1;min-width:0">
+<div class="cd"><h3>⚙️ 节点配置</h3>
+<div class="fg"><div class="rw"><div><label>主机名</label><input id="hn" placeholder="自定义名称"></div><div><label>子网路由</label><input id="rt" placeholder="192.168.1.0/24"></div></div></div>
+<div class="fg"><label>出口节点</label><select id="ex"><option value="">不指定</option></select></div>
+<div class="cx">
+<label><input type="checkbox" checked id="ck-dns"> 接受 DNS</label>
+<label><input type="checkbox" id="ck-shields"> Shields Up</label>
+<label><input type="checkbox" checked id="ck-routes"> 接受路由</label>
+<label><input type="checkbox" id="ck-exit"> 设为出口节点</label>
+<label><input type="checkbox" id="ck-ssh"> 启用 SSH</label>
+<label><input type="checkbox" id="ck-lan"> 出口节点允许局域网</label>
+<label><input type="checkbox" checked id="ck-snat"> SNAT 子网路由</label>
+<label><input type="checkbox" checked id="ck-filter"> 状态过滤</label>
+</div>
+<div class="fg"><label>Netfilter 模式</label><select id="nf-mode"><option value="">默认</option><option value="on">on</option><option value="off">off</option><option value="nodivert">nodivert</option></select></div>
+<button class="btnw p" onclick="ap()">应用</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="pt-tp" class="pt">
+<div class="cd">
+<h3 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+<span>网络拓扑图</span>
+<span style="display:flex;gap:6px;align-items:center;position:relative">
+<span style="position:relative">
+<button onclick="toggleTopoMenu()" style="background:none;border:none;color:var(--fg2);cursor:pointer;font-size:1rem;line-height:1">⚙</button>
+<div id="topo-menu" style="display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px;z-index:10;min-width:140px">
+<button onclick="toggleZoom();toggleTopoMenu()" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;color:var(--fg);cursor:pointer;font-size:.72rem;white-space:nowrap">🔒 锁定缩放</button>
+<button id="btn-batch-ping" onclick="batchPing();toggleTopoMenu()" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;color:var(--fg);cursor:pointer;font-size:.72rem;white-space:nowrap">📡 Ping 所有节点</button>
+<button onclick="resetTopoZoom();toggleTopoMenu()" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;color:var(--fg);cursor:pointer;font-size:.72rem;white-space:nowrap">🔁 还原视图</button>
+</div>
+</span>
+</span>
+</h3>
+<div style="display:flex;gap:12px;margin-top:6px">
+<div style="width:180px;flex-shrink:0;height:calc(100vh - 190px);min-height:450px;overflow-y:auto">
+<div style="font-size:.72rem;color:var(--fg2);margin-bottom:6px;padding:0 4px">设备 <span id="dc" style="font-weight:400"></span></div>
+<div class="dg" id="dl" style="grid-template-columns:1fr"></div>
+</div>
+<div id="topo-container" style="flex:1;min-width:200px;height:calc(100vh - 190px);min-height:450px;background:var(--bg3);border-radius:8px;position:relative;overflow:hidden"></div>
+<div id="detail-panel" style="display:none;flex:1;min-width:200px;height:calc(100vh - 190px);min-height:450px;background:var(--bg3);border-radius:8px;padding:16px;overflow-y:auto"></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="pt-lg" class="pt">
+<div class="cd">
+<div style="display:flex;gap:6px;margin-bottom:10px">
+<button id="lg-tab-ts" class="btnw s" style="margin-top:0;flex:1;background:var(--blue);color:#fff" onclick="switchLog('ts')">Tailscale 日志</button>
+<button id="lg-tab-app" class="btnw s" style="margin-top:0;flex:1" onclick="switchLog('app')">应用操作日志</button>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+<span style="font-size:.72rem;color:var(--fg2)" id="lg-title">Tailscale 日志</span>
+<span style="position:relative">
+<button onclick="toggleLogMenu()" style="background:none;border:none;color:var(--fg2);cursor:pointer;font-size:1rem;line-height:1">⚙</button>
+<div id="lg-menu" style="display:none;position:absolute;right:0;top:100%;background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:4px;z-index:10;min-width:140px">
+<button onclick="toggleAutoRefresh();toggleLogMenu()" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;color:var(--fg);cursor:pointer;font-size:.72rem;white-space:nowrap" id="lg-auto-btn">⏸ 暂停自动刷新</button>
+<button onclick="lg(true);toggleLogMenu()" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;color:var(--fg);cursor:pointer;font-size:.72rem;white-space:nowrap">🔄 立即刷新</button>
+<button onclick="clearLog();toggleLogMenu()" style="display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;color:var(--red);cursor:pointer;font-size:.72rem;white-space:nowrap">🗑 清空日志</button>
+</div>
+</span>
+</div>
+<div class="lb" id="lg-out" style="height:calc(100vh - 180px);min-height:450px;font-size:.72rem">点击刷新加载日志</div></div>
+</div>
+
+<div class="bn">
+<a data-p="ov"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>概览</a>
+<a data-p="tp"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="6.5" y2="16.5"/><line x1="12" y1="8" x2="17.5" y2="16.5"/><line x1="8" y1="19" x2="16" y2="19"/></svg>拓扑</a>
+<a data-p="lg"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>日志</a>
+</div>
+
+<!-- Error Modal -->
+<div class="modal" id="em"><div class="modal-c" style="max-width:90vw">
+<h3>错误</h3>
+<div class="lb" id="em-text" style="max-height:400px;font-size:.78rem;user-select:text"></div>
+<button class="btnw s" onclick="document.getElementById('em').classList.remove('show')">关闭</button>
+</div></div>
+
+<!-- Auth Modal -->
+<div class="modal" id="au"><div class="modal-c">
+<h3>登录 Tailscale</h3>
+<p style="font-size:.82rem;color:var(--fg2);margin-bottom:10px">点击下方链接登录 Tailscale 完成认证：</p>
+<a id="au-link" href="#" target="_blank" style="display:block;word-break:break-all;font-size:.78rem;color:var(--blue);margin-bottom:12px;text-decoration:underline"></a>
+<button class="btnw s" onclick="document.getElementById('au').classList.remove('show');toast('认证完成后请等待自动连接')">关闭</button>
+</div></div>
+
+<div class="modal" id="pm"><div class="modal-c">
+<h3>Ping <span id="pm-target" style="font-weight:400;color:var(--fg2)"></span></h3>
+<div class="lb" id="pm-out" style="max-height:300px;margin-bottom:12px">正在测试...</div>
+<div style="display:flex;gap:8px">
+<button class="btnw p" id="btn-ping-stop" style="display:none;background:var(--red);margin-top:0" onclick="stopPing()">停止</button>
+<button class="btnw s" id="btn-ping-close" style="margin-top:0" onclick="closePing()">关闭</button>
+</div>
+</div></div>
+
+<script>
+const $=x=>document.getElementById(x),F=b=>{if(!b)return'0 B';const u=['B','KB','MB','GB'];let i=0,v=b;while(v>=1024&&i<3){v/=1024;i++}return v.toFixed(1)+' '+u[i]};
+const api=async(p,m,b)=>{try{const r=await fetch('/api/'+p,{method:m||'GET',body:b?JSON.stringify(b):null,headers:{'Content-Type':'application/json'}});return await r.json()}catch(e){return{error:'请求失败: '+e.message}}};
+const showErr=m=>{document.getElementById('em-text').textContent=m;document.getElementById('em').classList.add('show')};
+const showAuthUrl=url=>{const a=document.getElementById('au-link');a.textContent=url;a.href=url;document.getElementById('au').classList.add('show')};
+const toast=(m,t)=>{document.querySelectorAll('.app-toast').forEach(x=>x.remove());const d=document.createElement('div');d.className='app-toast';d.textContent=m;d.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1c2333;color:#e8edf5;padding:10px 18px;border-radius:8px;font-size:.8rem;z-index:999;max-width:90vw;word-break:break-all';document.body.appendChild(d);setTimeout(()=>d.remove(),t||5000)};
+document.querySelectorAll('.bn a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.bn a').forEach(x=>x.classList.toggle('act',x.dataset.p===a.dataset.p));document.querySelectorAll('.pt').forEach(x=>x.classList.toggle('act',x.id==='pt-'+a.dataset.p));if(a.dataset.p==='tp'){drawTopo()}if(a.dataset.p==='ov'){drawChart();stopLogRefresh()}if(a.dataset.p==='lg'){lg(true);startLogRefresh()}});
+const goto=p=>{document.querySelectorAll('.bn a').forEach(x=>x.classList.toggle('act',x.dataset.p===p));document.querySelectorAll('.pt').forEach(x=>x.classList.toggle('act',x.id==='pt-'+p));if(p==='tp')drawTopo();if(p==='ov'){drawChart();stopLogRefresh()}if(p==='lg'){lg(true);startLogRefresh()}};
+
+let lastUpError = ''; let connecting = false; let stIntervalId = null; let ncResult = ''; let ncTimer = null; let ncLast = 0;
+let appcRoutes = ''; let selfRoutes = ''; let isInitialized = false;
+const cleanVersion = (v) => {
+    if (!v) return '-';
+    return v.split('-')[0].split('+')[0] || '-';
+};
+const updateRoutesUI = () => {
+    let routes = [selfRoutes, appcRoutes].filter(Boolean).join(' | ');
+    if (!routes) routes = '-';
+    if ($('rt-val')) {
+        $('rt-val').textContent = routes;
+        if (routes.length > 15) {
+            $('rt-val').style.fontSize = '.52rem';
+        } else {
+            $('rt-val').style.fontSize = '.65rem';
+        }
+    }
+};
+const fetchNetcheck=(force)=>{
+    const now=Date.now();
+    if(!force && now-ncLast<60000)return;
+    ncLast=now;
+    if($('nc-val')) $('nc-val').textContent = '检测中...';
+    fetch('/api/netcheck' + (force ? '?force=true' : '')).then(r=>r.json()).then(d=>{
+        if(d&&d.output){
+             try{
+                let j=JSON.parse(d.output);
+                if(j){
+                    if(j.PreferredDERP && j.RegionLatency){
+                        const lat = j.RegionLatency[String(j.PreferredDERP)];
+                        ncResult = lat !== undefined ? Math.round(lat / 1e6) + ' ms' : '已检测';
+                    } else if(j.RegionLatency) {
+                        const keys = Object.keys(j.RegionLatency);
+                        ncResult = keys.length > 0 ? Math.round(j.RegionLatency[keys[0]] / 1e6) + ' ms' : '已检测';
+                    } else {
+                        ncResult = '已检测';
+                    }
+                } else {
+                    ncResult = '已检测';
+                }
+            }catch(e){
+                ncResult='已检测';
+            }
+        } else {
+            let errMsg = (d && d.error) ? d.error : '检测失败';
+            if (errMsg.length > 30) errMsg = errMsg.slice(0, 27) + '...';
+            ncResult = errMsg;
+        }
+        if($('nc-val')) $('nc-val').textContent = ncResult;
+    }).catch(()=>{
+        ncResult = '检测失败';
+        if($('nc-val')) $('nc-val').textContent = ncResult;
+    });
+};
+const fetchRoutes=()=>{
+    fetch('/api/appc-routes').then(r=>r.json()).then(d=>{
+        if(d&&d.output){
+            const out = d.output.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').trim();
+            const lower = out.toLowerCase();
+            appcRoutes = (out && !lower.includes('not a connector') && !lower.includes('error') && !lower.includes('failed')) ? out : '';
+            updateRoutesUI();
+        }
+    }).catch(()=>{})
+};
+let refreshing = false;
+const forceRefreshStatus = async () => {
+    if (refreshing) return;
+    refreshing = true;
+    const btn = $('btn-refresh');
+    if (btn) btn.style.transform = 'rotate(360deg)';
+    toast('正在强制拉取最新数据...');
+    try {
+        await Promise.all([
+            st(true),
+            fetchNetcheck(true)
+        ]);
+        toast('数据已刷新');
+    } catch(e) {
+        toast('刷新失败: ' + e.message);
+    } finally {
+        setTimeout(() => {
+            if (btn) btn.style.transform = 'rotate(0deg)';
+            refreshing = false;
+        }, 500);
+    }
+};
+const nm=n=>{if(!n)return'';const p=n.indexOf('.');return p>0?n.slice(0,p):n};
+const ip=x=>x.TailAddr||(x.TailscaleIPs&&x.TailscaleIPs[0])||'-';
+const parsePing=out=>{const s=out.match(/(\d+) packets transmitted.*?(\d+) received.*?([0-9.]+)% loss/);const rtt=out.match(/min\/avg\/max[^=]*=\s*([0-9.]+)\/\s*([0-9.]+)\/\s*([0-9.]+)/);let tx=s?parseInt(s[1]):0;let rx=s?parseInt(s[2]):0;let min=rtt?rtt[1]:'-';let avg=rtt?rtt[2]:'-';let max=rtt?rtt[3]:'-';if(!s){const m=out.match(/in\s+([0-9.]+)ms/i)||out.match(/([0-9.]+)ms/i);if(m){tx=1;rx=1;min=avg=max=m[1]}else if(out.toLowerCase().indexOf('pong')!==-1){tx=1;rx=1;min=avg=max='0'}else if(out.toLowerCase().indexOf('fail')!==-1||out.toLowerCase().indexOf('timeout')!==-1){tx=1;rx=0}}return{tx,rx,loss:s?s[3]+'%':(tx>0?((1-rx/tx)*100).toFixed(0)+'%':'-'),min,avg,max,raw:out}};
+const copyIp=async t=>{try{await navigator.clipboard.writeText(t)}catch(e){const i=document.createElement('input');i.value=t;document.body.appendChild(i);i.select();document.execCommand('copy');document.body.removeChild(i)}toast('已复制 IP')};
+const st=async(force)=>{
+Object.keys(latencies).forEach(k=>{if(Date.now()-latencies[k].time>180000)delete latencies[k]});
+const d=await api('status' + (force ? '?force=true' : '')),s=d.Self||{},ps=Object.values(d.Peer||{});
+peersData={};
+ps.forEach(p=>{peersData[p.ID]=p});
+if(s.TailscaleIPs||s.TailAddr){s.ID='self';peersData['self']=s}
+const online=!!d.online,daemon=!!d.daemon||online,bs=d.backendState||d.BackendState||'',stopped=bs==='Stopped',pending=!!d.pending,hasSelf=!!d.Self&&bs!=='NeedsLogin';
+if(online||pending)document.getElementById('au').classList.remove('show');
+if(d.upError){if(d.upError!==lastUpError){lastUpError=d.upError;showErr('登录失败: '+d.upError+'\n\n'+d.upOutput)}}else{lastUpError=''}
+const label=online?'在线':'离线';$('st').textContent=label;$('st').className='st '+(online?'on':'off');
+const showDashboard = online || (hasSelf && bs !== 'NeedsLogin' && bs !== 'NoState');
+$('login-area').style.display = showDashboard ? 'none' : 'block';
+$('dashboard-area').style.display = showDashboard ? 'block' : 'none';
+$('login-prompt').style.display = (!showDashboard && !pending) ? 'block' : 'none';
+$('pending-prompt').style.display = pending ? 'block' : 'none';
+$('reconnect-prompt').style.display = 'none';
+$('reauth-prompt').style.display = 'none';
+const btnConn = $('btn-connect');
+if (btnConn) {
+    if (online) {
+        btnConn.textContent = '断开连接';
+        btnConn.style.background = '';
+        btnConn.style.color = '';
+    } else {
+        btnConn.textContent = '重新连接';
+        btnConn.style.background = 'var(--blue)';
+        btnConn.style.color = '#fff';
+    }
+}
+const dn=x=>nm(x.DNSName)||x.HostName||'-';
+if(showDashboard){
+const myn=s.DNSName||s.HostName||'-';
+const selfIPs = s.TailscaleIPs || [];
+let ips = [];
+const hi = s.HostInfo || s.Hostinfo || s.hostInfo || s.hostinfo;
+if (hi) {
+    ips = hi.RoutableIPs || hi.routableIPs || hi.routableIps || hi.RoutableIps || [];
+}
+if (!ips || !ips.length) {
+    ips = s.PrimaryRoutes || s.primaryRoutes || s.Primaryroutes || [];
+}
+if (!ips || !ips.length) {
+    ips = s.AllowedIPs || s.allowedIPs || s.Allowedips || [];
+}
+if (!ips || !ips.length) {
+    ips = s.RoutableIPs || s.routableIPs || s.Routableips || [];
+}
+if (!ips || !ips.length) {
+    ips = d.PrimaryRoutes || d.Primaryroutes || d.RoutableIPs || d.routableIPs || [];
+}
+if (typeof ips === 'string') ips = ips.split(',').map(x => x.trim());
+if (!Array.isArray(ips)) ips = [];
+const routePrefixes = ips.filter(ip => {
+    if (typeof ip !== 'string') return false;
+    return !selfIPs.some(selfIP => typeof selfIP === 'string' && ip.startsWith(selfIP + '/'));
+});
+selfRoutes = routePrefixes.length ? routePrefixes.join(', ') : '';
+
+// 首次成功加载时，自动用当前生效的配置预填表单，防误清空
+if (!isInitialized) {
+    if (s.HostName) $('hn').value = s.HostName;
+    if (selfRoutes) $('rt').value = selfRoutes;
+    if (d.ExitNodeStatus && d.ExitNodeStatus.TailscaleIPs && d.ExitNodeStatus.TailscaleIPs.length > 0) {
+        $('ex').value = d.ExitNodeStatus.TailscaleIPs[0];
+    }
+    isInitialized = true;
+}
+
+const uObj = d.User && (d.User[String(s.UserID)] || d.User[s.UserID]);
+const acc = uObj ? (uObj.LoginName || uObj.DisplayName) : (s.User || (d.User && Object.values(d.User)[0]?.LoginName) || '-');
+$('sg').innerHTML=`<div class=si><div class=l>节点</div><div class=v>${nm(myn)}</div></div><div class=si><div class=l>IP</div><div class="v ip">${ip(s)}</div></div><div class=si><div class=l>在线</div><div class=v>${ps.filter(x=>x.Online).length}/${ps.length}</div></div><div class=si><div class=l>流量</div><div class=v>↓${F(d.totalRx)}↑${F(d.totalTx)}</div></div><div class=si><div class=l>账号</div><div class="v ip" style=font-size:.65rem>${acc}</div></div><div class=si><div class=l>DNS</div><div class="v ip" style=font-size:.65rem>${nm(s.DNSName)||'-'}</div></div><div class=si><div class=l>Netcheck</div><div class="v ip" id="nc-val" style=font-size:.65rem>${ncResult||'检测中...'}</div></div><div class=si><div class=l>版本</div><div class="v ip" style=font-size:.65rem>${cleanVersion(d.Version)}</div></div><div class=si><div class=l>路由</div><div class="v ip" id="rt-val" style="font-size:.65rem;word-break:break-all;white-space:normal;line-height:1.2;">-</div></div>`;$('sg').style.gridTemplateColumns='1fr 1fr 1fr';
+updateRoutesUI();
+// 异步加载路由和 netcheck
+fetchNetcheck();
+fetchRoutes();if(td.length===0){td.push({rx:d.totalRx||0,tx:d.totalTx||0})}
+td.push({rx:d.totalRx||0,tx:d.totalTx||0});if(td.length>60)td.shift();drawChart();
+}
+$('ex').innerHTML='<option value="">不指定</option>'+ps.map(p=>`<option value="${ip(p)}">${dn(p)}</option>`).join('');
+$('dc').textContent='('+ps.length+')';
+$('dl').innerHTML=ps.length?ps.map(p=>{const l=getLat(ip(p));const rx=p.RxBytes||0,tx=p.TxBytes||0;return `<div class=dv style=cursor:pointer onclick="showDetail('${p.ID}')"><div class=hdv><span><span class="dot ${p.Online?'g':'r'}"></span><span class=nm>${dn(p)}</span>${l?`<span class=lat style="font-size:.65rem;color:${l==='超时'?'var(--red)':'var(--green)'};margin-left:4px">${l}</span>`:''}</span></div><div style="font-size:.6rem;color:var(--fg2);margin-top:2px">${ip(p)}<br>↓${F(rx)}↑${F(tx)}</div></div>`}).join(''):'<div style="color:var(--fg2);font-size:.8rem;padding:10px">暂无设备</div>';
+return d;
+};
+let td=[];const drawChart=()=>{const c=$('ch');if(!c||td.length<2)return;const w=c.parentElement.clientWidth;c.width=w*2;c.height=110*2;const ctx=c.getContext('2d');ctx.scale(2,2);ctx.clearRect(0,0,w,110);const mx=Math.max(...td.flatMap(x=>[x.rx,x.tx]),1);[['rx','#3b82f6'],['tx','#22c55e']].forEach(([k,col])=>{ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.lineJoin='round';td.forEach((d,i)=>{const x=6+(i/(td.length-1))*(w-12),y=8+94-(d[k]/mx)*94;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke()})};
+const gv=()=>({hostname:$('hn').value,routes:$('rt').value,loginServer:$('ls').value,exitNode:$('ex').value,acceptDNS:$('ck-dns').checked,shieldsUp:$('ck-shields').checked,acceptRoutes:$('ck-routes').checked,advertiseExitNode:$('ck-exit').checked,ssh:$('ck-ssh').checked,exitNodeAllowLan:$('ck-lan').checked,snatSubnetRoutes:$('ck-snat').checked,statefulFiltering:$('ck-filter').checked,netfilterMode:$('nf-mode').value});
+const gvWithKey=()=>{const g=gv();const k=$('ak').value.trim();if(k)g.authKey=k;return g};
+const conn=async(body)=>{
+if(connecting)return;connecting=true;
+try{
+toast('正在连接...');clearInterval(stIntervalId);
+const r=await api('up','POST',body);
+if(r&&r.error){showErr(r.error);stIntervalId=setInterval(st,3000);return}
+if(r){
+const m=r.output?r.output.match(/https?:\/\/[^\s]+/):null;
+if(m){showAuthUrl(m[0])}else{toast(r.output||'已发送连接请求')}
+}
+toast('等待连接...');
+let n=0;
+const id=setInterval(async()=>{
+const d=await st(true);
+if(d.upError){clearInterval(id);stIntervalId=setInterval(st,3000);return}
+if($('st').textContent==='在线'){
+clearInterval(id);toast('连接成功');
+stIntervalId=setInterval(st,3000);
+}
+n++;
+if(n>60){
+clearInterval(id);toast('连接超时，请查看日志');
+stIntervalId=setInterval(st,3000);
+}
+},1000);
+}catch(e){toast('连接失败: '+e.message);stIntervalId=setInterval(st,3000)}finally{connecting=false}
+};
+const wb=()=>conn(gv());
+const ap=async()=>{const r=await api('up','POST',gv());if(r&&r.error){lastUpError=r.error;showErr(r.error)}else{toast('配置已应用');setTimeout(()=>st(true),1000)}};
+const lg=async(showLoading)=>{
+    const o=$('lg-out');
+    if(!o)return;
+    if(showLoading) o.textContent='加载中...';
+    const isAtBottom = o.scrollHeight - o.clientHeight - o.scrollTop < 20;
+    const prevScrollTop = o.scrollTop;
+    const r=await api('log/'+logTab);
+    if(r&&r.error){
+        showErr(r.error);
+        o.textContent='加载失败';
+    }else{
+        const val = r.log||'无日志';
+        if (o.textContent !== val) {
+            o.textContent = val;
+            if (showLoading || isAtBottom) {
+                o.scrollTop = o.scrollHeight;
+            } else {
+                o.scrollTop = prevScrollTop;
+            }
+        }
+    }
+};
+const clearLog=async()=>{const o=$('lg-out');if(!o)return;o.textContent='清空中...';await fetch('/api/log/clear',{method:'POST'});o.textContent='日志已清空'};
+let logTab='ts',logAutoRefresh=true,logTimer=null;
+const startLogRefresh=()=>{stopLogRefresh();if(logAutoRefresh)logTimer=setInterval(lg,3000)};
+const stopLogRefresh=()=>{if(logTimer){clearInterval(logTimer);logTimer=null}};
+const toggleLogMenu=()=>{const m=$('lg-menu');if(m)m.style.display=m.style.display==='block'?'none':'block'};
+const toggleAutoRefresh=()=>{logAutoRefresh=!logAutoRefresh;const b=$('lg-auto-btn');if(b)b.textContent=logAutoRefresh?'⏸ 暂停自动刷新':'▶ 开启自动刷新';if(logAutoRefresh){startLogRefresh()}else{stopLogRefresh()}};
+const switchLog=t=>{logTab=t;stopLogRefresh();$('lg-title').textContent=t==='ts'?'Tailscale 日志':'应用操作日志';const a=$('lg-tab-ts'),b=$('lg-tab-app');if(t==='ts'){a.style.background='var(--blue)';a.style.color='#fff';b.style.background='var(--bg3)';b.style.color='var(--fg2)'}else{b.style.background='var(--blue)';b.style.color='#fff';a.style.background='var(--bg3)';a.style.color='var(--fg2)'}lg(true);startLogRefresh()};
+const dc=async()=>{isInitialized=false;const r=await api('down');if(r&&r.error){showErr(r.error)}else{toast('已断开');setTimeout(()=>st(true),1000)}};
+const rc=()=>conn({reconnect:true});
+const toggleConnect=()=>{
+    const btn = $('btn-connect');
+    if(btn) {
+        if(btn.textContent === '断开连接') {
+            dc();
+        } else {
+            rc();
+        }
+    }
+};
+const ck=()=>{const k=$('ak').value.trim();if(!k){toast('请输入 Auth Key');return}conn(gvWithKey())};
+let pingIntervalId=null;let pingStats={tx:0,rx:0,min:999999,max:0,sum:0};
+const stopPing=()=>{if(pingIntervalId){clearTimeout(pingIntervalId);pingIntervalId=null}$('btn-ping-stop').style.display='none'};
+const closePing=()=>{stopPing();$('pm').classList.remove('show')};
+const ping=async t=>{
+stopPing();
+$('pm-target').textContent=t;$('pm-out').style.display='block';$('pm').classList.add('show');$('btn-ping-stop').style.display='block';
+$('pm-out').innerHTML='<div style="text-align:center;color:var(--fg2);font-size:.8rem;padding:10px">正在初始化 Ping...</div>';
+pingStats={tx:0,rx:0,min:999999,max:0,sum:0};
+const updatePingUI=()=>{
+const loss=pingStats.tx>0?((1-pingStats.rx/pingStats.tx)*100).toFixed(0)+'%':'0%';
+const avg=pingStats.rx>0?(pingStats.sum/pingStats.rx).toFixed(1):'-';
+const minVal=pingStats.min===999999?'-':pingStats.min.toFixed(1);
+const maxVal=pingStats.max===0?'-':pingStats.max.toFixed(1);
+$('pm-out').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:.8rem;text-align:center;margin-bottom:12px"><div><span style="color:var(--fg2)">已发送</span><br><b style="font-size:1rem">${pingStats.tx}</b></div><div><span style="color:var(--fg2)">已接收</span><br><b style="font-size:1rem">${pingStats.rx}</b></div><div><span style="color:var(--fg2)">丢包率</span><br><b style="font-size:1rem;color:${pingStats.tx>pingStats.rx?'var(--red)':'var(--green)'}">${loss}</b></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:.8rem;text-align:center"><div><span style="color:var(--fg2)">最低延迟</span><br>${minVal} ms</div><div><span style="color:var(--fg2)">平均延迟</span><br>${avg} ms</div><div><span style="color:var(--fg2)">最高延迟</span><br>${maxVal} ms</div></div>`;
+};
+const runOnePing=async()=>{
+pingStats.tx++;updatePingUI();
+const controller=new AbortController();
+const timeoutId=setTimeout(()=>controller.abort(),5000);
+try{
+const r=await fetch('/api/ping',{method:'POST',body:JSON.stringify({target:t,count:1}),headers:{'Content-Type':'application/json'},signal:controller.signal}).then(res=>res.json());
+clearTimeout(timeoutId);
+if(!pingIntervalId)return;
+if(r&&r.output){
+const res=parsePing(r.output);
+if(res.rx>0&&res.avg!=='Derived'&&res.avg!=='-'){
+pingStats.rx++;const val=parseFloat(res.avg);
+if(val<pingStats.min)pingStats.min=val;
+if(val>pingStats.max)pingStats.max=val;
+pingStats.sum+=val;
+}
+}
+}catch(e){}
+if(pingIntervalId)updatePingUI();
+};
+const runLoop=async()=>{if(!pingIntervalId)return;await runOnePing();if(pingIntervalId){pingIntervalId=setTimeout(runLoop,1000)}};
+pingIntervalId=true;runLoop();
+};
+const logout=async()=>{if(!confirm('确定要退出登录（清除所有认证状态）吗？'))return;isInitialized=false;const r=await api('logout','POST');if(r&&r.error){showErr(r.error)}else{toast('已退出登录');setTimeout(st,1000)}};
+let visLoaded=false;
+const loadVisNetwork=()=>{return new Promise((resolve,reject)=>{if(window.vis){resolve();return}const oldDefine=window.define;window.define=undefined;const script=document.createElement('script');script.src='vis-network.min.js';script.onload=()=>{window.define=oldDefine;if(window.vis){visLoaded=true;resolve()}else{reject(new Error('拓扑图库对象未定义'))}};script.onerror=()=>{window.define=oldDefine;reject(new Error('无法加载拓扑图库'))};document.head.appendChild(script)})};
+let topoNetwork=null;let peersData={};let zoomEnabled=false;let topoOptions={};
+const toggleTopoMenu=()=>{const m=$('topo-menu');m.style.display=m.style.display==='block'?'none':'block'};
+const toggleZoom=()=>{zoomEnabled=!zoomEnabled;if(topoNetwork){topoNetwork.setOptions({interaction:{zoomView:zoomEnabled,dragView:zoomEnabled}})}const b=$('topo-menu').querySelector('button:first-child');b.textContent=zoomEnabled?'🔓 解锁缩放':'🔒 锁定缩放'};
+const drawTopo=async()=>{
+const container=$('topo-container');
+$('topo-container').style.display='block';
+$('detail-panel').style.display='none';
+container.innerHTML='<div style="color:var(--fg2);font-size:.8rem;padding:20px;text-align:center;">正在加载...</div>';
+try{
+await loadVisNetwork();
+container.innerHTML='<div style="color:var(--fg2);font-size:.8rem;padding:20px;text-align:center;">正在获取设备列表...</div>';
+const d=await api('status');
+if(d.error)throw new Error(d.error);
+let retries=0;
+while((container.clientWidth===0||container.clientHeight===0)&&retries<10){
+await new Promise(r=>setTimeout(r,50));
+retries++;
+}
+const self=d.Self||{};
+const peers=Object.values(d.Peer||{});
+container.innerHTML='';
+const nodes=[];const edges=[];
+nodes.push({id:'self',label:self.HostName||'当前NAS',color:{background:'#1d4ed8',border:'#3b82f6',highlight:{background:'#2563eb',border:'#60a5fa'}},shape:'database',size:25,font:{color:'#ffffff',size:12}});
+peers.forEach(p=>{
+nodes.push({id:p.ID,label:p.HostName||p.ID.slice(0,8),color:p.Online?{background:'#047857',border:'#10b981',highlight:{background:'#059669',border:'#34d399'}}:{background:'#b91c1c',border:'#ef4444',highlight:{background:'#dc2626',border:'#f87171'}},shape:'dot',size:18,font:{color:'#8892b0',size:11}});
+edges.push({id:'edge-'+p.ID,from:'self',to:p.ID,color:p.Online?'#10b981':'#475569',width:p.Online?2:1,length:160,label:getLat(ip(p))||'',font:{size:10,color:'#10b981'}});
+});
+const data={nodes:new vis.DataSet(nodes),edges:new vis.DataSet(edges)};
+const options={physics:{solver:'forceAtlas2Based',forceAtlas2Based:{gravitationalConstant:-50,centralGravity:0.01,springLength:100,springConstant:0.08}},interaction:{dragNodes:true,zoomView:false,dragView:false}};
+topoNetwork=new vis.Network(container,data,options);
+topoNetwork.on('click',params=>{if(params.nodes.length){const id=params.nodes[0];if(id==='self'){showSelfDetail();return}showDetail(id)}});
+}catch(e){container.innerHTML=`<div style="color:var(--red);font-size:.8rem;padding:20px;text-align:center;">加载失败: ${e.message}</div>`}
+};
+let cp=(v,l)=>{copyIp(v);toast('已复制 '+l)};
+const showDetail=id=>{
+const p=peersData[id];if(!p)return;
+$('topo-container').style.display='none';
+const dp=$('detail-panel');dp.style.display='block';
+const fields=[['主机名',p.HostName],['DNS 名称',p.DNSName],['IP 地址',ip(p)],['操作系统',p.OS],['在线状态',p.Online?'在线':'离线'],['活跃状态',p.Active!==undefined?(p.Active?'活跃':'空闲'):'-'],['DERP 中继',p.Relay||'-'],['接收流量',p.RxBytes!==undefined?F(p.RxBytes):'-'],['发送流量',p.TxBytes!==undefined?F(p.TxBytes):'-'],['上次在线',p.LastSeen||'-'],['上次握手',p.LastHandshake||'-'],['标签',(p.Tags&&p.Tags.length)?p.Tags.join(', '):'-'],['子网路由',(p.PrimaryRoutes&&p.PrimaryRoutes.length)?p.PrimaryRoutes.join(', '):'-']];
+const pingBtn=id!=='self'?`<button onclick="ping('${ip(p)}')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline;margin-right:6px">Ping</button>`:'';
+const exitBtn=id!=='self'?`<button onclick="setExitNode('${ip(p)}');hideDetail()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline;margin-right:6px">设为出口节点</button>`:'';
+dp.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px"><h3 style="margin:0;color:var(--fg)">${p.HostName||'设备详情'}</h3><span style="display:flex;gap:6px">${pingBtn}${exitBtn}<button onclick="hideDetail()" style="background:none;border:none;color:var(--fg2);cursor:pointer;font-size:.72rem;text-decoration:underline">返回拓扑</button></span></div><div style="display:grid;grid-template-columns:1fr;gap:6px">${fields.map(([label,value])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg2);border-radius:6px"><span style="font-size:.72rem;color:var(--fg2)">${label}</span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:.8rem;color:var(--fg)">${value}</span>${value&&value!=='-'&&value!=='在线'&&value!=='离线'&&value!=='活跃'&&value!=='空闲'?`<button onclick="copyIp('${value}');toast('已复制 ${label}')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.65rem;text-decoration:underline">复制</button>`:''}</span></div>`).join('')}</div>`;
+};
+const showSelfDetail=()=>{showDetail('self')};
+const setExitNode=addr=>{$('ex').value=addr;toast('已设置出口节点: '+addr)};
+const hideDetail=()=>{$('topo-container').style.display='block';$('detail-panel').style.display='none'};
+const resetTopoZoom=()=>{if(topoNetwork)topoNetwork.fit()};
+let latencies={};
+const getLat=ip=>{const e=latencies[ip];if(!e)return '';if(Date.now()-e.time>180000){delete latencies[ip];return ''}return e.value};
+const setLat=(ip,v)=>{latencies[ip]={value:v||'超时',time:Date.now()}};
+const batchPing=async()=>{
+const btn=$('btn-batch-ping');btn.disabled=true;btn.textContent='Ping...';
+try{
+const d=await api('status');
+const ps=Object.values(d.Peer||{}).filter(p=>p.Online&&ip(p)!=='-');
+if(ps.length===0){toast('没有在线设备');btn.disabled=false;btn.textContent='Ping';return}
+for(let i=0;i<ps.length;i+=3){
+const batch=ps.slice(i,i+3);
+await Promise.all(batch.map(async peer=>{
+const ipAddr=ip(peer);
+try{
+const r=await api('ping','POST',{target:ipAddr,count:1});
+if(r&&r.output){const res=parsePing(r.output);setLat(ipAddr,res.loss==='100%'?'超时':res.avg+' ms')}else{setLat(ipAddr,'超时')}
+}catch(e){setLat(ipAddr,'超时')}
+}));
+}
+if(topoNetwork&&topoNetwork.body&&topoNetwork.body.data){
+const edges=topoNetwork.body.data.edges;
+Object.keys(peersData).forEach(id=>{
+if(id==='self')return;
+const p=peersData[id];const addr=ip(p);
+if(getLat(addr)){edges.update({id:'edge-'+id,label:getLat(addr),font:{size:10,color:'#10b981'}})}
+});
+}
+toast('测速完成');await st();
+}catch(e){toast('测速出错: '+e.message)}finally{btn.disabled=false;btn.textContent='Ping'}
+};
+let touchStartX=0;let touchEndX=0;
+document.addEventListener('touchstart',e=>{touchStartX=e.changedTouches[0].screenX},{passive:true});
+document.addEventListener('touchend',e=>{touchEndX=e.changedTouches[0].screenX;handleSwipe()},{passive:true});
+const handleSwipe=()=>{
+const tabs=['ov','tp','lg'];const activeLink=document.querySelector('.bn a.act');if(!activeLink)return;
+const currentTab=activeLink.dataset.p;const currentIndex=tabs.indexOf(currentTab);if(currentIndex===-1)return;
+const diff=touchEndX-touchStartX;
+if(Math.abs(diff)>80){
+let newIndex=currentIndex;
+if(diff>0&&currentIndex>0){newIndex=currentIndex-1}else if(diff<0&&currentIndex<tabs.length-1){newIndex=currentIndex+1}
+if(newIndex!==currentIndex){const nextTabId=tabs[newIndex];const nextLink=document.querySelector(`.bn a[data-p="${nextTabId}"]`);if(nextLink)nextLink.click()}
+}
+};
+document.addEventListener('click',e=>{const m=$('topo-menu');if(m&&!e.target.closest('#topo-menu')&&!e.target.closest('button[onclick*="toggleTopoMenu"]'))m.style.display='none';const lm=$('lg-menu');if(lm&&!e.target.closest('#lg-menu')&&!e.target.closest('button[onclick*="toggleLogMenu"]'))lm.style.display='none'});
+st();stIntervalId=setInterval(st,3000);
+window.addEventListener('resize',()=>{const a=document.querySelector('.bn a.act');if(a&&a.dataset.p==='ov')drawChart()});
+</script>
+</body></html>

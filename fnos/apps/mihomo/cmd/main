@@ -1,0 +1,114 @@
+#!/bin/sh
+# mihomo 命令行：PID 优先杀进程（带 /proc 校验防 PID 复用），pkill 作为最后兜底
+# 进程名: fnos-mihomo (独特命名避免误杀)
+NAME="fnos-mihomo"          # 进程名（用 fnos- 前缀避免冲突）
+APP_SLUG="mihomo"           # app 路径用的 slug
+APP_VAR="${TRIM_PKGVAR:-/var/apps/$APP_SLUG/data}"
+APP_DEST="${TRIM_APPDEST:-/var/apps/$APP_SLUG}"
+SOCKET="$APP_VAR/mihomo.sock"
+PID_FILE="$APP_VAR/server.pid"
+LOG_FILE="$APP_VAR/mihomo.log"
+
+mkdir -p "$APP_VAR" 2>/dev/null || true
+
+find_bin() {
+    for d in "$APP_DEST/app" "$APP_DEST"; do
+        [ -x "$d/$1" ] && echo "$d/$1" && return 0
+    done
+    return 1
+}
+SRV="$(find_bin "$NAME")"
+
+verify_pid() {
+    pid="$1"
+    [ -n "$pid" ] || return 1
+    case "$pid" in *[!0-9]*) return 1 ;; esac
+    [ -d "/proc/$pid" ] || return 1
+    [ -r "/proc/$pid/comm" ] || return 1
+    comm=$(cat "/proc/$pid/comm" 2>/dev/null | tr -d '\0\n ')
+    [ "$comm" = "$NAME" ] || return 1
+    exe=$(readlink "/proc/$pid/exe" 2>/dev/null)
+    case "$exe" in
+        *"/app/$NAME") return 0 ;;
+        *"/app/server") return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+kill_by_pid() {
+    if [ ! -f "$PID_FILE" ]; then
+        return 1
+    fi
+    pid=$(cat "$PID_FILE" 2>/dev/null | tr -d '[:space:]')
+    if [ -z "$pid" ] || ! case "$pid" in *[!0-9]*) false ;; *) true ;; esac; then
+        rm -f "$PID_FILE"
+        return 2
+    fi
+    if ! verify_pid "$pid"; then
+        rm -f "$PID_FILE"
+        return 2
+    fi
+    kill -TERM "$pid" 2>/dev/null || true
+    for i in 1 2 3 4 5 6 7 8; do
+        verify_pid "$pid" || break
+        sleep 1
+    done
+    if verify_pid "$pid"; then
+        kill -KILL "$pid" 2>/dev/null || true
+    fi
+    rm -f "$PID_FILE"
+    return 0
+}
+
+start() {
+    kill_by_pid >/dev/null 2>&1
+    rm -f "$PID_FILE"
+
+    if [ -z "$SRV" ]; then echo "$NAME binary not found at $APP_DEST/app/$NAME" > "${TRIM_TEMP_LOGFILE}"; exit 1; fi
+
+    # 显式导出 env 给 Go server 内部 findBin
+    export TRIM_APPDEST="$APP_DEST"
+    export TRIM_PKGVAR="$APP_VAR"
+    # mihomo Go server 用的 env 是 MIHOMO_SERVICE_PORT
+    export MIHOMO_SERVICE_PORT="9097"
+
+    "$SRV" >> "$LOG_FILE" 2>&1 &
+    PID=$!
+    echo $PID > "$PID_FILE"
+    sleep 1.5
+    if ! kill -0 "$PID" 2>/dev/null; then
+        echo "$NAME failed to start, see $LOG_FILE" > "${TRIM_TEMP_LOGFILE}"
+        rm -f "$PID_FILE"
+        exit 1
+    fi
+
+    PORT="9097"; [ -f /tmp/mihomo-port ] && PORT=$(cat /tmp/mihomo-port)
+    # 等待 Go 管理服务器就绪（GeoIP 已打包，最多等 20s）
+    for i in $(seq 1 20); do
+        /usr/bin/curl -s "http://127.0.0.1:$PORT/api/status" >/dev/null 2>&1 && break
+        sleep 1
+    done
+    exit 0
+}
+
+stop() {
+    if kill_by_pid; then
+        exit 0
+    fi
+    pkill -x "$NAME" 2>/dev/null || true
+    exit 0
+}
+
+case "${1:-}" in
+    start) start ;;
+    stop) stop ;;
+    restart) stop; sleep 1; start ;;
+    status)
+        if [ -f "$PID_FILE" ]; then
+            pid=$(cat "$PID_FILE" 2>/dev/null | tr -d '[:space:]')
+            if verify_pid "$pid"; then exit 0; fi
+        fi
+        [ -S "$SOCKET" ] && exit 0
+        exit 3 ;;
+    *) echo "Usage: $0 {start|stop|status|restart}" > "${TRIM_TEMP_LOGFILE}"; exit 1 ;;
+esac

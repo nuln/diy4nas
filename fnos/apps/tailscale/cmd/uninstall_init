@@ -1,0 +1,11 @@
+#!/bin/sh
+APP_DEST=${TRIM_APPDEST:-/var/apps/tailscale}
+SOCKET="/var/run/tailscale/tailscaled.sock"
+# Disconnect from tailnet
+if [ -S "$SOCKET" ]; then
+    /usr/bin/tailscale --socket="$SOCKET" down 2>/dev/null || true
+fi
+"$APP_DEST/cmd/main" stop 2>/dev/null || true
+# Remove sudoers config
+rm -f /etc/sudoers.d/tailscale 2>/dev/null || true
+exit 0

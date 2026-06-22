@@ -1,0 +1,17 @@
+[
+  {
+    "stepTitle": "卸载 tailscale",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "确认卸载 tailscale？<br>日志和缓存文件将被自动删除。<br>配置和数据文件（认证状态）默认保留，可选择是否删除。"
+      },
+      {
+        "type": "switch",
+        "field": "delete_data",
+        "label": "删除配置和数据文件",
+        "initValue": "false"
+      }
+    ]
+  }
+]
