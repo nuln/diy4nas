@@ -207,6 +207,9 @@ func main() {
 	// 启动后台 detached session 自动清理（默认 24h）
 	startAutoCleanup()
 
+	// 加载脚本 (从 scripts.json)
+	loadScripts()
+
 	go func() {
 		appLogf("listening on http://0.0.0.0:%s", port)
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {

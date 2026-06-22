@@ -41,7 +41,11 @@ func resolveRequestUser(r *http.Request) (string, error) {
 
 	// 3. fnOS 反代 header
 	for _, h := range []string{"X-Forwarded-User", "X-Real-User", "Remote-User"} {
-		if u := strings.TrimSpace(r.Header.Get(h)); u != "" {
+		var u string
+		if r != nil {
+			u = strings.TrimSpace(r.Header.Get(h))
+		}
+		if u != "" {
 			appLogf("resolveRequestUser: header %s=%q", h, u)
 			if isLoginUser(u) {
 				return u, nil

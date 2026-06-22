@@ -69,19 +69,45 @@
   .statusbar .item .v { color: #e0e0e0; }
   .toast { position: fixed; top: 60px; right: 20px; background: #1f2329; color: #fff; padding: 8px 16px; border-radius: 4px; z-index: 1000; font-size: 13px; }
   .toast.error { background: #f53f3f; }
+  /* 脚本 sidebar 内容 (复用 .sidebar/.sidebar-item) */
+  .sidebar-action { background: none; border: none; color: #86909c; cursor: pointer; font-size: 18px; padding: 0 6px; line-height: 1; }
+  .sidebar-action:hover { color: #165dff; }
+  .sidebar-item .run { flex: 0 0 auto; color: #00b42a; padding: 0 6px; cursor: pointer; line-height: 1; font-size: 16px; opacity: 0; transition: opacity 0.15s; }
+  .sidebar-item:hover .run { opacity: 1; }
+  .sidebar-item .run:hover { color: #fff; transform: scale(1.2); }
+  .sidebar-item .desc { display: block; color: #86909c; font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sidebar-item .info { color: #86909c; font-size: 11px; flex: 0 0 auto; }
+  /* 模态编辑 */
+  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+  .modal { background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 6px; width: 600px; max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  .modal-header { padding: 12px 16px; border-bottom: 1px solid #3a3a3a; display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h3 { margin: 0; color: #fff; font-size: 14px; font-weight: 500; }
+  .modal-body { padding: 16px; flex: 1; overflow-y: auto; }
+  .modal-body .form-row { margin-bottom: 14px; }
+  .modal-body label { display: block; margin-bottom: 4px; color: #86909c; font-size: 12px; }
+  .modal-body input, .modal-body textarea { width: 100%; box-sizing: border-box; background: #232323; border: 1px solid #3a3a3a; border-radius: 3px; padding: 6px 8px; color: #e0e0e0; font-size: 13px; font-family: inherit; }
+  .modal-body input:focus, .modal-body textarea:focus { outline: none; border-color: #165dff; }
+  .modal-body textarea { resize: vertical; min-height: 120px; font-family: 'Menlo, Monaco, "Courier New", monospace'; }
+  .modal-footer { padding: 12px 16px; border-top: 1px solid #3a3a3a; display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-footer button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a; padding: 6px 16px; border-radius: 3px; cursor: pointer; font-size: 13px; }
+  .modal-footer button.primary { background: #165dff; color: #fff; border-color: #165dff; }
+  .modal-footer button.primary:hover { background: #0e4cd9; }
+  /* 脚本 menuitem 内嵌到 ctx-menu 子菜单 */
+  .ctx-submenu { position: relative; }
+  .ctx-submenu > .submenu { display: none; position: absolute; left: 100%; top: 0; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 4px 0; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); max-height: 400px; overflow-y: auto; }
+  .ctx-submenu.open > .submenu { display: block; }
+  .ctx-submenu > .item::after { content: "▶"; float: right; opacity: 0.5; margin-left: 12px; }
 </style>
 </head>
 <body>
 <div class="layout">
   <div class="toolbar">
     <button class="primary" onclick="newSession()">+ 新建标签</button>
-    <span class="badge" id="conn-status">未连接</span>
     <span class="badge" id="session-count">0 个会话</span>
     <span class="badge" id="user-badge" style="color:#165dff">用户: -</span>
-    <span class="badge" id="shell-badge" style="color:#666">shell: -</span>
     <div class="spacer"></div>
+    <button id="scripts-toggle" title="脚本" onclick="toggleScriptsSidebar()">📜 <span class="badge" id="scripts-count" style="margin-left:2px">0</span></button>
     <button id="sidebar-toggle" title="后台会话" onclick="toggleSidebar()">≡ <span class="badge" id="sidebar-count" style="margin-left:2px">0</span></button>
-    <button onclick="closeAllSessions()">关闭全部</button>
   </div>
   <div class="tabs" id="tabs"></div>
   <div class="term-container" id="term-container">
@@ -514,6 +540,13 @@ function formatAge(ts) {
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const mask = document.getElementById('sidebar-mask');
+  // 互斥: 关掉 scripts sidebar
+  const sbScripts = document.getElementById('scripts-sidebar');
+  const maskScripts = document.getElementById('scripts-mask');
+  if (sbScripts.classList.contains('open')) {
+    sbScripts.classList.remove('open');
+    maskScripts.classList.remove('open');
+  }
   if (sb.classList.contains('open')) {
     sb.classList.remove('open');
     mask.classList.remove('open');
@@ -521,6 +554,234 @@ function toggleSidebar() {
     sb.classList.add('open');
     mask.classList.add('open');
     loadSidebar();
+  }
+}
+
+// ============== 脚本 sidebar ==============
+
+function toggleScriptsSidebar() {
+  const sb = document.getElementById('scripts-sidebar');
+  const mask = document.getElementById('scripts-mask');
+  // 互斥: 关掉 sessions sidebar
+  const sbSessions = document.getElementById('sidebar');
+  const maskSessions = document.getElementById('sidebar-mask');
+  if (sbSessions.classList.contains('open')) {
+    sbSessions.classList.remove('open');
+    maskSessions.classList.remove('open');
+  }
+  if (sb.classList.contains('open')) {
+    sb.classList.remove('open');
+    mask.classList.remove('open');
+  } else {
+    sb.classList.add('open');
+    mask.classList.add('open');
+    loadScripts();
+  }
+}
+
+let editingScriptId = null;
+
+async function loadScripts() {
+  try {
+    const r = await fetch(API + '/api/scripts');
+    const arr = await r.json();
+    document.getElementById('scripts-count').textContent = arr.length;
+    document.getElementById('scripts-count-badge').textContent = arr.length;
+    const listEl = document.getElementById('scripts-list');
+    if (arr.length === 0) {
+      listEl.innerHTML = '<div class="empty">暂无脚本，点 + 新建</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    arr.forEach(s => {
+      const info = s.run_count > 0 ? `运行 ${s.run_count} 次 · 上次 ${formatTime(s.last_run_at)}` : '从未运行';
+      const el = document.createElement('div');
+      el.className = 'sidebar-item';
+      el.title = (s.description || '') + '\n\n' + s.command;
+      el.innerHTML = `
+        <span class="run" title="新建 session 执行" onclick="event.stopPropagation();runScriptInNewSession('${s.id}')">▶</span>
+        <div style="flex:1;min-width:0">
+          <span class="name">${escapeHtml(s.name)}</span>
+          ${s.description ? `<span class="desc">${escapeHtml(s.description)}</span>` : ''}
+          <div class="info">${info}</div>
+        </div>
+        <span class="kill" title="删除" onclick="event.stopPropagation();deleteScriptItem('${s.id}','${escapeHtml(s.name).replace(/'/g, "\\'")}')">×</span>
+      `;
+      el.ondblclick = () => showScriptEditor(s.id);
+      listEl.appendChild(el);
+    });
+  } catch (e) { /* ignore */ }
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const parts = ts.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  if (!parts) return '';
+  const t = new Date(+parts[1], +parts[2] - 1, +parts[3], +parts[4], +parts[5], +parts[6]).getTime();
+  const diff = Math.max(0, Date.now() - t);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return '刚刚';
+  if (m < 60) return m + '分钟前';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h 前';
+  const d = Math.floor(h / 24);
+  return d + 'd 前';
+}
+
+function showScriptEditor(id) {
+  editingScriptId = id || null;
+  const modal = document.getElementById('script-modal-mask');
+  const titleEl = document.getElementById('script-modal-title');
+  const nameEl = document.getElementById('script-name');
+  const descEl = document.getElementById('script-desc');
+  const cmdEl = document.getElementById('script-cmd');
+  if (id) {
+    titleEl.textContent = '编辑脚本';
+    // 异步加载现有
+    fetch(API + '/api/scripts').then(r => r.json()).then(arr => {
+      const s = arr.find(x => x.id === id);
+      if (s) {
+        nameEl.value = s.name;
+        descEl.value = s.description || '';
+        cmdEl.value = s.command;
+      }
+    });
+  } else {
+    titleEl.textContent = '新建脚本';
+    nameEl.value = '';
+    descEl.value = '';
+    cmdEl.value = '';
+  }
+  modal.style.display = 'flex';
+  setTimeout(() => nameEl.focus(), 50);
+}
+
+function closeScriptEditor() {
+  document.getElementById('script-modal-mask').style.display = 'none';
+  editingScriptId = null;
+}
+
+async function saveScriptFromEditor() {
+  const name = document.getElementById('script-name').value;
+  const desc = document.getElementById('script-desc').value;
+  const cmd = document.getElementById('script-cmd').value;
+  if (!name.trim() || !cmd.trim()) {
+    toast('名称和命令不能为空', 'error');
+    return;
+  }
+  try {
+    let r;
+    if (editingScriptId) {
+      r = await fetch(API + '/api/scripts/' + editingScriptId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, command: cmd, description: desc })
+      });
+    } else {
+      r = await fetch(API + '/api/scripts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, command: cmd, description: desc })
+      });
+    }
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('保存失败: ' + e.error, 'error');
+      return;
+    }
+    closeScriptEditor();
+    loadScripts();
+    toast(editingScriptId ? '已更新' : '已新建', 'success');
+  } catch (e) {
+    toast('保存失败: ' + e.message, 'error');
+  }
+}
+
+async function deleteScriptItem(id, name) {
+  if (!confirm('删除脚本 "' + name + '"？')) return;
+  try {
+    const r = await fetch(API + '/api/scripts/' + id, { method: 'DELETE' });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('删除失败: ' + e.error, 'error');
+      return;
+    }
+    loadScripts();
+    toast('已删除', 'success');
+  } catch (e) {
+    toast('删除失败: ' + e.message, 'error');
+  }
+}
+
+// P3+4: 执行 (新开 session)
+async function runScriptInNewSession(id) {
+  try {
+    const r = await fetch(API + '/api/scripts/' + id + '/run', { method: 'POST' });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('执行失败: ' + e.error, 'error');
+      return;
+    }
+    const info = await r.json();
+    // 拿到新 session id, 创建 tab + connect + activate
+    const newId = info.session_id;
+    if (sessions.has(newId)) {
+      activate(newId);
+      return;
+    }
+    // 通过 GET /api/sessions 拿到新 session info
+    const list = await fetch(API + '/api/sessions?include_detached=true').then(r => r.json());
+    const sess = list.find(x => x.id === newId);
+    if (!sess) {
+      toast('已执行 (session id: ' + newId + ')', 'success');
+      return;
+    }
+    const tab = new Tab(sess.id);
+    tab.title = sess.title;
+    tab.cols = sess.cols;
+    tab.rows = sess.rows;
+    tab.shell = sess.shell;
+    tab.userShell = sess.user_shell;
+    sessions.set(sess.id, tab);
+    activate(sess.id);
+    connectWS(tab);
+    updateCount();
+    loadSidebar();
+    toast('已新建 session 执行: ' + sess.title, 'success');
+  } catch (e) {
+    toast('执行失败: ' + e.message, 'error');
+  }
+}
+
+// P4: 在当前 active session 注入 (右键菜单触发)
+async function runScriptInActiveSession(id) {
+  const tab = activeTab();
+  if (!tab) {
+    toast('没有 active session', 'error');
+    return;
+  }
+  // 拿 script 名称 (用于 confirm 提示)
+  let scriptName = id;
+  try {
+    const arr = await fetch(API + '/api/scripts').then(r => r.json());
+    const s = arr.find(x => x.id === id);
+    if (s) scriptName = s.name;
+  } catch (e) { /* ignore */ }
+  if (!confirm('在当前 session 执行 "' + scriptName + '"？')) return;
+  try {
+    const r = await fetch(API + '/api/scripts/' + id + '/run-in-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: tab.id })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('执行失败: ' + e.error, 'error');
+      return;
+    }
+    toast('已在当前 session 执行', 'success');
+  } catch (e) {
+    toast('执行失败: ' + e.message, 'error');
   }
 }
 
@@ -625,18 +886,83 @@ function showContextMenu(e, id) {
   const detachedItem = tab.detached
     ? `<div class="item" onclick="ctxAction('re-detach')">重新保存到后台</div>`
     : `<div class="item" onclick="ctxAction('detach')">保存到后台 (继续运行)</div>`;
+  // "在当前 session 运行脚本" 子菜单: 用 ctx-submenu 容器
+  // 但需要异步加载 scripts 数据, 所以先 build 容器, 再 fetch
+  const runScriptItem = `<div class="item ctx-submenu" data-action="run-script" onclick="openScriptsSubmenu(event, this)">在当前 session 运行脚本 ▶</div>`;
   menu.innerHTML = `
     ${detachedItem}
     <div class="sep"></div>
+    ${runScriptItem}
     <div class="item" onclick="ctxAction('rename')">重命名</div>
     <div class="item" onclick="ctxAction('close')">关闭标签</div>
     ${tab.detached ? `<div class="sep"></div><div class="item" onclick="ctxAction('kill')" style="color:#f53f3f">彻底结束 (杀进程)</div>` : ''}
   `;
   host.appendChild(menu);
+  // 异步加载 scripts 到子菜单
+  loadScriptsIntoCtxMenu(menu);
   // 点击其他地方关掉
   setTimeout(() => {
     document.addEventListener('click', closeContextMenu, { once: true });
   }, 0);
+}
+
+// 把 scripts 列表加载到 ctx-menu 里的 submenu (鼠标 hover "在当前 session 运行脚本" 时展开)
+let ctxScriptsLoaded = false;
+let ctxScripts = [];
+async function loadScriptsIntoCtxMenu(menu) {
+  if (!ctxScriptsLoaded) {
+    try {
+      ctxScripts = await fetch(API + '/api/scripts').then(r => r.json());
+      ctxScriptsLoaded = true;
+    } catch (e) { ctxScripts = []; }
+  }
+  const sub = menu.querySelector('.ctx-submenu');
+  if (!sub) return;
+  // 创建 submenu 容器
+  let submenu = sub.querySelector('.submenu');
+  if (!submenu) {
+    submenu = document.createElement('div');
+    submenu.className = 'submenu';
+    sub.appendChild(submenu);
+  }
+  submenu.innerHTML = '';
+  if (ctxScripts.length === 0) {
+    submenu.innerHTML = '<div class="item" style="color:#666">暂无脚本,先创建</div>';
+    return;
+  }
+  ctxScripts.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.textContent = s.name;
+    item.onclick = (ev) => { ev.stopPropagation(); closeContextMenu(); runScriptInActiveSession(s.id); };
+    submenu.appendChild(item);
+  });
+}
+
+// hover "在当前 session 运行脚本" → 打开 submenu
+function openScriptsSubmenu(e, el) {
+  e.stopPropagation();
+  e.preventDefault();
+  // 关闭其他 submenu
+  const allSubs = el.parentElement.querySelectorAll('.ctx-submenu');
+  allSubs.forEach(s => { if (s !== el) s.classList.remove('open'); });
+  el.classList.toggle('open');
+  // 阻止 menu 关闭 (因为 click 监听会关掉)
+  if (el.classList.contains('open')) {
+    // 重置 close-once 监听 (因为 hover 触发 click 在 setTimeout 内)
+    setTimeout(() => {
+      // 用 capture 拦截后续 click
+      document.addEventListener('click', function preventClose(e) {
+        if (el.contains(e.target) || (el.querySelector('.submenu') && el.querySelector('.submenu').contains(e.target))) {
+          e.stopPropagation();
+        }
+      }, { capture: true, once: false });
+      // 30s 后清理
+      setTimeout(() => {
+        document.removeEventListener('click', preventClose, { capture: true });
+      }, 30000);
+    }, 0);
+  }
 }
 
 function closeContextMenu() {
@@ -717,7 +1043,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 
-<!-- 右侧栏：后台 detached sessions -->
+<!-- 右侧栏 #1：脚本 -->
+<div class="sidebar-mask" id="scripts-mask" onclick="toggleScriptsSidebar()"></div>
+<div class="sidebar" id="scripts-sidebar">
+  <div class="sidebar-header">
+    <h3>脚本 <span class="count" id="scripts-count-badge">0</span></h3>
+    <button class="sidebar-action" onclick="showScriptEditor()" title="新建脚本">+</button>
+    <button class="sidebar-close" onclick="toggleScriptsSidebar()">×</button>
+  </div>
+  <div class="sidebar-list" id="scripts-list">
+    <div class="empty">暂无脚本，点 + 新建</div>
+  </div>
+</div>
+
+<!-- 右侧栏 #2：后台 sessions -->
 <div class="sidebar-mask" id="sidebar-mask" onclick="toggleSidebar()"></div>
 <div class="sidebar" id="sidebar">
   <div class="sidebar-header">
@@ -726,6 +1065,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   </div>
   <div class="sidebar-list" id="sidebar-list">
     <div class="empty">暂无后台会话</div>
+  </div>
+</div>
+
+<!-- 脚本编辑/新建模态 -->
+<div class="modal-mask" id="script-modal-mask" style="display:none">
+  <div class="modal" id="script-modal">
+    <div class="modal-header">
+      <h3 id="script-modal-title">新建脚本</h3>
+      <button class="sidebar-close" onclick="closeScriptEditor()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>名称</label>
+        <input type="text" id="script-name" placeholder="部署前端" maxlength="64">
+      </div>
+      <div class="form-row">
+        <label>描述</label>
+        <input type="text" id="script-desc" placeholder="拉代码并重启 web 容器" maxlength="128">
+      </div>
+      <div class="form-row">
+        <label>命令 (shell)</label>
+        <textarea id="script-cmd" rows="6" placeholder="cd /vol1/web && git pull && docker compose restart web"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeScriptEditor()">取消</button>
+      <button class="primary" id="script-save-btn" onclick="saveScriptFromEditor()">保存</button>
+    </div>
   </div>
 </div>
 

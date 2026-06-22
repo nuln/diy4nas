@@ -16,6 +16,8 @@ func registerRoutes(mux *http.ServeMux) {
 	api.HandleFunc("/api/sessions/", handleSessionByID)
 	api.HandleFunc("/api/ws", handleWS)
 	api.HandleFunc("/api/settings", handleSettings)
+	api.HandleFunc("/api/scripts", handleScripts)
+	api.HandleFunc("/api/scripts/", handleScriptByID)
 	mux.Handle("/api/", api)
 	// 静态资源（vendor/xterm.js 等）必须先于 / 通配匹配
 	mux.HandleFunc("/vendor/", handleStatic)
@@ -283,6 +285,116 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, 200, s)
+	default:
+		writeErr(w, 405, "method not allowed")
+	}
+}
+
+// handleScripts: GET 列表 / POST 新建
+func handleScripts(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, 200, listScripts())
+	case http.MethodPost:
+		var in struct {
+			Name        string `json:"name"`
+			Command     string `json:"command"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			writeErr(w, 400, "invalid body")
+			return
+		}
+		s, err := createScript(in.Name, in.Command, in.Description)
+		if err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		writeJSON(w, 201, *s)
+	default:
+		writeErr(w, 405, "method not allowed")
+	}
+}
+
+// handleScriptByID: PATCH 修改 / DELETE 删除 / POST /{action} 特殊动作
+func handleScriptByID(w http.ResponseWriter, r *http.Request) {
+	rest := strings.TrimPrefix(r.URL.Path, "/api/scripts/")
+	if rest == "" {
+		writeErr(w, 400, "missing id")
+		return
+	}
+	var id, action string
+	if idx := strings.Index(rest, "/"); idx >= 0 {
+		id = rest[:idx]
+		action = rest[idx+1:]
+	} else {
+		id = rest
+	}
+
+	if action != "" {
+		switch action {
+		case "run":
+			if r.Method != http.MethodPost {
+				writeErr(w, 405, "method not allowed")
+				return
+			}
+			newID, _, err := runScript(id)
+			if err != nil {
+				writeErr(w, 500, err.Error())
+				return
+			}
+			writeJSON(w, 200, map[string]any{"session_id": newID})
+		case "run-in-session":
+			if r.Method != http.MethodPost {
+				writeErr(w, 405, "method not allowed")
+				return
+			}
+			var body struct {
+				SessionID string `json:"session_id"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				writeErr(w, 400, "invalid body")
+				return
+			}
+			if body.SessionID == "" {
+				writeErr(w, 400, "session_id is empty")
+				return
+			}
+			_, err := runScriptInSession(id, body.SessionID)
+			if err != nil {
+				writeErr(w, 500, err.Error())
+				return
+			}
+			writeJSON(w, 200, map[string]any{"ok": true})
+		default:
+			writeErr(w, 404, "unknown action: "+action)
+		}
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPatch, http.MethodPut:
+		var in struct {
+			Name        *string `json:"name"`
+			Command     *string `json:"command"`
+			Description *string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			writeErr(w, 400, "invalid body")
+			return
+		}
+		s, err := updateScript(id, in.Name, in.Command, in.Description)
+		if err != nil {
+			writeErr(w, 400, err.Error())
+			return
+		}
+		writeJSON(w, 200, *s)
+	case http.MethodDelete:
+		if !deleteScript(id) {
+			writeErr(w, 404, "script not found")
+			return
+		}
+		writeJSON(w, 200, map[string]any{"ok": true})
 	default:
 		writeErr(w, 405, "method not allowed")
 	}

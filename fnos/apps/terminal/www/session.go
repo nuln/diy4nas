@@ -147,6 +147,26 @@ func detectShell() string {
 }
 
 func (s *Session) start() error {
+	return s.startInternal(s.Shell, []string{"-l"}, false)
+}
+
+// startWithCmd 启动一个 session 跑指定的 script (不走 login shell, 用 -c 直接跑)
+// 脚本跑完后 session exited, 适合"一次性脚本"场景
+// 注意: bash 不支持同时 -l + -c, 用纯 -c (通过 env 设 HOME 等模拟 login 环境)
+func (s *Session) startWithCmd(scriptCmd string) error {
+	u, err := lookupUser(s.User)
+	if err != nil {
+		u = &userInfo{uid: 0, gid: 0, home: "/root", sh: "/bin/bash"}
+	}
+	shell := u.sh
+	if shell == "" {
+		shell = "/bin/bash"
+	}
+	return s.startInternal(shell, []string{"-c", scriptCmd}, true)
+}
+
+// startInternal 内部启动逻辑, isScript=true 时为脚本模式 (-c)
+func (s *Session) startInternal(shell string, args []string, isScript bool) error {
 	u, err := lookupUser(s.User)
 	if err != nil {
 		u = &userInfo{uid: 0, gid: 0, home: "/root", sh: "/bin/bash"}
@@ -155,7 +175,7 @@ func (s *Session) start() error {
 		u.home = "/root"
 	}
 
-	cmd := exec.Command(s.Shell, "-l")
+	cmd := exec.Command(shell, args...)
 	cmd.Env = []string{
 		"TERM=xterm-256color",
 		// 不用 LC_ALL=zh_CN.UTF-8 (很多系统没装该 locale, bash 启动会警告)
@@ -176,7 +196,7 @@ func (s *Session) start() error {
 	// zsh 5.4+ 即使 PROMPT_EOL_MARK='' 也会画"空字符"占一行。
 	// RPROMPT 在屏幕最右列时 zsh 自动画 EOL mark (ohmyzsh 的 git 分支 RPROMPT 触发)。
 	// 用临时 ZDOTDIR 覆盖，写 .zshrc 末尾强制覆盖 (source 用户 .zshrc 后再清 EOL mark + 关 promptsp)。
-	if strings.HasSuffix(s.Shell, "/zsh") {
+	if !isScript && strings.HasSuffix(shell, "/zsh") {
 		zdotdir := "/tmp/fnos-zdot-" + s.ID
 		_ = os.MkdirAll(zdotdir, 0755)
 		// 用户的 .zshrc 在 $HOME（ohmyzsh 在那里）

@@ -76,14 +76,21 @@ func killSession(id string) bool {
 }
 
 func createSession(in SessionCreate, user string) (*Session, error) {
+	return createSessionOpt(in, user, false)
+}
+
+// createSessionOpt 创建 session, skipStart=true 时不启动 PTY (调用方自己 startWithCmd)
+func createSessionOpt(in SessionCreate, user string, skipStart bool) (*Session, error) {
 	id := randID()
 	title := in.Title
 	if title == "" {
 		title = "terminal"
 	}
 	s := newSession(id, title, in.Shell, user, in.Cols, in.Rows)
-	if err := s.start(); err != nil {
-		return nil, err
+	if !skipStart {
+		if err := s.start(); err != nil {
+			return nil, err
+		}
 	}
 	addSession(s)
 	return s, nil
