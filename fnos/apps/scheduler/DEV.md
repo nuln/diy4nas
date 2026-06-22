@@ -78,15 +78,13 @@ export TRIM_SERVICE_PORT="7681"
 开发时测试用 `/var/apps/`，fnOS 实际用 `/vol1/@appcenter/<slug>/`。
 **永远不要 hardcode `/var/apps/`**。
 
-### 5. manifest 的 platform 字段必须是 `x86_64`
-fnOS 新版本校验严格：
-- ❌ `platform = x86`（旧格式）→ 报"应用包不符合系统要求"
-- ❌ `platform = all`（虽然不报错但会显示不准确）
-- ✅ `platform = x86_64`（正确格式，匹配 amd64 NAS）
+### 5. manifest 的 platform 字段必须是 `x86`
+fnOS 桌面安装应用时校验 `platform` 字段，**实际接受的值是 `x86`（短名）**，不是 `x86_64`：
+- ✅ `platform = x86`（amd64/x86_64 NAS 都用这个）
+- ❌ `platform = x86_64` → 报"当前设备无法安装该应用"
+- ❌ `platform = all`（虽不报错但显示不准确，部分 fnOS 版本不识别）
 
-其他合法值（按需）：
-- `platform = arm64`（ARM NAS）
-- `platform = all`（通用，但可能在某些 fnOS 版本被警告）
+**经验**：参考 fnOS 上能正常安装的 app（mihomo/tailscale 都是 `x86`）。
 
 ### 6. schema 自动迁移
 在 `db.go` 中使用 `migrateSchema()` 自动添加新列（如 `last_status`、`last_run_at`），避免老 db 升级后 SQL 错误。

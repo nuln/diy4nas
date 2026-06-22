@@ -1,7 +1,7 @@
 appname         = scheduler
 version         = 0.0.0
 display_name    = 计划任务
-platform        = x86_64
+platform        = x86
 maintainer      = diy4nas
 maintainer_url  = https://github.com/dukangxu/diy4nas
 distributor     = nuln
