@@ -174,11 +174,20 @@ func (s *Session) start() error {
 	}
 
 	// zsh 5.4+ 即使 PROMPT_EOL_MARK='' 也会画"空字符"占一行。
-	// 用临时 ZDOTDIR 覆盖，在 .zshenv 里完全 unset 这个 option。
+	// RPROMPT 在屏幕最右列时 zsh 自动画 EOL mark (ohmyzsh 的 git 分支 RPROMPT 触发)。
+	// 用临时 ZDOTDIR 覆盖，写 .zshrc 末尾强制覆盖 (source 用户 .zshrc 后再清 EOL mark + 关 promptsp)。
 	if strings.HasSuffix(s.Shell, "/zsh") {
 		zdotdir := "/tmp/fnos-zdot-" + s.ID
 		_ = os.MkdirAll(zdotdir, 0755)
-		zshenv := "PROMPT_EOL_MARK=''\nunsetopt promptsp 2>/dev/null\nsetopt no_prompt_sp 2>/dev/null\n"
+		// 用户的 .zshrc 在 $HOME（ohmyzsh 在那里）
+		// .zshrc 末尾追加强制覆盖 EOL mark 和 promptsp
+		zshrc := "source $HOME/.zshrc\n" +
+			"PROMPT_EOL_MARK=''\n" +
+			"setopt no_prompt_sp 2>/dev/null\n" +
+			"setopt no_prompt_cr 2>/dev/null\n"
+		_ = os.WriteFile(zdotdir+"/.zshrc", []byte(zshrc), 0644)
+		// .zshenv 早期加载，也强制一次 (ohmyzsh 在 .zshrc 加载, .zshenv 之前)
+		zshenv := "PROMPT_EOL_MARK=''\n"
 		_ = os.WriteFile(zdotdir+"/.zshenv", []byte(zshenv), 0644)
 		cmd.Env = append(cmd.Env, "ZDOTDIR="+zdotdir)
 	}
