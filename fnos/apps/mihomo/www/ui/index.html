@@ -18,6 +18,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .cd{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.04)}
 .cd h3{font-size:.82rem;font-weight:600;margin-bottom:10px;color:var(--fg2);letter-spacing:.3px}
+.cd-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.cd-row .cd{margin-bottom:0}
 #pt-cf.act{display:flex;flex-direction:column;flex:1}
 #pt-lg.act{display:flex;flex-direction:column;flex:1}
 .pf-list{display:inline;margin-bottom:10px}
@@ -44,7 +46,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
 .si{background:var(--bg3);border-radius:10px;padding:12px;text-align:center}
 .si .l{font-size:.65rem;color:var(--fg2);margin-bottom:2px}.si .v{font-size:.95rem;font-weight:600}
-#ch{width:100%;height:100px;border-radius:8px;background:var(--bg3);display:block;margin:6px 0 2px}
+#ch{width:100%;height:80px;border-radius:8px;background:var(--bg3);display:block;margin:2px 0 0}
 .lb{background:var(--bg3);border-radius:8px;padding:10px;font:13px/1.5 monospace;color:var(--fg2);white-space:pre-wrap;word-wrap:break-word;max-height:300px;overflow-y:auto;margin-top:6px;text-align:left}
 .p-box{background:var(--bg3);border-radius:8px;padding:8px 10px;margin-bottom:4px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .p-box .p-l{display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0}
@@ -55,6 +57,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .p-opt a{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.68rem;cursor:pointer;background:var(--bg2);color:var(--fg2);transition:all .12s;text-decoration:none}
 .p-opt a:hover{background:rgba(59,130,246,.15);color:var(--blue)}
 .p-opt a.act{background:rgba(34,197,94,.15);color:var(--green);font-weight:600}
+.grp{background:var(--bg3);border-radius:8px;margin-bottom:6px;overflow:hidden;border:1.5px solid transparent;transition:border-color .15s}
+.grp.open{border-color:var(--blue)}
+.grp-h{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background .15s}
+.grp-h:hover{background:#1e2a3d}
+.grp-h .g-arrow{font-size:.7rem;color:var(--fg2);transition:transform .2s;width:10px}
+.grp.open .g-arrow{transform:rotate(90deg)}
+.grp-h .g-n{font-weight:600;font-size:.85rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp-h .g-pt{font-size:.6rem;color:var(--fg2);background:var(--bg);padding:1px 6px;border-radius:8px;white-space:nowrap}
+.grp-h .g-now{font-size:.72rem;color:var(--green);white-space:nowrap;max-width:40%;overflow:hidden;text-overflow:ellipsis}
+.grp-h .g-tst{font-size:.65rem;color:var(--fg2);background:transparent;border:1px solid var(--bg);padding:1px 6px;border-radius:6px;cursor:pointer;white-space:nowrap;margin-left:4px}
+.grp-h .g-tst:hover{border-color:var(--blue);color:var(--blue)}
+.grp-h .g-tst:disabled{opacity:.5;cursor:wait}
+.nodes{padding:0 8px 8px;display:none;flex-direction:column;gap:3px}
+.grp.open .nodes{display:flex}
+.node{display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:6px;padding:5px 10px;cursor:pointer;border:1.5px solid transparent;transition:border-color .12s,background .12s}
+.node:hover{background:#20283a}
+.node.sel{border-color:var(--green);background:rgba(34,197,94,.05)}
+.node .n-n{font-size:.78rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.node .n-tp{font-size:.55rem;color:var(--fg2);background:var(--bg);padding:1px 5px;border-radius:6px;white-space:nowrap}
+.node .n-d{font-size:.7rem;color:var(--fg2);white-space:nowrap;min-width:36px;text-align:right}
+.node .n-d.ok{color:var(--green)}
+.node .n-d.bad{color:var(--red)}
+.node .n-d.test{color:var(--yellow)}
+.node .n-tst{font-size:.6rem;color:var(--fg2);background:transparent;border:1px solid var(--bg);padding:1px 5px;border-radius:5px;cursor:pointer;white-space:nowrap}
+.node .n-tst:hover{border-color:var(--blue);color:var(--blue)}
+.node .n-tst:disabled{opacity:.5;cursor:wait}
 .bn{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);display:flex;border-top:1px solid rgba(255,255,255,.05);padding:4px 0 env(safe-area-inset-bottom)}
 .bn a{flex:1;text-align:center;padding:5px 2px;font-size:.58rem;color:var(--fg2);text-decoration:none;cursor:pointer}
 .bn a.act{color:var(--blue)}
@@ -84,9 +112,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div class="ct">
 
 <div id="pt-ov" class="pt act">
+<div class="cd-row">
 <div class="cd"><h3>运行状态</h3><div class="sg" id="sg"></div></div>
 <div class="cd"><h3>实时流量</h3><canvas id="ch"></canvas></div>
-<div class="cd"><h3>代理组</h3><div id="proxy-groups"></div></div>
+</div>
+<div class="cd"><h3>代理组</h3><div id="proxy-groups">加载中...</div></div>
 <div class="cd" id="st-cd"><h3>设置</h3>
 <div class="sw-item"><div><div class="sw-l">启用 Mihomo 服务</div><div class="sw-d">启动或停止 Mihomo 代理进程</div></div><label class="sw"><input type="checkbox" id="sw-service" onchange="toggleService(this)"><span class="sw-sl"></span></label></div>
 <div class="sw-item"><div><div class="sw-l">TUN 模式</div><div class="sw-d">透明代理，所有流量经过 Mihomo（需重启服务）</div></div><label class="sw"><input type="checkbox" id="sw-tun" onchange="saveSettings()"><span class="sw-sl"></span></label></div>
@@ -163,7 +193,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <script>
 const $=x=>document.getElementById(x);
 const F=b=>{if(!b)return'0 B';const u=['B','KB','MB','GB'];let i=0,v=b;while(v>=1024&&i<3){v/=1024;i++}return v.toFixed(1)+' '+u[i]};
-const api=async(p,m,b)=>{try{const r=await fetch('/api/'+p,{method:m||'GET',body:b?JSON.stringify(b):null,headers:{'Content-Type':'application/json'}});return await r.json()}catch(e){return{error:'请求失败: '+e.message}}};
+const api=async(p,m,b)=>{try{const r=await fetch('/api/'+p,{method:m||'GET',body:b?JSON.stringify(b):null,headers:{'Content-Type':'application/json'}});const t=await r.text();if(!t)return{};try{return JSON.parse(t)}catch{return{error:t.slice(0,200)}}}catch(e){return{error:'请求失败: '+e.message}}};
 const toast=(m,t)=>{const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),t||3000)};
 
 // ─── Tab routing ─────────────────────────────────────────────────
@@ -194,36 +224,122 @@ if(d.rx!==undefined){td.push({rx:d.rx,tx:d.tx});if(td.length>60)td.shift();drawC
 $('sg').innerHTML=`<div class=si><div class=l>状态</div><div class=v style=color:var(--red)>未运行</div></div><div class=si><div class=l>版本</div><div class=v>-</div></div>`;}
 };
 
+let groupData={};
+let groupDetails={};
+let groupDelays={};
+let nodeDelays={};
+let expandedGroups={};
+let testingGroups={};
+let testingNodes={};
+
+const TEST_URL='http://www.gstatic.com/generate_204';
+const TEST_TIMEOUT=4000;
+
 const lp=async()=>{
-const p=await api('proxy/proxies');
-if(!p||p.error){$('proxy-groups').innerHTML='<div style="color:var(--fg2);font-size:.8rem;padding:10px 0">代理数据不可用</div>';return}
-if(!p.proxies)return;
-let h='';let idx=0;
-for(const [k,v] of Object.entries(p.proxies)){
-if(typeof v!=='object'||!v.type)continue;
-const isSelect=v.type==='Selector';
-const isExpanded=expandedProxy===k;
-h+=`<div class=p-box>
-<div class="p-l" onclick="${isSelect?`toggleProxy('${k}')`:''}">
-<span class=pn>${v.name||k}</span><span class=pt>${v.type}</span><span class=pl>${v.now||'-'}</span>
+const p=await api('groups');
+if(!p||p.error){$('proxy-groups').innerHTML='<div style="color:var(--fg2);font-size:.8rem;padding:10px 0">代理组数据不可用'+(p&&p.error?': '+p.error:'')+'</div>';return}
+groupData=p.proxies||{};
+groupTypes=p.types||{};
+renderGroups();
+};
+
+let groupTypes={};
+
+const renderGroups=()=>{
+let h='';
+for(const [k,v] of Object.entries(groupData)){
+if(typeof v!=='object')continue;
+const isOpen=!!expandedGroups[k];
+const isTesting=!!testingGroups[k];
+const all=v.all||[];
+const sel=v.now||'-';
+const gtype=v.type||groupTypes[k]||'';
+const isManual=gtype==='Selector';
+h+=`<div class="grp${isOpen?' open':''}" data-g="${k}">
+<div class="grp-h" onclick="toggleGroup('${k}')">
+<span class="g-arrow">▶</span>
+<span class="g-n">${k}</span>
+<span class="g-pt">${gtype}</span>
+<span class="g-now" title="${sel}">${sel}</span>
+<button class="g-tst" onclick="event.stopPropagation();testGroup('${k}')" ${isTesting?'disabled':''}>${isTesting?'...':'测速'}</button>
 </div>
-${isExpanded?`<div class=p-opt>`+(v.all||[]).map(n=>`<a class="${n===v.now?'act':''}" onclick="event.stopPropagation();selectProxy('${k}','${n}')">${n}</a>`).join('')+`</div>`:''}
-</div>`;idx++}
-$('proxy-groups').innerHTML=h||'<div style="color:var(--fg2);font-size:.8rem;padding:10px 0">无代理组数据</div>'
+<div class="nodes">${renderNodes(k,all,isManual)}</div>
+</div>`;
+}
+$('proxy-groups').innerHTML=h||'<div style="color:var(--fg2);font-size:.8rem;padding:10px 0">无代理组</div>';
 };
 
-let expandedProxy=null;
-const toggleProxy=(name)=>{
-expandedProxy=expandedProxy===name?null:name;
+const renderNodes=(groupName,all,isManual)=>{
+if(!all.length)return'<div style="color:var(--fg2);font-size:.7rem;padding:6px 4px">空组</div>';
+return all.map(n=>{
+const isSel=n===groupData[groupName]?.now;
+const isTest=!!testingNodes[n];
+const dInfo=nodeDelays[n];
+let dClass='',dText='-';
+if(isTest){dClass='test';dText='...'}
+else if(dInfo){
+if(typeof dInfo.delay==='number'&&dInfo.delay>0){dClass='ok';dText=dInfo.delay+'ms'}
+else if(dInfo.message){dClass='bad';dText=dInfo.message.length>4?'失败':dInfo.message}
+else if(dInfo.delay===0){dClass='bad';dText='失败'}
+}
+const clickAction=isManual?`onclick="selectNode('${groupName}','${n}')"`:'';
+const cursor=isManual?'pointer':'default';
+return`<div class="node${isSel?' sel':''}" ${clickAction} style="cursor:${cursor}">
+<span class="n-n" title="${n}">${n}</span>
+<span class="n-d ${dClass}">${dText}</span>
+<button class="n-tst" onclick="event.stopPropagation();testNode('${n}')" ${isTest?'disabled':''}>${isTest?'...':'测'}</button>
+</div>`;
+}).join('');
+};
+
+const toggleGroup=async(name)=>{
+if(expandedGroups[name]){delete expandedGroups[name];renderGroups();return}
+expandedGroups[name]=true;
+renderGroups();
+};
+
+const selectNode=async(group,name)=>{
+const r=await api('select','POST',{group:group,name:name});
+if(r&&r.error){toast('切换失败: '+r.error);return}
+toast('已选择: '+name);
+nodeDelays={};
 lp();
 };
 
-const selectProxy=async(group,name)=>{
-const d=await api('proxy/proxies/'+group,'PUT',{name:name});
-if(!d||d.error){toast('切换失败');return}
-expandedProxy=null;
-toast('已切换到 '+name);
-lp();
+const testGroup=async(name)=>{
+testingGroups[name]=true;renderGroups();
+const r=await api('delay/group/'+encodeURIComponent(name)+'?url='+encodeURIComponent(TEST_URL)+'&timeout='+TEST_TIMEOUT);
+delete testingGroups[name];
+if(!r){toast('测速无响应');renderGroups();return}
+if(r.error){toast(r.error);renderGroups();return}
+let msg=r.message;
+if(!msg&&typeof r==='object'){
+const keys=Object.keys(r);
+if(keys.length>0&&keys.every(k=>typeof r[k]==='object'||typeof r[k]==='number')){
+msg=r}
+}
+if(msg&&typeof msg==='object'){
+let count=0;
+for(const [n,d] of Object.entries(msg)){
+if(typeof d==='number'){nodeDelays[n]={delay:d,message:''};count++}
+else if(d&&typeof d==='object'){
+nodeDelays[n]={delay:d.delay||0,message:d.message||''};
+count++}
+}
+if(count>0){toast('已测试 '+count+' 个节点');expandedGroups[name]=true}
+else toast('组内无可测试节点');
+}else{toast('测速返回异常')}
+renderGroups();
+};
+
+const testNode=async(name)=>{
+testingNodes[name]=true;renderGroups();
+const r=await api('delay/proxy/'+encodeURIComponent(name)+'?url='+encodeURIComponent(TEST_URL)+'&timeout='+TEST_TIMEOUT);
+delete testingNodes[name];
+if(!r){toast('测速无响应');renderGroups();return}
+if(r.error){toast(r.error);renderGroups();return}
+if(typeof r.delay==='number'){nodeDelays[name]=r;toast(name+': '+(r.delay>0?r.delay+'ms':'失败'))}
+renderGroups();
 };
 
 const startOverviewRefresh=()=>{
@@ -242,11 +358,11 @@ if(ovProxyTimer){clearInterval(ovProxyTimer);ovProxyTimer=null}
 let td=[];
 const drawChart=()=>{
 const c=$('ch');if(!c||td.length<2)return;
-const w=c.parentElement.clientWidth;c.width=w*2;c.height=100*2;const ctx=c.getContext('2d');ctx.scale(2,2);ctx.clearRect(0,0,w,100);
+const w=c.parentElement.clientWidth;c.width=w*2;c.height=80*2;const ctx=c.getContext('2d');ctx.scale(2,2);ctx.clearRect(0,0,w,80);
 const mx=Math.max(...td.flatMap(x=>[x.rx,x.tx]),1);
 [['rx','#3b82f6'],['tx','#22c55e']].forEach(([k,col])=>{
 ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.lineJoin='round';
-td.forEach((d,i)=>{const x=6+(i/(td.length-1))*(w-12),y=8+84-(d[k]/mx)*84;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke()})};
+td.forEach((d,i)=>{const x=6+(i/(td.length-1))*(w-12),y=6+66-(d[k]/mx)*66;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke()})};
 
 // ─── Log ─────────────────────────────────────────────────────────
 const switchLogTab=(tab)=>{

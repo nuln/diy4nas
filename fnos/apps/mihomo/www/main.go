@@ -314,19 +314,49 @@ func insertLine(lines []string, at int, line string) []string {
 
 func ensureDNS(config string) string {
 	essentialDNS := []string{"223.5.5.5", "114.114.114.114", "8.8.8.8", "100.100.100.100"}
+	ipv6DNS := []string{"2606:4700:4700::1111", "2001:4860:4860::8888", "2400:3200::1", "2400:3200:baba::1"}
 	lines := strings.Split(config, "\n")
 
 	dnsStart, dnsEnd, dnsIndent := findYAMLBlock(lines, "dns")
 	if dnsStart == -1 {
-		block := "dns:\n  enable: true\n  default-nameserver:\n"
+		block := "dns:\n  enable: true\n  ipv6: true\n  default-nameserver:\n"
 		for _, e := range essentialDNS {
+			block += "    - " + e + "\n"
+		}
+		for _, e := range ipv6DNS {
 			block += "    - " + e + "\n"
 		}
 		block += "  direct-nameserver:\n"
 		for _, e := range essentialDNS {
 			block += "    - " + e + "\n"
 		}
+		for _, e := range ipv6DNS {
+			block += "    - " + e + "\n"
+		}
+		block += "  nameserver:\n    - https://dns.alidns.com/dns-query\n"
 		return config + "\n" + block
+	}
+
+	enableIdx := -1
+	ipv6LineIdx := -1
+	for i := dnsStart + 1; i < dnsEnd; i++ {
+		t := strings.TrimSpace(lines[i])
+		if t == "enable:" || strings.HasPrefix(t, "enable:") {
+			enableIdx = i
+		}
+		if t == "ipv6:" || strings.HasPrefix(t, "ipv6:") {
+			ipv6LineIdx = i
+		}
+	}
+	if enableIdx == -1 {
+		lines = insertBlock(lines, dnsStart+1, strings.Repeat(" ", dnsIndent+2)+"enable: true\n")
+		dnsEnd++
+	}
+	if ipv6LineIdx == -1 {
+		lines = insertBlock(lines, dnsStart+1, strings.Repeat(" ", dnsIndent+2)+"ipv6: true\n")
+		dnsEnd++
+	} else {
+		lines[ipv6LineIdx] = strings.Repeat(" ", dnsIndent+2) + "ipv6: true"
 	}
 
 	for _, section := range []string{"default-nameserver", "direct-nameserver"} {
@@ -336,12 +366,23 @@ func ensureDNS(config string) string {
 			for _, e := range essentialDNS {
 				insert += strings.Repeat(" ", dnsIndent+4) + "- " + e + "\n"
 			}
+			for _, e := range ipv6DNS {
+				insert += strings.Repeat(" ", dnsIndent+4) + "- " + e + "\n"
+			}
 			lines = insertBlock(lines, dnsStart+1, insert)
 			dnsEnd += strings.Count(insert, "\n")
 			continue
 		}
 		existing := collectListItems(lines, secStart, secEnd)
 		for _, e := range essentialDNS {
+			if !existing[e] {
+				line := strings.Repeat(" ", secIndent+2) + "- " + e
+				lines = insertBlock(lines, secEnd, line+"\n")
+				dnsEnd++
+				secEnd++
+			}
+		}
+		for _, e := range ipv6DNS {
 			if !existing[e] {
 				line := strings.Repeat(" ", secIndent+2) + "- " + e
 				lines = insertBlock(lines, secEnd, line+"\n")
@@ -569,6 +610,242 @@ func readProfile(name string) (string, error) {
 	return string(data), nil
 }
 
+func extractConfiguredGroupNames(config string) []string {
+	var names []string
+	lines := strings.Split(config, "\n")
+	inGroups := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "proxy-groups:") {
+			inGroups = true
+			continue
+		}
+		if inGroups {
+			if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+				continue
+			}
+			if strings.HasPrefix(trimmed, "- name:") {
+				name := strings.TrimSpace(strings.TrimPrefix(trimmed, "- name:"))
+				name = strings.Trim(name, "\"'")
+				names = append(names, name)
+				continue
+			}
+			indent := len(line) - len(strings.TrimLeft(line, " "))
+			if indent == 0 {
+				break
+			}
+		}
+	}
+	return names
+}
+
+func handleGroups(w http.ResponseWriter, r *http.Request) {
+	if !isMihomoRunning() {
+		writeJSON(w, map[string]string{"error": "mihomo not running"})
+		return
+	}
+	groupTypes := map[string]bool{
+		"Selector": true, "URLTest": true, "Fallback": true, "LoadBalance": true,
+	}
+	directRejectSet := map[string]bool{
+		"DIRECT": true, "REJECT": true, "GLOBAL": true,
+	}
+	configPath := configDir + "/config.yaml"
+	data, _ := os.ReadFile(configPath)
+	configured := extractConfiguredGroupNames(string(data))
+	configuredSet := map[string]bool{}
+	for _, n := range configured {
+		configuredSet[n] = true
+	}
+	resp, err := http.Get(mihomoAPI + "/proxies")
+	if err != nil {
+		writeJSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var proxiesResp map[string]any
+	if err := json.Unmarshal(body, &proxiesResp); err != nil {
+		writeJSON(w, map[string]string{"error": "invalid mihomo response"})
+		return
+	}
+	allProxies, _ := proxiesResp["proxies"].(map[string]any)
+	filtered := map[string]any{}
+	types := map[string]string{}
+	for name, p := range allProxies {
+		pmap, _ := p.(map[string]any)
+		ptype, _ := pmap["type"].(string)
+		if !groupTypes[ptype] {
+			continue
+		}
+		if directRejectSet[name] {
+			continue
+		}
+		if len(configured) > 0 && !configuredSet[name] {
+			continue
+		}
+		types[name] = ptype
+		filteredMap := map[string]any{}
+		for k, v := range pmap {
+			filteredMap[k] = v
+		}
+		if rawAll, ok := pmap["all"].([]any); ok {
+			var cleanAll []any
+			for _, item := range rawAll {
+				if s, ok := item.(string); ok {
+					if directRejectSet[s] {
+						continue
+					}
+					if _, isGroup := allProxies[s].(map[string]any); isGroup {
+						if gt, _ := allProxies[s].(map[string]any)["type"].(string); groupTypes[gt] {
+							cleanAll = append(cleanAll, item)
+							continue
+						}
+					}
+				}
+				cleanAll = append(cleanAll, item)
+			}
+			filteredMap["all"] = cleanAll
+		}
+		filtered[name] = filteredMap
+	}
+	writeJSON(w, map[string]any{"proxies": filtered, "types": types})
+}
+
+func handleSelectProxy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "", 405)
+		return
+	}
+	if !isMihomoRunning() {
+		writeJSON(w, map[string]string{"error": "mihomo not running"})
+		return
+	}
+	var req struct {
+		Group string `json:"group"`
+		Name  string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, map[string]string{"error": "invalid request"})
+		return
+	}
+	if req.Group == "" || req.Name == "" {
+		writeJSON(w, map[string]string{"error": "group and name required"})
+		return
+	}
+	body := fmt.Sprintf(`{"name":%q}`, req.Name)
+	req2, _ := http.NewRequest(http.MethodPut, mihomoAPI+"/proxies/"+url.PathEscape(req.Group), strings.NewReader(body))
+	req2.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req2)
+	if err != nil {
+		writeJSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		errMsg := strings.TrimSpace(string(respBody))
+		if errMsg == "" {
+			errMsg = fmt.Sprintf("HTTP %d", resp.StatusCode)
+		}
+		writeJSON(w, map[string]string{"error": errMsg})
+		return
+	}
+	writeJSON(w, map[string]string{"status": "ok"})
+}
+
+func handleDelay(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "", 405)
+		return
+	}
+	if !isMihomoRunning() {
+		writeJSON(w, map[string]string{"error": "mihomo not running"})
+		return
+	}
+	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/api/delay/"), "/", 2)
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		http.Error(w, "", 404)
+		return
+	}
+	kind := parts[0]
+	name := parts[1]
+	testURL := r.URL.Query().Get("url")
+	if testURL == "" {
+		testURL = "http://www.gstatic.com/generate_204"
+	}
+	timeout := r.URL.Query().Get("timeout")
+	if timeout == "" {
+		timeout = "5000"
+	}
+	var apiPath string
+	if kind == "group" {
+		apiPath = fmt.Sprintf("/group/%s/delay?url=%s&timeout=%s", url.PathEscape(name), url.QueryEscape(testURL), timeout)
+	} else {
+		apiPath = fmt.Sprintf("/proxies/%s/delay?url=%s&timeout=%s", url.PathEscape(name), url.QueryEscape(testURL), timeout)
+	}
+	resp, err := http.Get(mihomoAPI + apiPath)
+	if err != nil {
+		writeJSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	if resp.StatusCode >= 400 {
+		var m map[string]any
+		if json.Unmarshal(respBody, &m) == nil {
+			if msg, ok := m["message"].(string); ok {
+				writeJSON(w, map[string]string{"error": "测速失败: " + msg})
+				return
+			}
+		}
+		writeJSON(w, map[string]string{"error": strings.TrimSpace(string(respBody))})
+		return
+	}
+	var m map[string]any
+	if json.Unmarshal(respBody, &m) != nil {
+		writeJSON(w, map[string]string{"error": "invalid mihomo response"})
+		return
+	}
+	if _, hasDelay := m["delay"]; hasDelay {
+		w.Write(respBody)
+		return
+	}
+	if msg, ok := m["message"]; ok {
+		switch v := msg.(type) {
+		case map[string]any:
+			w.Write(respBody)
+			return
+		case string:
+			writeJSON(w, map[string]string{"error": "测速失败: " + v})
+			return
+		case float64:
+			w.Write(respBody)
+			return
+		}
+	}
+	if len(m) > 0 {
+		firstKey := ""
+		for k := range m {
+			firstKey = k
+			break
+		}
+		if firstKey != "" {
+			if v, ok := m[firstKey]; ok {
+				switch v.(type) {
+				case float64, map[string]any:
+					normalized := map[string]any{"message": m}
+					nb, _ := json.Marshal(normalized)
+					w.Write(nb)
+					return
+				}
+			}
+		}
+	}
+	w.Write(respBody)
+}
+
 func writeProfile(name, content string) error {
 	path := profilesDir + "/" + name + ".yaml"
 	return os.WriteFile(path, []byte(content), 0644)
@@ -759,6 +1036,9 @@ func main() {
 	mux.HandleFunc("/api/profiles", handleProfiles)
 	mux.HandleFunc("/api/profiles/", handleProfiles)
 	mux.HandleFunc("/api/proxy/", handleProxy)
+	mux.HandleFunc("/api/groups", handleGroups)
+	mux.HandleFunc("/api/select", handleSelectProxy)
+	mux.HandleFunc("/api/delay/", handleDelay)
 	mux.HandleFunc("/api/settings", handleSettings)
 	mux.HandleFunc("/api/service/start", handleServiceStart)
 	mux.HandleFunc("/api/service/stop", handleServiceStop)
