@@ -22,6 +22,8 @@
   .toolbar .badge.live::before { content: "●"; margin-right: 4px; }
   .tabs { background: #232323; display: flex; overflow-x: auto; border-bottom: 1px solid #3a3a3a; min-height: 36px; }
   .tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #232323; color: #86909c; cursor: pointer; border-right: 1px solid #3a3a3a; font-size: 12px; user-select: none; min-width: 120px; max-width: 200px; }
+  .tab .title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab .close { flex: 0 0 auto; color: #86909c; padding: 0 4px; border-radius: 3px; line-height: 1; }
   .tab:hover { background: #2a2a2a; }
   .tab.active { background: #1a1a1a; color: #fff; border-bottom: 2px solid #165dff; }
   .tab .close { color: #86909c; padding: 0 4px; border-radius: 3px; line-height: 1; }
@@ -50,7 +52,6 @@
     <span class="badge" id="user-badge" style="color:#165dff">用户: -</span>
     <span class="badge" id="shell-badge" style="color:#666">shell: -</span>
     <div class="spacer"></div>
-    <button onclick="showSettings()">设置</button>
     <button onclick="closeAllSessions()">关闭全部</button>
   </div>
   <div class="tabs" id="tabs"></div>
@@ -402,32 +403,10 @@ function updateCount() {
   document.getElementById('session-count').textContent = sessions.size + ' 个会话';
 }
 
-async function showSettings() {
-  try {
-    const s = await fetch(API + '/api/settings').then(r => r.json());
-    const shell = prompt('默认 Shell 路径：', s.default_shell || '/bin/bash');
-    if (shell === null) return;
-    const user = prompt('默认登录用户（root 表示不切用户）：', s.default_user || '');
-    if (user === null) return;
-    const max = prompt('最大会话数：', s.max_sessions || 8);
-    if (max === null) return;
-    await fetch(API + '/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        default_shell: shell,
-        default_user: user,
-        max_sessions: parseInt(max) || 8,
-        history_bytes: s.history_bytes
-      })
-    });
-    toast('设置已保存（新会话生效）', 'success');
-  } catch (e) {
-    toast('设置失败: ' + e.message, 'error');
-  }
+// 设置弹窗已移除（用户要求）：shell/user 自动检测，max_sessions 用默认值 8
+function showSettings() {
+  toast('设置已禁用：shell/user 自动检测，max_sessions=8 默认', 'info');
 }
-
-// 切换用户功能已移除（用户要求）：fnOS 登录用户由 fnOS 反代 TRIM_RUN_USERNAME 自动透传
 
 function updateUserBadge(user) {
   const el = document.getElementById('user-badge');
