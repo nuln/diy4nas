@@ -111,9 +111,19 @@ func handleSessions(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if in.Shell == "" {
-			settingsMu.RLock()
-			in.Shell = settings.DefaultShell
-			settingsMu.RUnlock()
+			// 优先用 user 的登录 shell（从 /etc/passwd 读），支持 zsh/ohmyzsh
+			// 如果 user 没指定 / 查不到，fallback 到 settings.DefaultShell
+			userName := in.User
+			if userName == "" {
+				userName, _ = resolveRequestUser(r)
+			}
+			if u, err := lookupUser(userName); err == nil && u.sh != "" {
+				in.Shell = u.sh
+			} else {
+				settingsMu.RLock()
+				in.Shell = settings.DefaultShell
+				settingsMu.RUnlock()
+			}
 		}
 		// 优先级：前端指定 > 当前请求用户 (fnOS 反代 X-Forwarded-User)
 		// 都不存在则报错（不再 fallback）

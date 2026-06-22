@@ -44,11 +44,11 @@
 <body>
 <div class="layout">
   <div class="toolbar">
-    <h1>⌨️ 网页终端</h1>
     <button class="primary" onclick="newSession()">+ 新建标签</button>
     <span class="badge" id="conn-status">未连接</span>
     <span class="badge" id="session-count">0 个会话</span>
     <span class="badge" id="user-badge" style="color:#165dff">用户: -</span>
+    <span class="badge" id="shell-badge" style="color:#666">shell: -</span>
     <div class="spacer"></div>
     <button onclick="showSettings()">设置</button>
     <button onclick="closeAllSessions()">关闭全部</button>
@@ -56,7 +56,7 @@
   <div class="tabs" id="tabs"></div>
   <div class="term-container" id="term-container">
     <div class="empty-state" id="empty-state">
-      <h2>欢迎使用网页终端</h2>
+      <h2>终端</h2>
       <button onclick="newSession()">+ 打开第一个终端</button>
     </div>
     <div class="user-error" id="user-error" style="display:none">
@@ -185,10 +185,15 @@ function updateStatus() {
     document.getElementById('status-session').textContent = tab.title;
     document.getElementById('status-size').textContent = tab.cols + '×' + tab.rows;
     document.getElementById('status-shell').textContent = tab.shell;
+    // 顶栏 shell badge: 显示用户登录 shell（不是当前 session 的 shell）
+    const el = document.getElementById('shell-badge');
+    if (el) el.textContent = 'shell: ' + (tab.userShell || tab.shell);
   } else {
     document.getElementById('status-session').textContent = '无';
     document.getElementById('status-size').textContent = '—';
     document.getElementById('status-shell').textContent = '—';
+    const el = document.getElementById('shell-badge');
+    if (el) el.textContent = 'shell: -';
   }
 }
 

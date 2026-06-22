@@ -12,6 +12,7 @@ type SessionInfo struct {
 	Subs      int    `json:"subscribers"`
 	Shell     string `json:"shell"`
 	User      string `json:"user"`
+	UserShell string `json:"user_shell"`
 }
 
 type SessionCreate struct {

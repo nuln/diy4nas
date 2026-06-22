@@ -101,11 +101,16 @@ func resolveUser(requested string) string {
 }
 
 func newSession(id, title, shell, user string, cols, rows int) *Session {
-	if shell == "" {
-		shell = detectShell()
-	}
 	if user == "" {
 		user = resolveUser("")
+	}
+	// shell 优先级：前端指定 > 用户登录 shell (/etc/passwd 第 7 字段) > detectShell fallback
+	if shell == "" {
+		if u, err := lookupUser(user); err == nil && u.sh != "" {
+			shell = u.sh
+		} else {
+			shell = detectShell()
+		}
 	}
 	if cols <= 0 {
 		cols = defaultCols
@@ -314,6 +319,11 @@ func (s *Session) info() SessionInfo {
 	exited := s.exited
 	count := len(s.subs)
 	s.mu.Unlock()
+	// 从 /etc/passwd 拿用户登录 shell（zsh / ohmyzsh 时用 zsh）
+	userShell := shell
+	if u, err := lookupUser(user); err == nil && u.sh != "" {
+		userShell = u.sh
+	}
 	return SessionInfo{
 		ID:        s.ID,
 		Title:     s.Title,
@@ -324,6 +334,7 @@ func (s *Session) info() SessionInfo {
 		Subs:      count,
 		Shell:     shell,
 		User:      user,
+		UserShell: userShell,
 	}
 }
 
