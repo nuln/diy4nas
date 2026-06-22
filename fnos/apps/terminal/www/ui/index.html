@@ -146,7 +146,9 @@ function renderTabs() {
     const el = document.createElement('div');
     el.className = 'tab' + (tab.active ? ' active' : '') + (tab.exited ? ' exited' : '');
     el.onclick = () => activate(tab.id);
-    el.innerHTML = `<span class="title">${escapeHtml(tab.title)}</span><span class="close" onclick="event.stopPropagation();closeSession('${tab.id}')">×</span>`;
+    // 双击 tab 名 → 重命名
+    el.querySelector && null; // placeholder
+    el.innerHTML = `<span class="title" ondblclick="event.stopPropagation();renameTab('${tab.id}')" title="双击重命名">${escapeHtml(tab.title)}</span><span class="close" onclick="event.stopPropagation();closeSession('${tab.id}')">×</span>`;
     tab.tabEl = el;
     tabsEl.appendChild(el);
   });
@@ -154,6 +156,34 @@ function renderTabs() {
     emptyEl.style.display = 'flex';
   } else {
     emptyEl.style.display = 'none';
+  }
+}
+
+// 重命名 tab：弹输入框，PATCH /api/sessions/{id}
+async function renameTab(id) {
+  const tab = sessions.get(id);
+  if (!tab) return;
+  const newName = prompt('重命名标签：', tab.title);
+  if (newName === null || newName.trim() === '') return;
+  const trimmed = newName.trim().slice(0, 64);
+  try {
+    const r = await fetch(API + '/api/sessions/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: trimmed })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: r.statusText }));
+      toast('重命名失败: ' + e.error, 'error');
+      return;
+    }
+    const info = await r.json();
+    tab.title = info.title;
+    renderTabs();
+    if (tab === activeTab()) updateStatus();
+    toast('已重命名为 ' + info.title, 'success');
+  } catch (e) {
+    toast('重命名失败: ' + e.message, 'error');
   }
 }
 

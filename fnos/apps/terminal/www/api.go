@@ -157,17 +157,41 @@ func handleSessionByID(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "missing id")
 		return
 	}
-	if r.Method != http.MethodDelete {
-		writeErr(w, 405, "method not allowed")
-		return
-	}
 	s := getSession(rest)
 	if s == nil {
 		writeErr(w, 404, "session not found")
 		return
 	}
-	removeSession(rest)
-	writeJSON(w, 200, map[string]any{"ok": true})
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, 200, s.info())
+	case http.MethodPatch, http.MethodPut, http.MethodPost:
+		// 重命名：PATCH /api/sessions/{id} body: {"title": "new name"}
+		var body struct {
+			Title string `json:"title"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeErr(w, 400, "invalid body")
+			return
+		}
+		if body.Title == "" {
+			writeErr(w, 400, "title is empty")
+			return
+		}
+		// 截断超长 title (64 字符)
+		if len(body.Title) > 64 {
+			body.Title = body.Title[:64]
+		}
+		s.mu.Lock()
+		s.Title = body.Title
+		s.mu.Unlock()
+		writeJSON(w, 200, s.info())
+	case http.MethodDelete:
+		removeSession(rest)
+		writeJSON(w, 200, map[string]any{"ok": true})
+	default:
+		writeErr(w, 405, "method not allowed")
+	}
 }
 
 func handleSettings(w http.ResponseWriter, r *http.Request) {
