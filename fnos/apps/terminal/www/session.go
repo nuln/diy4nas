@@ -172,6 +172,16 @@ func (s *Session) start() error {
 		"PROMPT_EOL_MARK=",
 		"PROMPT_SP=",
 	}
+
+	// zsh 5.4+ 即使 PROMPT_EOL_MARK='' 也会画"空字符"占一行。
+	// 用临时 ZDOTDIR 覆盖，在 .zshenv 里完全 unset 这个 option。
+	if strings.HasSuffix(s.Shell, "/zsh") {
+		zdotdir := "/tmp/fnos-zdot-" + s.ID
+		_ = os.MkdirAll(zdotdir, 0755)
+		zshenv := "PROMPT_EOL_MARK=''\nunsetopt promptsp 2>/dev/null\nsetopt no_prompt_sp 2>/dev/null\n"
+		_ = os.WriteFile(zdotdir+"/.zshenv", []byte(zshenv), 0644)
+		cmd.Env = append(cmd.Env, "ZDOTDIR="+zdotdir)
+	}
 	cmd.Dir = u.home
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setsid: true,

@@ -176,8 +176,9 @@ function renderTabs() {
   tabsEl.innerHTML = '';
   sessions.forEach(tab => {
     const el = document.createElement('div');
-    const detachedCls = tab.detached ? ' detached' : '';
-    el.className = 'tab' + (tab.active ? ' active' : '') + (tab.exited ? ' exited' : '') + detachedCls;
+    // 持久 tab (用户标记) 或 backend detached 都加 📌 标识
+    const persistentCls = (tab.persistent || tab.detached) ? ' detached' : '';
+    el.className = 'tab' + (tab.active ? ' active' : '') + (tab.exited ? ' exited' : '') + persistentCls;
     el.onclick = () => activate(tab.id);
     el.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, tab.id); };
     // 双击 tab 名 → 重命名；× hover 时才显示
