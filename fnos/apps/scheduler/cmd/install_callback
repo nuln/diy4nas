@@ -1,0 +1,9 @@
+#!/bin/sh
+# post-install: 准备数据目录 + 启动服务
+APP_VAR="${TRIM_PKGVAR:-/var/apps/scheduler/data}"
+APP_DEST="${TRIM_APPDEST:-/var/apps/scheduler}"
+
+mkdir -p "$APP_VAR" 2>/dev/null || true
+# setcap 兜底：scheduler 用 /bin/sh 执行子进程无需 cap，但确保 binary 有正确权限
+[ -x "$APP_DEST/app/fnos-scheduler" ] && chmod 0755 "$APP_DEST/app/fnos-scheduler" 2>/dev/null || true
+exit 0

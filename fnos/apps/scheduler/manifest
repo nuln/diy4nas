@@ -1,0 +1,14 @@
+appname         = scheduler
+version         = 0.0.0
+display_name    = 计划任务
+platform        = x86_64
+maintainer      = diy4nas
+maintainer_url  = https://github.com/dukangxu/diy4nas
+distributor     = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = scheduler.Application
+service_port    = 7681
+checkport       = false
+desc            = 基于 Go 的轻量级定时任务调度器，支持 cron 表达式、立即执行、执行历史与实时日志
+source          = thirdparty
+checksum        = 

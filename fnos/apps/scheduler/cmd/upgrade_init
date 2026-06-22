@@ -1,0 +1,7 @@
+#!/bin/sh
+# pre-upgrade: 备份 db 与 settings，升级失败时由 upgrade_callback 恢复
+APP_VAR=${TRIM_PKGVAR:-/var/apps/scheduler/data}
+for f in scheduler.db scheduler.db-wal scheduler.db-shm scheduler.settings.json; do
+    [ -f "$APP_VAR/$f" ] && [ ! -f "$APP_VAR/$f.bak" ] && cp -p "$APP_VAR/$f" "$APP_VAR/$f.bak" 2>/dev/null || true
+done
+exit 0

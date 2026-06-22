@@ -1,0 +1,25 @@
+#!/bin/sh
+APP_VAR="${TRIM_PKGVAR:-/var/apps/scheduler/data}"
+APP_DEST="${TRIM_APPDEST:-/var/apps/scheduler}"
+
+# 通过 PID 文件杀进程（最可靠），pkill 作为兜底
+if [ -f "$APP_VAR/server.pid" ]; then
+    pid=$(cat "$APP_VAR/server.pid" 2>/dev/null | tr -d '[:space:]')
+    case "$pid" in *[!0-9]*) ;; *) kill -TERM "$pid" 2>/dev/null || true; sleep 1; kill -KILL "$pid" 2>/dev/null || true ;; esac
+fi
+pkill -x fnos-scheduler 2>/dev/null || true  # 兜底（独特进程名）
+
+# 始终删除：日志、PID、bak、临时文件
+rm -f "${APP_VAR}"/*.log "${APP_VAR}"/*.pid "${APP_VAR}"/*.bak 2>/dev/null || true
+rm -f /tmp/scheduler-port 2>/dev/null || true
+
+# 可选删除：任务配置和历史（fnOS 兼容 wizard_delete_data / delete_data）
+DELETE_DATA="${wizard_delete_data:-${delete_data:-true}}"
+if [ "${DELETE_DATA}" = "true" ]; then
+    rm -f "${APP_VAR}/scheduler.db" 2>/dev/null || true
+    rm -f "${APP_VAR}/scheduler.db-wal" 2>/dev/null || true
+    rm -f "${APP_VAR}/scheduler.db-shm" 2>/dev/null || true
+    rm -f "${APP_VAR}/scheduler.settings.json" 2>/dev/null || true
+    rm -rf "${APP_VAR}" 2>/dev/null || true
+fi
+exit 0

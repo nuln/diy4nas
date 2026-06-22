@@ -1,0 +1,16 @@
+#!/bin/bash
+APP_VAR_DIR="${TRIM_PKGVAR}/data"
+APP_DEST_DIR="${TRIM_APPDEST}"
+service_postinst() {
+    mkdir -p "$APP_VAR_DIR" 2>/dev/null || true
+    # 启动服务（让用户在 fnOS 桌面能看到 UI）
+    "$APP_DEST_DIR/cmd/main" start 2>/dev/null || true
+}
+service_preuninst() {
+    # 通过 PID 文件杀进程，pkill 兜底用独特名
+    if [ -f "$APP_VAR_DIR/server.pid" ]; then
+        pid=$(cat "$APP_VAR_DIR/server.pid" 2>/dev/null | tr -d '[:space:]')
+        case "$pid" in *[!0-9]*) ;; *) kill -TERM "$pid" 2>/dev/null || true; sleep 1; kill -KILL "$pid" 2>/dev/null || true ;; esac
+    fi
+    pkill -x fnos-scheduler 2>/dev/null || true
+}

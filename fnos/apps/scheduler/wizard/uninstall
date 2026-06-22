@@ -1,0 +1,17 @@
+[
+  {
+    "stepTitle": "卸载计划任务",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "确认卸载计划任务？<br>日志和缓存文件将被自动删除。<br>任务配置和执行历史默认一并删除，可选择保留。"
+      },
+      {
+        "type": "switch",
+        "field": "delete_data",
+        "label": "删除任务配置和执行历史",
+        "initValue": "true"
+      }
+    ]
+  }
+]

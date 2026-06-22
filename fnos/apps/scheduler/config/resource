@@ -1,0 +1,18 @@
+{
+  "port-config": {
+    "protocol-file": "scheduler.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "scheduler",
+        "permission": {
+          "rw": [
+            "scheduler"
+          ]
+        }
+      }
+    ]
+  },
+  "systemd-unit": {}
+}

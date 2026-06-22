@@ -1,0 +1,18 @@
+{
+    ".url": {
+        "scheduler.Application": {
+            "title": "计划任务",
+            "desc": "基于 Go 的轻量级定时任务调度器",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "port": "7681",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true,
+            "width": 900,
+            "height": 760,
+            "minWidth": 600,
+            "minHeight": 600
+        }
+    }
+}

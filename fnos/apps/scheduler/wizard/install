@@ -1,0 +1,11 @@
+[
+  {
+    "stepTitle": "安装计划任务",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "计划任务安装完成后，在 fnOS 桌面点击图标打开管理界面。<br>支持 cron 表达式（如 <code>0 2 * * *</code>）和描述符（如 <code>@hourly</code>、<code>@daily</code>、<code>@every 30s</code>）。<br>所有任务以 scheduler 用户身份运行，命令需指定完整路径。"
+      }
+    ]
+  }
+]

@@ -73,6 +73,7 @@ for slug in "${TARGETS[@]}"; do
     [ -f "$base/$slug.sc" ] && cp "$base/$slug.sc" "$FPK/"
     [ -f "$base/ICON.PNG" ] && cp "$base/ICON.PNG" "$FPK/"
     [ -f "$base/ICON_256.PNG" ] && cp "$base/ICON_256.PNG" "$FPK/"
+    [ -f "$base/health.json" ] && cp "$base/health.json" "$FPK/"
     cp "$BASE/app.tgz" "$FPK/" 2>/dev/null || cp "$BUILD/app.tgz" "$FPK/"
     
     ck=$(md5 -q "$FPK/app.tgz" 2>/dev/null || md5sum "$FPK/app.tgz" | cut -d' ' -f1)

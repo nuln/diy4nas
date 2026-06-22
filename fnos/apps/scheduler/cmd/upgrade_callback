@@ -1,0 +1,15 @@
+#!/bin/sh
+# post-upgrade: 回滚由 upgrade_init 备份的 db/settings，然后启动
+APP_DEST=${TRIM_APPDEST:-/var/apps/scheduler}
+APP_VAR=${TRIM_PKGVAR:-$APP_DEST/data}
+
+# 回滚 .bak 文件
+for f in scheduler.db scheduler.db-wal scheduler.db-shm scheduler.settings.json; do
+    if [ -f "$APP_VAR/$f.bak" ] && [ ! -f "$APP_VAR/$f" ]; then
+        mv "$APP_VAR/$f.bak" "$APP_VAR/$f" 2>/dev/null || true
+    fi
+done
+
+# 启动服务
+"$APP_DEST/cmd/main" start 2>/dev/null || true
+exit 0
