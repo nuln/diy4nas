@@ -371,7 +371,7 @@ async function api(path, opts) {
 
 async function loadStats() {
   try {
-    const s = await api('/api/stats');
+    const s = await api('stats');
     document.getElementById('health-info').textContent = '🟢 运行中 · ' + new Date().toLocaleTimeString();
     document.getElementById('stat-grid').innerHTML = `
       <div class="stat"><div class="label">总任务数</div><div class="value">${s.total_jobs}</div></div>
@@ -401,7 +401,7 @@ async function loadStats() {
 
 async function loadJobs() {
   try {
-    jobsCache = await api('/api/jobs') || [];
+    jobsCache = await api('jobs') || [];
     renderJobs();
     const sel = document.getElementById('runs-filter-job');
     const current = sel.value;
@@ -509,10 +509,10 @@ async function saveJob() {
   if (!data.name || !data.spec || !data.command) { toast('请填写必填项', 'error'); return; }
   try {
     if (id) {
-      await api('/api/jobs/' + id, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+      await api('jobs/' + id, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
       toast('已更新', 'success');
     } else {
-      await api('/api/jobs', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+      await api('jobs', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
       toast('已创建', 'success');
     }
     closeJobModal();
@@ -524,7 +524,7 @@ async function saveJob() {
 async function deleteJob(id) {
   if (!confirm('确认删除该任务？执行历史也会一并删除。')) return;
   try {
-    await api('/api/jobs/' + id, { method: 'DELETE' });
+    await api('jobs/' + id, { method: 'DELETE' });
     toast('已删除', 'success');
     loadJobs();
     loadStats();
@@ -533,7 +533,7 @@ async function deleteJob(id) {
 
 async function toggleJob(id) {
   try {
-    const r = await api('/api/jobs/' + id + '/toggle', { method: 'POST' });
+    const r = await api('jobs/' + id + '/toggle', { method: 'POST' });
     toast(r.enabled ? '已启用' : '已禁用', 'success');
     loadJobs();
   } catch (e) {}
@@ -541,7 +541,7 @@ async function toggleJob(id) {
 
 async function runJobNow(id) {
   try {
-    const r = await api('/api/jobs/' + id + '/run', { method: 'POST' });
+    const r = await api('jobs/' + id + '/run', { method: 'POST' });
     toast(r.message || '已加入队列', 'success');
     setTimeout(loadRuns, 500);
   } catch (e) {}
@@ -567,7 +567,7 @@ function viewRunLog(id) {
     document.getElementById('log-status').textContent = '连接已断开';
     if (logEventSource) { logEventSource.close(); logEventSource = null; }
   };
-  api('/api/runs/' + id).then(r => {
+  api('runs/' + id).then(r => {
     if (r) {
       document.getElementById('log-meta').innerHTML = `任务: <strong>${escapeHtml(r.job_name||'#'+r.job_id)}</strong> · 触发: ${r.trigger} · 开始: ${r.started_at} · 退出: ${r.exit_code}`;
     }
@@ -591,7 +591,7 @@ async function loadSettings() {
   const sel = document.getElementById('set-tz');
   sel.innerHTML = TIMEZONES.map(t => `<option value="${t}">${t}</option>`).join('');
   try {
-    const s = await api('/api/settings');
+    const s = await api('settings');
     sel.value = s.timezone || 'Asia/Shanghai';
     document.getElementById('set-timeout').value = s.default_timeout_sec || 3600;
     document.getElementById('set-maxlog').value = s.max_log_bytes || 2097152;
@@ -605,7 +605,7 @@ async function saveSettings() {
     max_log_bytes: parseInt(document.getElementById('set-maxlog').value) || 2097152,
   };
   try {
-    await api('/api/settings', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+    await api('settings', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
     toast('设置已保存，时区变更已即时生效', 'success');
   } catch (e) {}
 }
@@ -614,7 +614,7 @@ async function cleanupRuns() {
   const days = parseInt(document.getElementById('cleanup-days').value) || 30;
   if (!confirm(`确认删除早于 ${days} 天的执行历史？此操作不可恢复。`)) return;
   try {
-    const r = await api('/api/cleanup?days=' + days, { method: 'POST' });
+    const r = await api('cleanup?days=' + days, { method: 'POST' });
     toast(`已清理 ${r.deleted} 条历史记录`, 'success');
   } catch (e) {}
 }
