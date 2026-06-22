@@ -404,11 +404,18 @@ func (s *Session) info() SessionInfo {
 // detach 标记为后台运行（不杀进程，buffer 继续累积，ws 可继续 subscribe）
 func (s *Session) detach() {
 	s.mu.Lock()
+	changed := false
 	if !s.exited && !s.detached {
 		s.detached = true
 		s.DetachedAt = time.Now()
+		changed = true
 	}
 	s.mu.Unlock()
+	if changed {
+		// 持久化到 sessions.json (uninstall 保留数据时, 重装可恢复)
+		addPersistedSession(s)
+		_ = savePersistedSessions()
+	}
 }
 
 // reattach 重新 attach（从 sidebar 恢复时调用，no-op，因为前端 tab.persistent 决定后续行为）
@@ -435,6 +442,9 @@ func (s *Session) close() {
 	s.exited = true
 	s.detached = false
 	s.mu.Unlock()
+	// 真删: 从持久化列表移除 + 保存
+	removePersistedSession(s.ID)
+	_ = savePersistedSessions()
 }
 
 func itoa(i int) string {

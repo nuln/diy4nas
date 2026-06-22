@@ -26,7 +26,8 @@ func getSession(id string) *Session {
 }
 
 // listSessions 返回 session 列表
-// includeDetached=true 包含所有（含 detached）；false 只返 active
+// includeDetached=true 包含所有（含 detached + persisted 历史的）
+// false 只返 active
 func listSessions(includeDetached bool) []SessionInfo {
 	sessionsMu.RLock()
 	out := make([]SessionInfo, 0, len(sessions))
@@ -41,6 +42,32 @@ func listSessions(includeDetached bool) []SessionInfo {
 		out = append(out, s.info())
 	}
 	sessionsMu.RUnlock()
+	if !includeDetached {
+		return out
+	}
+	// includeDetached=true: 还包括 persisted 但不在内存 (server 重启后)
+	persisted := getPersistedSessions()
+	for _, p := range persisted {
+		sessionsMu.RLock()
+		_, inMem := sessions[p.ID]
+		sessionsMu.RUnlock()
+		if inMem {
+			continue // 内存已有, 上面已加
+		}
+		// 转 SessionInfo (frontend 兼容)
+		out = append(out, SessionInfo{
+			ID:         p.ID,
+			Title:      p.Title,
+			CreatedAt:  p.CreatedAt,
+			DetachedAt: p.DetachedAt,
+			Detached:   true,
+			Exited:     true, // process 不知道在不在, 标记 exited
+			Cols:       80,
+			Rows:       24,
+			Shell:      p.Shell,
+			User:       p.User,
+		})
+	}
 	return out
 }
 

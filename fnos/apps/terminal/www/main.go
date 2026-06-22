@@ -210,6 +210,9 @@ func main() {
 	// 加载脚本 (从 scripts.json)
 	loadScripts()
 
+	// 加载持久化的 detached sessions metadata (重装或重启恢复)
+	loadPersistedSessions()
+
 	go func() {
 		appLogf("listening on http://0.0.0.0:%s", port)
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
