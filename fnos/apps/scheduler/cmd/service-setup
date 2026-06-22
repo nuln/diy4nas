@@ -1,10 +1,9 @@
 #!/bin/bash
 APP_VAR_DIR="${TRIM_PKGVAR}/data"
-APP_DEST_DIR="${TRIM_APPDEST}"
 service_postinst() {
     mkdir -p "$APP_VAR_DIR" 2>/dev/null || true
-    # 启动服务（让用户在 fnOS 桌面能看到 UI）
-    "$APP_DEST_DIR/cmd/main" start 2>/dev/null || true
+    # 不在这里启动服务：fnOS 框架会自己调用 cmd/main start
+    # 如果再启动一次会因端口冲突导致服务没起来
 }
 service_preuninst() {
     # 通过 PID 文件杀进程，pkill 兜底用独特名
