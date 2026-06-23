@@ -1,0 +1,22 @@
+#!/bin/sh
+APP_VAR="${TRIM_PKGVAR:-/var/apps/eventhook/data}"
+APP_DEST="${TRIM_APPDEST:-/var/apps/eventhook}"
+
+if [ -f "$APP_VAR/server.pid" ]; then
+    pid=$(cat "$APP_VAR/server.pid" 2>/dev/null | tr -d '[:space:]')
+    case "$pid" in *[!0-9]*) ;; *) kill -TERM "$pid" 2>/dev/null || true; sleep 1; kill -KILL "$pid" 2>/dev/null || true ;; esac
+fi
+pkill -x fnos-eventhook 2>/dev/null || true
+
+rm -f "${APP_VAR}"/*.log "${APP_VAR}"/*.pid "${APP_VAR}"/*.bak 2>/dev/null || true
+rm -f /tmp/eventhook-port 2>/dev/null || true
+
+DELETE_DATA="${wizard_delete_data:-${delete_data:-true}}"
+if [ "${DELETE_DATA}" = "true" ]; then
+    rm -f "${APP_VAR}/eventhook.db" 2>/dev/null || true
+    rm -f "${APP_VAR}/eventhook.db-wal" 2>/dev/null || true
+    rm -f "${APP_VAR}/eventhook.db-shm" 2>/dev/null || true
+    rm -f "${APP_VAR}/eventhook.settings.json" 2>/dev/null || true
+    rm -rf "${APP_VAR}" 2>/dev/null || true
+fi
+exit 0

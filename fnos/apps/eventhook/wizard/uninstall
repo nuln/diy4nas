@@ -1,0 +1,17 @@
+[
+  {
+    "stepTitle": "卸载事件钩子",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "确认卸载事件钩子？<br>日志和缓存文件将被自动删除。<br>事件规则和钩子配置默认一并删除，可选择保留。"
+      },
+      {
+        "type": "switch",
+        "field": "delete_data",
+        "label": "删除事件规则和钩子配置",
+        "initValue": "true"
+      }
+    ]
+  }
+]

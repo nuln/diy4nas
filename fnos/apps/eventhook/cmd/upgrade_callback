@@ -1,0 +1,12 @@
+#!/bin/sh
+APP_DEST=${TRIM_APPDEST:-/var/apps/eventhook}
+APP_VAR=${TRIM_PKGVAR:-$APP_DEST/data}
+
+for f in eventhook.db eventhook.db-wal eventhook.db-shm eventhook.settings.json; do
+    if [ -f "$APP_VAR/$f.bak" ] && [ ! -f "$APP_VAR/$f" ]; then
+        mv "$APP_VAR/$f.bak" "$APP_VAR/$f" 2>/dev/null || true
+    fi
+done
+
+"$APP_DEST/cmd/main" start 2>/dev/null || true
+exit 0

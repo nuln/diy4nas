@@ -1,0 +1,18 @@
+{
+    ".url": {
+        "eventhook.Application": {
+            "title": "事件钩子",
+            "desc": "系统事件监听与钩子服务",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "port": "7683",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true,
+            "width": 960,
+            "height": 760,
+            "minWidth": 640,
+            "minHeight": 600
+        }
+    }
+}

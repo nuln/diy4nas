@@ -1,0 +1,8 @@
+#!/bin/sh
+# post-install: 准备数据目录 + 创建 eventlogger 可读权限
+APP_VAR="${TRIM_PKGVAR:-/var/apps/eventhook/data}"
+APP_DEST="${TRIM_APPDEST:-/var/apps/eventhook}"
+
+mkdir -p "$APP_VAR" 2>/dev/null || true
+[ -x "$APP_DEST/app/fnos-eventhook" ] && chmod 0755 "$APP_DEST/app/fnos-eventhook" 2>/dev/null || true
+exit 0

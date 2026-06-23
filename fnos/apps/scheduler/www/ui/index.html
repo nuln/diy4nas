@@ -6,77 +6,96 @@
 <title>计划任务</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 0; background: #f5f6fa; color: #1f2329; }
-  header { background: #fff; border-bottom: 1px solid #e5e6eb; padding: 12px 24px; display: flex; align-items: center; gap: 24px; position: sticky; top: 0; z-index: 10; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 12px 24px; display: flex; align-items: center; gap: 24px; position: sticky; top: 0; z-index: 10; }
   header h1 { font-size: 18px; margin: 0; font-weight: 600; }
   nav { display: flex; gap: 4px; margin-left: 24px; }
-  nav button { background: transparent; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: #4e5969; font-size: 14px; }
-  nav button.active { background: #165dff; color: #fff; }
-  nav button:hover:not(.active) { background: #f2f3f5; }
+  nav button { background: transparent; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: #8b949e; font-size: 14px; transition: all .15s; }
+  nav button.active { background: #1f6feb; color: #fff; }
+  nav button:hover:not(.active) { background: #21262d; color: #e6edf3; }
   main { padding: 24px; max-width: 1400px; margin: 0 auto; }
-  .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 16px; }
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-  .stat { background: #fff; border-radius: 8px; padding: 18px 20px; border: 1px solid #f0f1f3; }
-  .stat .label { color: #86909c; font-size: 12px; margin-bottom: 6px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 18px 20px; }
+  .stat .label { color: #8b949e; font-size: 12px; margin-bottom: 6px; }
   .stat .value { font-size: 26px; font-weight: 600; }
-  .stat.success .value { color: #00b42a; }
-  .stat.failed .value { color: #f53f3f; }
+  .stat.success .value { color: #3fb950; }
+  .stat.failed .value { color: #f85149; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f1f3; }
-  th { color: #86909c; font-weight: 500; background: #fafbfc; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-  tr:hover td { background: #fafbfc; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #21262d; }
+  th { color: #8b949e; font-weight: 500; background: #161b22; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+  tr:hover td { background: #1c2128; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-  .badge.success { background: #e8ffea; color: #00b42a; }
-  .badge.failed { background: #ffece8; color: #f53f3f; }
-  .badge.running { background: #e8f3ff; color: #165dff; }
-  .badge.timeout { background: #fff7e8; color: #ff7d00; }
-  .badge.interrupted { background: #f5f5f5; color: #86909c; }
-  .badge.disabled { background: #f5f5f5; color: #86909c; }
-  .badge.enabled { background: #e8ffea; color: #00b42a; }
-  .btn { background: #165dff; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-  .btn:hover { background: #0e4cd9; }
-  .btn.secondary { background: #f2f3f5; color: #1f2329; }
-  .btn.secondary:hover { background: #e5e6eb; }
-  .btn.danger { background: #f53f3f; }
-  .btn.danger:hover { background: #d93030; }
+  .badge.info { background: #0c2d6b; color: #58a6ff; }
+  .badge.success { background: #0e442a; color: #3fb950; }
+  .badge.failed { background: #490202; color: #f85149; }
+  .badge.running { background: #0c2d6b; color: #58a6ff; }
+  .badge.timeout { background: #3d2e00; color: #d29922; }
+  .badge.interrupted { background: #21262d; color: #8b949e; }
+  .badge.disabled { background: #21262d; color: #8b949e; }
+  .badge.enabled { background: #0e442a; color: #3fb950; }
+  .btn { background: #1f6feb; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .15s; }
+  .btn:hover { background: #388bfd; }
+  .btn.secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+  .btn.secondary:hover { background: #30363d; }
+  .btn.danger { background: #da3633; }
+  .btn.danger:hover { background: #f85149; }
   .btn.small { padding: 3px 10px; font-size: 12px; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
   .toolbar .left, .toolbar .right { display: flex; gap: 8px; align-items: center; }
-  input[type="text"], input[type="number"], textarea, select { padding: 7px 12px; border: 1px solid #c9cdd4; border-radius: 6px; font-size: 14px; font-family: inherit; width: 100%; background: #fff; }
-  input:focus, textarea:focus, select:focus { outline: none; border-color: #165dff; }
+  input[type="text"], input[type="number"], textarea, select { padding: 7px 12px; border: 1px solid #30363d; border-radius: 6px; font-size: 14px; font-family: inherit; width: 100%; background: #0d1117; color: #e6edf3; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: #1f6feb; box-shadow: 0 0 0 3px rgba(31,111,235,0.15); }
   textarea { min-height: 80px; resize: vertical; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
-  label { display: block; font-size: 13px; color: #4e5969; margin-bottom: 6px; }
+  label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
   .form-row { margin-bottom: 14px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .modal { background: #fff; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
-  .modal-header { padding: 16px 20px; border-bottom: 1px solid #f0f1f3; display: flex; justify-content: space-between; align-items: center; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: #161b22; border: 1px solid #30363d; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
   .modal-header h2 { margin: 0; font-size: 16px; }
   .modal-body { padding: 20px; }
-  .modal-footer { padding: 12px 20px; border-top: 1px solid #f0f1f3; display: flex; justify-content: flex-end; gap: 8px; }
-  .close { background: none; border: none; font-size: 20px; cursor: pointer; color: #86909c; padding: 0; line-height: 1; }
-  .empty { text-align: center; padding: 40px 20px; color: #86909c; font-size: 14px; }
-  .log-box { background: #1f2329; color: #d4d4d4; padding: 16px; border-radius: 6px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid #30363d; display: flex; justify-content: flex-end; gap: 8px; }
+  .close { background: none; border: none; font-size: 20px; cursor: pointer; color: #8b949e; padding: 0; line-height: 1; }
+  .close:hover { color: #e6edf3; }
+  .empty { text-align: center; padding: 40px 20px; color: #8b949e; font-size: 14px; }
+  .log-box { background: #0d1117; color: #d4d4d4; padding: 16px; border-radius: 6px; border: 1px solid #30363d; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
   .log-stdout { color: #d4d4d4; }
   .log-stderr { color: #ff7875; }
-  .cron-hint { background: #f2f3f5; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #4e5969; margin-top: 6px; font-family: ui-monospace, monospace; }
-  .toast { position: fixed; top: 24px; right: 24px; background: #1f2329; color: #fff; padding: 10px 18px; border-radius: 6px; z-index: 1000; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-  .toast.error { background: #f53f3f; }
-  .toast.success { background: #00b42a; }
+  .cron-hint { background: #21262d; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #8b949e; margin-top: 6px; border: 1px solid #30363d; font-family: ui-monospace, monospace; }
+  .toast { position: fixed; top: 24px; right: 24px; background: #21262d; color: #e6edf3; padding: 10px 18px; border-radius: 6px; border: 1px solid #30363d; z-index: 1000; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .toast.error { background: #490202; border-color: #f85149; }
+  .toast.success { background: #0e442a; border-color: #3fb950; }
   .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-  .status-dot.running { background: #165dff; animation: pulse 1.5s ease-in-out infinite; }
+  .status-dot.running { background: #58a6ff; animation: pulse 1.5s ease-in-out infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
   .actions { display: flex; gap: 4px; }
-  .help-icon { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #c9cdd4; color: #fff; font-size: 10px; text-align: center; line-height: 14px; cursor: help; margin-left: 4px; }
-  code { background: #f2f3f5; padding: 1px 6px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12px; }
+  code { background: #21262d; padding: 1px 6px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12px; }
   .section { display: none; }
   .section.active { display: block; }
   .filter-bar { display: flex; gap: 8px; align-items: center; }
   .filter-bar select, .filter-bar input { width: auto; }
-  .muted { color: #86909c; }
+  .muted { color: #8b949e; }
   .nowrap { white-space: nowrap; }
   .text-right { text-align: right; }
+  .set-group { margin-bottom: 20px; }
+  .set-group h4 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+  .settings-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .settings-cols { grid-template-columns: 1fr; } }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin: -4px 0 16px 0; }
+  .card-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap table { min-width: 700px; }
+  .table-wrap td, .table-wrap th { white-space: nowrap; }
+  .table-wrap td:first-child, .table-wrap th:first-child { padding-left: 0; }
+  .table-wrap td:last-child, .table-wrap th:last-child { padding-right: 0; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable td { transition: background .1s; }
+  tr.clickable:hover td { background: #1c2128 !important; }
+  .actions-group { display: flex; gap: 4px; flex-wrap: nowrap; }
+  .stat-icon { font-size: 22px; margin-bottom: 4px; }
+  .value-lg { font-size: 28px; font-weight: 700; }
+  .value-sm { font-size: 20px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -174,42 +193,53 @@
 
   <!-- 设置 -->
   <section id="sec-settings" class="section">
-    <div class="card" style="max-width:600px">
-      <h3 style="margin-top:0">全局设置</h3>
-      <div class="form-row">
-        <label>时区</label>
-        <select id="set-tz"></select>
-        <div class="cron-hint">所有 cron 表达式将按所选时区解释。修改后即时生效（重建 cron 调度器）</div>
+    <div class="settings-cols">
+      <div>
+        <div class="card">
+          <div class="set-group">
+            <h4>基本设置</h4>
+            <div class="form-row">
+              <label>时区</label>
+              <select id="set-tz"></select>
+              <div class="cron-hint">所有 cron 表达式将按所选时区解释。修改后即时生效（重建 cron 调度器）</div>
+            </div>
+            <div class="form-row">
+              <label>默认超时（秒）</label>
+              <input type="number" id="set-timeout" min="0" value="3600">
+              <div class="cron-hint">任务单独配置的超时优先于此值</div>
+            </div>
+            <div class="form-row">
+              <label>单次执行日志最大字节数</label>
+              <input type="number" id="set-maxlog" min="1024" value="2097152">
+            </div>
+            <div class="form-row">
+              <button class="btn" onclick="saveSettings()">保存设置</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="set-group">
+            <h4>维护</h4>
+            <div class="form-row" style="display:flex; gap:8px; align-items:center">
+              <label style="margin:0">保留执行历史</label>
+              <input type="number" id="cleanup-days" min="1" value="30" style="width:80px">
+              <span class="muted">天</span>
+              <button class="btn secondary" onclick="cleanupRuns()">清理历史</button>
+            </div>
+            <div class="cron-hint">删除早于指定天数的 runs 记录</div>
+          </div>
+        </div>
       </div>
-      <div class="form-row">
-        <label>默认超时（秒）</label>
-        <input type="number" id="set-timeout" min="0" value="3600">
-        <div class="cron-hint">任务单独配置的超时优先于此值</div>
+      <div class="card">
+        <div class="set-group">
+          <h4>服务端日志</h4>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+            <span class="muted" style="font-size:12px">最近 200 行</span>
+            <button class="btn small secondary" onclick="loadServerLog()">刷新</button>
+          </div>
+          <pre class="log-box" id="server-log" style="max-height:400px">加载中...</pre>
+        </div>
       </div>
-      <div class="form-row">
-        <label>单次执行日志最大字节数</label>
-        <input type="number" id="set-maxlog" min="1024" value="2097152">
-      </div>
-      <div class="form-row">
-        <button class="btn" onclick="saveSettings()">保存设置</button>
-      </div>
-    </div>
-    <div class="card" style="max-width:600px">
-      <h3 style="margin-top:0">数据维护</h3>
-      <div class="form-row" style="display:flex; gap:8px; align-items:center">
-        <label style="margin:0">保留执行历史</label>
-        <input type="number" id="cleanup-days" min="1" value="30" style="width:80px">
-        <span class="muted">天</span>
-        <button class="btn secondary" onclick="cleanupRuns()">清理历史</button>
-      </div>
-      <div class="cron-hint">删除早于指定天数的 runs 记录。runs.id 越大越新。</div>
-    </div>
-    <div class="card" style="max-width:900px">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
-        <h3 style="margin:0">服务端日志 <span class="muted" style="font-weight:normal; font-size:12px">（最近 200 行）</span></h3>
-        <button class="btn small secondary" onclick="loadServerLog()">刷新</button>
-      </div>
-      <pre class="log-box" id="server-log" style="max-height:400px">加载中...</pre>
     </div>
   </section>
 </main>
@@ -299,7 +329,7 @@
 </div>
 
 <script>
-const API = '/api';
+const isCGI = window.location.pathname.includes('api.cgi');
 let jobsCache = [];
 let runsCache = [];
 let logEventSource = null;
@@ -355,9 +385,19 @@ function toast(msg, type) {
   setTimeout(() => el.remove(), 3000);
 }
 
+function apiURL(path, opts) {
+  if (isCGI) {
+    const method = (opts && opts.method) || 'GET';
+    let url = 'api.cgi?path=/api/' + path;
+    if (method !== 'GET') url += '&_method=' + method;
+    return url;
+  }
+  return '/api/' + path;
+}
+
 async function api(path, opts) {
   try {
-    const r = await fetch(API + path, opts);
+    const r = await fetch(apiURL(path, opts), opts);
     if (!r.ok) {
       const e = await r.json().catch(() => ({ error: r.statusText }));
       throw new Error(e.error || r.statusText);
@@ -374,26 +414,26 @@ async function loadStats() {
     const s = await api('stats');
     document.getElementById('health-info').textContent = '🟢 运行中 · ' + new Date().toLocaleTimeString();
     document.getElementById('stat-grid').innerHTML = `
-      <div class="stat"><div class="label">总任务数</div><div class="value">${s.total_jobs}</div></div>
-      <div class="stat"><div class="label">启用中</div><div class="value" style="color:#165dff">${s.enabled_jobs}</div></div>
-      <div class="stat success"><div class="label">成功执行</div><div class="value">${s.success_runs}</div></div>
-      <div class="stat failed"><div class="label">失败执行</div><div class="value">${s.failed_runs}</div></div>
+      <div class="stat"><div class="stat-icon">📋</div><div class="label">总任务数</div><div class="value-lg">${s.total_jobs}</div></div>
+      <div class="stat"><div class="stat-icon">✅</div><div class="label">启用中</div><div class="value-lg" style="color:${s.enabled_jobs>0?'#58a6ff':'#8b949e'}">${s.enabled_jobs}</div></div>
+      <div class="stat success"><div class="stat-icon">✔</div><div class="label">成功执行</div><div class="value-lg">${s.success_runs}</div></div>
+      <div class="stat failed"><div class="stat-icon">✖</div><div class="label">失败执行</div><div class="value-lg">${s.failed_runs}</div></div>
     `;
     const list = (s.recent_runs || []).slice(0, 8);
     if (list.length === 0) {
       document.getElementById('recent-runs').innerHTML = '<div class="empty">暂无执行记录</div>';
     } else {
-      let html = '<table><thead><tr><th>ID</th><th>任务</th><th>开始时间</th><th>耗时</th><th>状态</th></tr></thead><tbody>';
+      let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>任务</th><th>开始时间</th><th>耗时</th><th>状态</th></tr></thead><tbody>';
       list.forEach(r => {
-        html += `<tr style="cursor:pointer" onclick="viewRunLog(${r.id})">
-          <td>${r.id}</td>
-          <td>${escapeHtml(r.job_name || '#' + r.job_id)}</td>
+        html += `<tr class="clickable" onclick="viewRunLog(${r.id})">
+          <td><span class="muted">#${r.id}</span></td>
+          <td><strong>${escapeHtml(r.job_name || '#' + r.job_id)}</strong></td>
           <td class="nowrap">${r.started_at}</td>
-          <td>${formatDuration(r.duration_ms)}</td>
+          <td>${r.status === 'running' ? '<span class="status-dot running"></span>运行中' : formatDuration(r.duration_ms)}</td>
           <td>${statusBadge(r.status)}</td>
         </tr>`;
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
       document.getElementById('recent-runs').innerHTML = html;
     }
   } catch (e) { /* ignore */ }
@@ -417,17 +457,17 @@ function renderJobs() {
   document.getElementById('jobs-empty').style.display = list.length === 0 ? 'block' : 'none';
   tbody.innerHTML = list.map(j => `
     <tr>
-      <td>${j.id}</td>
+      <td><span class="muted">#${j.id}</span></td>
       <td>
         <div><strong>${escapeHtml(j.name)}</strong> ${!j.enabled ? '<span class="badge disabled">已禁用</span>' : '<span class="badge enabled">已启用</span>'}</div>
         <div class="muted" style="font-size:12px">${escapeHtml(j.description||'')}</div>
       </td>
       <td><code>${escapeHtml(j.spec)}</code></td>
       <td><code style="font-size:12px">${escapeHtml(truncate(j.command, 60))}</code></td>
-      <td>${j.last_status ? statusBadge(j.last_status) : '<span class="muted">—</span>'}</td>
+      <td class="nowrap">${j.last_status ? statusBadge(j.last_status) : '<span class="muted">—</span>'}</td>
       <td class="nowrap">${j.next_run || '<span class="muted">—</span>'}</td>
       <td class="text-right">
-        <div class="actions" style="justify-content:flex-end">
+        <div class="actions-group" style="justify-content:flex-end">
           <button class="btn small secondary" onclick="runJobNow(${j.id})" ${!j.enabled?'disabled':''}>运行</button>
           <button class="btn small secondary" onclick="toggleJob(${j.id})">${j.enabled?'禁用':'启用'}</button>
           <button class="btn small secondary" onclick="openJobModal(${j.id})">编辑</button>
@@ -442,22 +482,22 @@ async function loadRuns() {
   const jobId = document.getElementById('runs-filter-job').value;
   const status = document.getElementById('runs-filter-status').value;
   try {
-    let url = '/api/runs?limit=200';
-    if (jobId !== '0') url = '/api/runs?job_id=' + jobId + '&limit=200';
+    let url = 'runs?limit=200';
+    if (jobId !== '0') url = 'runs?job_id=' + jobId + '&limit=200';
     runsCache = await api(url) || [];
     if (status) runsCache = runsCache.filter(r => r.status === status);
     const tbody = document.getElementById('runs-tbody');
     document.getElementById('runs-empty').style.display = runsCache.length === 0 ? 'block' : 'none';
     tbody.innerHTML = runsCache.map(r => `
-      <tr>
-        <td>${r.id}</td>
-        <td>${escapeHtml(r.job_name || '#' + r.job_id)}</td>
-        <td>${r.trigger === 'manual' ? '<span class="badge enabled">手动</span>' : '<span class="badge">定时</span>'}</td>
+      <tr class="clickable" onclick="viewRunLog(${r.id})">
+        <td><span class="muted">#${r.id}</span></td>
+        <td><strong>${escapeHtml(r.job_name || '#' + r.job_id)}</strong></td>
+        <td>${r.trigger === 'manual' ? '<span class="badge enabled">手动</span>' : '<span class="badge info">定时</span>'}</td>
         <td class="nowrap">${r.started_at}</td>
         <td>${r.status === 'running' ? '<span class="status-dot running"></span>运行中' : formatDuration(r.duration_ms)}</td>
         <td>${statusBadge(r.status)}</td>
-        <td>${r.status === 'running' ? '—' : r.exit_code}</td>
-        <td class="text-right"><button class="btn small" onclick="viewRunLog(${r.id})">查看日志</button></td>
+        <td>${r.status === 'running' || r.status === 'interrupted' || r.exit_code == null ? '<span class="muted">—</span>' : r.exit_code}</td>
+        <td class="text-right"><button class="btn small" onclick="event.stopPropagation();viewRunLog(${r.id})">📋 日志</button></td>
       </tr>
     `).join('');
   } catch (e) { runsCache = []; }
@@ -554,7 +594,7 @@ function viewRunLog(id) {
   document.getElementById('log-status').textContent = '';
   document.getElementById('log-modal').style.display = 'flex';
   if (logEventSource) { logEventSource.close(); logEventSource = null; }
-  logEventSource = new EventSource(API + '/runs/' + id + '/log');
+  logEventSource = new EventSource(isCGI ? 'api.cgi?path=/api/runs/' + id + '/log' : '/api/runs/' + id + '/log');
   const content = document.getElementById('log-content');
   content.textContent = '';
   logEventSource.addEventListener('stdout', e => { appendLog(content, e.data, 'log-stdout'); });
@@ -621,7 +661,7 @@ async function cleanupRuns() {
 
 async function loadServerLog() {
   try {
-    const r = await fetch(API + '/log?lines=200');
+    const r = await fetch(isCGI ? 'api.cgi?path=/api/log&lines=200' : '/api/log?lines=200');
     const text = await r.text();
     document.getElementById('server-log').textContent = text || '（无日志）';
   } catch (e) {

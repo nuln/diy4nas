@@ -1,0 +1,8 @@
+#!/bin/bash
+APP_VAR_DIR="${TRIM_PKGVAR}/data"
+service_postinst() {
+    mkdir -p "$APP_VAR_DIR" 2>/dev/null || true
+}
+service_preuninst() {
+    return 0
+}

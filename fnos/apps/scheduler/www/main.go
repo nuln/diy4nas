@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -187,6 +188,14 @@ func loadLocation() *time.Location {
 
 func withCORS(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Path
+		if decoded, err := url.PathUnescape(p); err == nil {
+			p = decoded
+		}
+		for strings.Contains(p, "//") {
+			p = strings.ReplaceAll(p, "//", "/")
+		}
+		r.URL.Path = p
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			w.Header().Set("Cache-Control", "no-store")

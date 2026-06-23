@@ -18,11 +18,13 @@ fnos/fnos-terminal-new
 fnos/fnos-*-new
 
 # 已 build 的二进制（build.sh 重新编译）
-fnos/apps/*/fnos-terminal
-fnos/apps/*/fnos-mihomo
-fnos/apps/*/fnos-tailscale
-fnos/apps/*/fnos-scheduler
-fnos/apps/*/app/fnos-terminal
-fnos/apps/*/app/fnos-mihomo
-fnos/apps/*/app/fnos-tailscale
-fnos/apps/*/app/fnos-scheduler
+apps/*/fnos-terminal
+apps/*/fnos-mihomo
+apps/*/fnos-tailscale
+apps/*/fnos-scheduler
+apps/*/fnos-eventhook
+apps/*/app/fnos-terminal
+apps/*/app/fnos-mihomo
+apps/*/app/fnos-tailscale
+apps/*/app/fnos-scheduler
+apps/*/app/fnos-eventhook

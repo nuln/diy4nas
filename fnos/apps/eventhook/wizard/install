@@ -1,0 +1,11 @@
+[
+  {
+    "stepTitle": "安装事件钩子",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "事件钩子安装完成后，在 fnOS 桌面点击图标打开管理界面。<br>支持监听登录、SSH、硬盘、UPS、应用等系统事件，通过 Webhook、Bark、PushPlus、钉钉、企业微信等渠道推送通知。<br>也可配置自定义脚本或服务作为响应钩子。"
+      }
+    ]
+  }
+]

@@ -1,0 +1,6 @@
+#!/bin/sh
+APP_VAR=${TRIM_PKGVAR:-/var/apps/eventhook/data}
+for f in eventhook.db eventhook.db-wal eventhook.db-shm eventhook.settings.json; do
+    [ -f "$APP_VAR/$f" ] && [ ! -f "$APP_VAR/$f.bak" ] && cp -p "$APP_VAR/$f" "$APP_VAR/$f.bak" 2>/dev/null || true
+done
+exit 0

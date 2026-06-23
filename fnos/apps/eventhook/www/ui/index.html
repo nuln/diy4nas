@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>事件钩子</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 12px 24px; display: flex; align-items: center; gap: 24px; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  nav { display: flex; gap: 4px; margin-left: 24px; }
+  nav button { background: transparent; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: #8b949e; font-size: 14px; transition: all .15s; }
+  nav button.active { background: #1f6feb; color: #fff; }
+  nav button:hover:not(.active) { background: #21262d; color: #e6edf3; }
+  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 18px 20px; }
+  .stat .label { color: #8b949e; font-size: 12px; margin-bottom: 6px; }
+  .stat .value { font-size: 26px; font-weight: 600; }
+  .stat .value.blue { color: #58a6ff; }
+  .stat .value.green { color: #3fb950; }
+  .stat .value.orange { color: #d29922; }
+  .stat .value.red { color: #f85149; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #21262d; }
+  th { color: #8b949e; font-weight: 500; background: #161b22; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+  tr:hover td { background: #1c2128; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+  .badge.info { background: #0c2d6b; color: #58a6ff; }
+  .badge.success { background: #0e442a; color: #3fb950; }
+  .badge.warning { background: #3d2e00; color: #d29922; }
+  .badge.danger { background: #490202; color: #f85149; }
+  .badge.muted { background: #21262d; color: #8b949e; }
+  .badge.purple { background: #281749; color: #bc8cff; }
+
+  .err-tag { color: #f85149; }
+  .err-tag.watcher { color: #d29922; }
+  .error-banner { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; background: #3d2e00; border: 1px solid #d29922; color: #d29922; }
+  .error-banner.err-db { background: #490202; border-color: #f85149; color: #f85149; }
+  .btn { background: #1f6feb; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .15s; }
+  .btn:hover { background: #388bfd; }
+  .btn.secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+  .btn.secondary:hover { background: #30363d; }
+  .btn.danger { background: #da3633; }
+  .btn.danger:hover { background: #f85149; }
+  .btn.small { padding: 3px 10px; font-size: 12px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+  .toolbar .left, .toolbar .right { display: flex; gap: 8px; align-items: center; }
+  input[type="text"], input[type="number"], input[type="url"], textarea, select { padding: 7px 12px; border: 1px solid #30363d; border-radius: 6px; font-size: 14px; font-family: inherit; width: 100%; background: #0d1117; color: #e6edf3; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: #1f6feb; box-shadow: 0 0 0 3px rgba(31,111,235,0.15); }
+  textarea { min-height: 80px; resize: vertical; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+  label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
+  .form-row { margin-bottom: 14px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: #161b22; border: 1px solid #30363d; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { margin: 0; font-size: 16px; }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid #30363d; display: flex; justify-content: flex-end; gap: 8px; }
+  .close { background: none; border: none; font-size: 20px; cursor: pointer; color: #8b949e; padding: 0; line-height: 1; }
+  .close:hover { color: #e6edf3; }
+  .empty { text-align: center; padding: 40px 20px; color: #8b949e; font-size: 14px; }
+  .log-box { background: #0d1117; color: #d4d4d4; padding: 16px; border-radius: 6px; border: 1px solid #30363d; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+  .toast { position: fixed; top: 24px; right: 24px; background: #21262d; color: #e6edf3; padding: 10px 18px; border-radius: 6px; border: 1px solid #30363d; z-index: 1000; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .toast.error { background: #490202; border-color: #f85149; }
+  .toast.success { background: #0e442a; border-color: #3fb950; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .muted { color: #8b949e; }
+  .nowrap { white-space: nowrap; }
+  .text-right { text-align: right; }
+  code { background: #21262d; padding: 1px 6px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: #1f6feb; }
+  .checkbox-group { display: block; }
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider { position: absolute; cursor: pointer; inset: 0; background: #30363d; border-radius: 22px; transition: 0.3s; }
+  .switch .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+  .switch input:checked + .slider { background: #1f6feb; }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+  .set-group { margin-bottom: 20px; }
+  .set-group h4 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
+  .settings-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .settings-cols { grid-template-columns: 1fr; } }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin: -4px 0 16px 0; }
+  .card-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap table { min-width: 600px; }
+  .table-wrap td, .table-wrap th { white-space: nowrap; }
+  .table-wrap td:first-child, .table-wrap th:first-child { padding-left: 0; }
+  .table-wrap td:last-child, .table-wrap th:last-child { padding-right: 0; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable td { transition: background .1s; }
+  tr.clickable:hover td { background: #1c2128 !important; }
+  .actions-group { display: flex; gap: 4px; flex-wrap: nowrap; }
+  .stat-icon { font-size: 22px; margin-bottom: 4px; }
+  .value-lg { font-size: 28px; font-weight: 700; }
+  .value-sm { font-size: 20px; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ 事件钩子</h1>
+  <nav>
+    <button data-tab="dashboard" class="active">仪表盘</button>
+    <button data-tab="events">事件日志</button>
+    <button data-tab="hooks">钩子配置</button>
+    <button data-tab="settings">设置</button>
+  </nav>
+  <div style="margin-left:auto; font-size:12px; color:#86909c;" id="health-info"></div>
+</header>
+
+<main>
+  <section id="sec-dashboard" class="section active">
+    <div id="error-banner-area"></div>
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="card">
+      <h3 style="margin-top:0;">最近事件</h3>
+      <div id="recent-events"></div>
+    </div>
+  </section>
+
+  <section id="sec-events" class="section">
+    <div class="toolbar">
+      <div class="left filter-bar" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <label style="margin:0">类型:</label>
+        <select id="events-filter-type" onchange="loadEvents()" style="width:auto;"><option value="">全部</option></select>
+        <label style="margin:0">结果:</label>
+        <select id="events-filter-result" onchange="loadEvents()" style="width:auto;">
+          <option value="">全部</option>
+          <option value="sent">已通知</option>
+          <option value="skipped">已跳过</option>
+        </select>
+        <label style="margin:0"><input type="checkbox" id="events-auto-refresh" checked onchange="toggleAutoRefresh()"> 自动刷新</label>
+      </div>
+      <div class="right">
+        <button class="btn secondary" onclick="loadEvents()">刷新</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th style="width:60px">ID</th><th>时间</th><th>事件类型</th><th>详情</th><th>结果</th></tr></thead>
+        <tbody id="events-tbody"></tbody>
+      </table>
+      <div id="events-empty" class="empty" style="display:none">暂无事件记录</div>
+    </div>
+  </section>
+
+  <section id="sec-hooks" class="section">
+    <div class="toolbar">
+      <div class="left">
+        <button class="btn" onclick="openHookModal()">+ 新建钩子</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th style="width:40px">启用</th><th>名称</th><th>类型</th><th>目标</th><th>监听事件</th><th style="width:120px" class="text-right">操作</th></tr></thead>
+        <tbody id="hooks-tbody"></tbody>
+      </table>
+      <div id="hooks-empty" class="empty" style="display:none">暂无钩子，点击右上角"新建钩子"开始</div>
+    </div>
+  </section>
+
+  <section id="sec-settings" class="section">
+    <div class="settings-cols">
+      <div class="card">
+        <div class="set-group">
+          <h4>监控设置</h4>
+          <div class="form-row">
+            <label>轮询间隔（秒）</label>
+            <input type="number" id="set-poll-interval" min="1" value="5">
+            <div class="muted" style="font-size:12px; margin-top:4px;">每隔多少秒检查一次系统事件日志</div>
+          </div>
+          <div class="form-row">
+            <label>事件去重窗口（秒）</label>
+            <input type="number" id="set-dedup-window" min="0" value="300">
+            <div class="muted" style="font-size:12px; margin-top:4px;">相同类型事件在此时间内只触发一次通知</div>
+          </div>
+        </div>
+        <div class="set-group">
+          <h4>免打扰时段</h4>
+          <div class="form-grid">
+            <div class="form-row">
+              <label>开始时间</label>
+              <input type="text" id="set-dnd-start" placeholder="22:00" value="">
+            </div>
+            <div class="form-row">
+              <label>结束时间</label>
+              <input type="text" id="set-dnd-end" placeholder="07:00" value="">
+            </div>
+          </div>
+          <div class="muted" style="font-size:12px;">免打扰期间不发送通知，留空则不启用</div>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="btn" onclick="saveSettings()">保存设置</button>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="set-group">
+            <h4>高级设置</h4>
+            <div class="form-row">
+              <label>EventLogger 数据库路径</label>
+              <input type="text" id="set-db-path" value="/usr/trim/var/eventlogger_service/logger_data.db3">
+              <div class="muted" style="font-size:12px; margin-top:4px;">系统事件日志的 SQLite 数据库文件路径</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn" onclick="saveSettings()">保存设置</button>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+            <h4 style="margin:0; font-size:13px; color:#8b949e; text-transform:uppercase; letter-spacing:0.5px;">服务端日志 <span class="muted" style="font-weight:normal; text-transform:none; font-size:12px;">（最近 200 行）</span></h4>
+            <button class="btn small secondary" onclick="loadServerLog()">刷新</button>
+          </div>
+          <pre class="log-box" id="server-log" style="max-height:400px">加载中...</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="hook-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="hook-modal-title">新建钩子</h2>
+      <button class="close" onclick="closeHookModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="hook-id">
+      <div class="form-row">
+        <label>名称 *</label>
+        <input type="text" id="hook-name" placeholder="例如：推送登录通知到手机">
+      </div>
+      <div class="form-row">
+        <label>钩子类型 *</label>
+        <select id="hook-type" onchange="toggleHookTypeFields()">
+          <option value="webhook">Webhook（通用）</option>
+          <option value="bark">Bark 推送</option>
+          <option value="telegram">Telegram 机器人</option>
+          <option value="script">执行脚本</option>
+        </select>
+      </div>
+      <div class="form-row" id="hook-url-row">
+        <label id="hook-url-label">Webhook URL *</label>
+        <input type="url" id="hook-url" placeholder="https://hooks.example.com/webhook">
+      </div>
+      <div class="form-row" id="hook-token-row" style="display:none">
+        <label id="hook-token-label">Token</label>
+        <input type="text" id="hook-token" placeholder="推送服务的 Token">
+      </div>
+      <div class="form-row" id="hook-cmd-row" style="display:none">
+        <label>脚本路径 *</label>
+        <input type="text" id="hook-cmd" placeholder="/path/to/script.sh">
+        <div class="muted" style="font-size:12px; margin-top:4px;">脚本可通过环境变量获取事件信息: EVENT_TYPE, EVENT_DETAIL, EVENT_TIME</div>
+      </div>
+      <div class="form-row">
+        <label>自定义请求头（JSON，仅 Webhook 类型）</label>
+        <textarea id="hook-headers" placeholder='{"X-Custom": "value"}' style="min-height:40px;"></textarea>
+      </div>
+      <div class="form-row">
+        <label>监听事件类型</label>
+        <div class="checkbox-group" id="hook-events"></div>
+        <div style="margin-top:6px;">
+          <button class="btn small secondary" onclick="selectAllEvents(true)">全选</button>
+          <button class="btn small secondary" onclick="selectAllEvents(false)">全不选</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary" onclick="closeHookModal()">取消</button>
+      <button class="btn" onclick="saveHook()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const isCGI = window.location.pathname.includes('api.cgi');
+let hooksCache = [];
+let eventsCache = [];
+let refreshTimer = null;
+
+const EVENT_TRANSLATIONS = {
+  'LoginSucc':'登录成功','LoginSucc2FA1':'两步验证登录','LoginFail':'登录失败','Logout':'登出',
+  'SSH_INVALID_USER':'SSH 无效用户','SSH_AUTH_FAILED':'SSH 认证失败','SSH_LOGIN_SUCCESS':'SSH 登录成功','SSH_DISCONNECTED':'SSH 断开连接',
+  'FoundDisk':'发现新硬盘','DiskWakeup':'硬盘唤醒','DiskSpindown':'硬盘休眠','DISK_IO_ERR':'硬盘 IO 错误',
+  'UPS_ONBATT':'UPS 电池供电','UPS_ONBATT_LOWBATT':'UPS 电池电量低','UPS_ONLINE':'UPS 恢复正常','UPS_ENABLE':'UPS 已启用','UPS_DISABLE':'UPS 已禁用',
+  'APP_CRASH':'应用崩溃','APP_STARTED':'应用已启动','APP_STOPPED':'应用已停止','APP_UPDATED':'应用已更新','APP_INSTALLED':'应用已安装','APP_UNINSTALLED':'应用已卸载','APP_UPDATE_FAILED':'应用更新失败','APP_START_FAILED':'应用启动失败','APP_AUTO_START_FAILED':'应用自启失败',
+  'CPU_USAGE_ALARM':'CPU 使用率告警','CPU_TEMPERATURE_ALARM':'CPU 温度告警',
+  'STORAGE_DEGRADED':'存储降级','STORAGE_DAMAGED':'存储损坏',
+  'VM_START':'虚拟机启动','VM_STOP':'虚拟机停止','VM_CRASH':'虚拟机崩溃','VM_PAUSE':'虚拟机暂停','VM_RESUME':'虚拟机恢复',
+};
+
+const EVENT_CATEGORIES = {
+  '登录': ['LoginSucc','LoginSucc2FA1','LoginFail','Logout'],
+  'SSH': ['SSH_INVALID_USER','SSH_AUTH_FAILED','SSH_LOGIN_SUCCESS','SSH_DISCONNECTED'],
+  '硬盘': ['FoundDisk','DiskWakeup','DiskSpindown','DISK_IO_ERR'],
+  'UPS': ['UPS_ONBATT','UPS_ONBATT_LOWBATT','UPS_ONLINE','UPS_ENABLE','UPS_DISABLE'],
+  '应用': ['APP_CRASH','APP_STARTED','APP_STOPPED','APP_UPDATED','APP_INSTALLED','APP_UNINSTALLED','APP_UPDATE_FAILED','APP_START_FAILED','APP_AUTO_START_FAILED'],
+  '硬件': ['CPU_USAGE_ALARM','CPU_TEMPERATURE_ALARM'],
+  '存储': ['STORAGE_DEGRADED','STORAGE_DAMAGED'],
+  '虚拟机': ['VM_START','VM_STOP','VM_CRASH','VM_PAUSE','VM_RESUME'],
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+  loadSettings();
+  loadStats();
+  loadEvents();
+  loadHooks();
+  startRefresh();
+});
+
+function startRefresh() {
+  stopRefresh();
+  refreshTimer = setInterval(() => {
+    const active = document.querySelector('nav button.active');
+    if (!active) return;
+    const tab = active.dataset.tab;
+    if (tab === 'dashboard') loadStats();
+    else if (tab === 'events' && document.getElementById('events-auto-refresh').checked) loadEvents();
+  }, 5000);
+}
+function stopRefresh() { if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; } }
+function toggleAutoRefresh() { if (document.getElementById('events-auto-refresh').checked && !refreshTimer) startRefresh(); }
+
+function switchTab(tab) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'sec-' + tab));
+  if (tab === 'dashboard') loadStats();
+  else if (tab === 'events') loadEvents();
+  else if (tab === 'hooks') loadHooks();
+  else if (tab === 'settings') { loadSettings(); loadServerLog(); }
+}
+
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function apiURL(path, opts) {
+  const method = (opts && opts.method) || 'GET';
+  if (isCGI) {
+    let url = 'api.cgi?path=' + path;
+    if (method !== 'GET') url += '&_method=' + method;
+    return url;
+  }
+  return path;
+}
+
+async function api(path, opts) {
+  const method = (opts && opts.method) || 'GET';
+  let url = apiURL(path, opts);
+  if (method === 'GET') {
+    url += (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+  }
+  const fetchOpts = { method: method, cache: 'no-store' };
+  if (opts && opts.body) { fetchOpts.headers = { 'Content-Type': 'application/json' }; fetchOpts.body = opts.body; }
+  try {
+    const r = await fetch(url, fetchOpts);
+    if (!r.ok) { const e = await r.json().catch(() => ({ error: r.statusText })); throw new Error(e.error || r.statusText); }
+    return await r.json();
+  } catch (e) { toast('请求失败: ' + e.message, 'error'); throw e; }
+}
+
+function eventTypeBadge(type) {
+  if (!type) return '<span class="badge muted">未知</span>';
+  const label = EVENT_TRANSLATIONS[type] || type;
+  const colors = {'登录':'info','SSH':'warning','硬盘':'danger','UPS':'warning','应用':'purple','硬件':'danger','存储':'danger','虚拟机':'info'};
+  for (const [cat, types] of Object.entries(EVENT_CATEGORIES)) {
+    if (types.includes(type)) return `<span class="badge ${colors[cat]||'muted'}">${label}</span>`;
+  }
+  return `<span class="badge muted">${label}</span>`;
+}
+
+function eventResultBadge(r) {
+  if (r === 'sent') return '<span class="badge success">已通知</span>';
+  if (r === 'skipped') return '<span class="badge muted">已跳过</span>';
+  if (r === 'failed') return '<span class="badge danger">失败</span>';
+  return '<span class="badge muted">待处理</span>';
+}
+
+async function loadStats() {
+  try {
+    const [s, h] = await Promise.all([
+      api('/api/stats'),
+      api('/api/health').catch(() => null)
+    ]);
+    // 构建头部状态栏 - 显示详细错误
+    const watcherStatus = s.watcher_running ? '🟢 监控中' : '🔴 已暂停';
+    let errHtml = '';
+    if (h) {
+      if (h.db_error) errHtml += ` · <span class="err-tag">DB: ${escapeHtml(h.db_error)}</span>`;
+      if (h.watcher_error) errHtml += ` · <span class="err-tag watcher">轮询: ${escapeHtml(h.watcher_error)}</span>`;
+      if (!h.db_reachable) {
+        errHtml += ' · <span class="err-tag">⚠️ EventLogger 不可达</span>';
+      } else if (h.db_tables && h.db_tables.length > 0) {
+        errHtml += ' · 表: ' + h.db_tables.join(', ');
+      } else {
+        errHtml += ' · <span class="err-tag">⚠️ 未找到事件表</span>';
+      }
+    }
+    document.getElementById('health-info').innerHTML = watcherStatus + errHtml;
+
+    // 全局错误横幅
+    let bannerHtml = '';
+    if (h) {
+      if (h.db_error) {
+        bannerHtml = `<div class="error-banner err-db"><strong>❌ 数据库错误：</strong>${escapeHtml(h.db_error)}<br><span style="opacity:0.7;font-size:12px;">请到设置页检查 EventLogger 数据库路径是否正确</span></div>`;
+      } else if (h.watcher_error) {
+        bannerHtml = `<div class="error-banner"><strong>⚠️ 监控轮询错误：</strong>${escapeHtml(h.watcher_error)}</div>`;
+      } else if (!h.db_reachable && h.db_path) {
+        bannerHtml = `<div class="error-banner"><strong>⚠️ 数据库不可达：</strong>${escapeHtml(h.db_path)}<br><span style="opacity:0.7;font-size:12px;">请到设置页检查路径</span></div>`;
+      }
+    }
+    document.getElementById('error-banner-area').innerHTML = bannerHtml;
+
+    document.getElementById('stat-grid').innerHTML = `
+      <div class="stat"><div class="stat-icon">📡</div><div class="label">监听到的事件</div><div class="value-lg blue">${s.total_events}</div></div>
+      <div class="stat"><div class="stat-icon">📤</div><div class="label">已通知</div><div class="value-lg green">${s.sent_events}</div></div>
+      <div class="stat"><div class="stat-icon">⏭</div><div class="label">已跳过</div><div class="value-lg orange">${s.skipped_events}</div></div>
+      <div class="stat"><div class="stat-icon">🔗</div><div class="label">钩子总数</div><div class="value-lg">${s.total_hooks}</div></div>`;
+    const list = (s.recent_events || []).slice(0, 8);
+    if (list.length === 0) {
+      let msg = '<div class="empty">暂无事件记录</div>';
+      if (h && h.db_error) {
+        msg = '<div class="empty" style="color:#f85149;font-weight:bold;">❌ 数据库连接出错，无法读取事件<br><span style="font-weight:normal;opacity:0.8;">' + escapeHtml(h.db_error) + '</span></div>';
+      } else if (h && h.watcher_error) {
+        msg = '<div class="empty" style="color:#d29922;font-weight:bold;">⚠️ 监控轮询出错<br><span style="font-weight:normal;opacity:0.8;">' + escapeHtml(h.watcher_error) + '</span></div>';
+      } else if (h && !h.db_reachable) {
+        msg = '<div class="empty">⚠️ 无法连接到系统 EventLogger 数据库。<br>请到 <strong>设置</strong> 页检查「EventLogger 数据库路径」是否正确。</div>';
+      } else if (h && h.db_tables && h.db_tables.length > 0 && h.cursor === 0) {
+        msg = '<div class="empty">已连接到系统 EventLogger 数据库，等待新事件触发...<br>系统产生事件后会自动显示在此处，无需配置钩子。</div>';
+      } else if (h && h.db_tables && h.db_tables.length === 0) {
+        msg = '<div class="empty">⚠️ 已连接到数据库，但未找到事件表。<br>请检查 EventLogger 数据库路径是否正确。</div>';
+      }
+      document.getElementById('recent-events').innerHTML = msg;
+    } else {
+      let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>时间</th><th>事件类型</th><th>详情</th><th>结果</th></tr></thead><tbody>';
+      list.forEach(e => { html += `<tr><td><span class="muted">#${e.id}</span></td><td class="nowrap">${e.timestamp}</td><td>${eventTypeBadge(e.type)}</td><td>${escapeHtml(e.detail||'')}</td><td>${eventResultBadge(e.result||'pending')}</td></tr>`; });
+      html += '</tbody></table></div>';
+      document.getElementById('recent-events').innerHTML = html;
+    }
+  } catch (e) {}
+}
+
+async function loadEvents() {
+  const type = document.getElementById('events-filter-type').value;
+  const result = document.getElementById('events-filter-result').value;
+  // 初始化事件类型筛选器
+  const sel = document.getElementById('events-filter-type');
+  if (sel.options.length <= 1) {
+    for (const [cat, types] of Object.entries(EVENT_CATEGORIES)) {
+      types.forEach(t => { sel.add(new Option(EVENT_TRANSLATIONS[t]||t, t)); });
+    }
+  }
+  try {
+    let url = '/api/events?limit=200';
+    if (type) url += '&type=' + encodeURIComponent(type);
+    if (result) url += '&result=' + encodeURIComponent(result);
+    eventsCache = await api(url) || [];
+    const tbody = document.getElementById('events-tbody');
+    const empty = document.getElementById('events-empty');
+    const errMsg = document.getElementById('events-error');
+
+    // 同时取 health 判断是否有错误需要显示
+    let errorPrefix = '', errorMsg = '';
+    try {
+      const h = await api('/api/health');
+      if (h.db_error) { errorPrefix = '❌ 数据库错误: '; errorMsg = h.db_error; }
+      else if (h.watcher_error) { errorPrefix = '⚠️ '; errorMsg = h.watcher_error; }
+    } catch (_) {}
+
+    if (eventsCache.length === 0) {
+      empty.style.display = 'block';
+      if (errorMsg) {
+        empty.innerHTML = '<span style="color:#f85149;">' + errorPrefix + escapeHtml(errorMsg) + '</span>';
+      } else {
+        empty.innerHTML = '暂无事件记录';
+      }
+      if (errMsg) errMsg.style.display = 'none';
+    } else {
+      empty.style.display = 'none';
+    }
+    tbody.innerHTML = eventsCache.map(e => `<tr><td><span class="muted">#${e.id}</span></td><td class="nowrap">${e.timestamp}</td><td>${eventTypeBadge(e.type)}</td><td>${escapeHtml((e.detail||'').substring(0,80))}</td><td>${eventResultBadge(e.result||'pending')}</td></tr>`).join('');
+  } catch (e) {}
+}
+
+async function loadHooks() {
+  try { hooksCache = await api('/api/hooks') || []; renderHooks(); } catch (e) { hooksCache = []; renderHooks(); }
+}
+
+function renderHooks() {
+  const tbody = document.getElementById('hooks-tbody');
+  document.getElementById('hooks-empty').style.display = hooksCache.length === 0 ? 'block' : 'none';
+  tbody.innerHTML = hooksCache.map(h => `
+    <tr>
+      <td><label class="switch"><input type="checkbox" ${h.enabled?'checked':''} onchange="toggleHook(${h.id}, this.checked)"><span class="slider"></span></label></td>
+      <td><strong>${escapeHtml(h.name)}</strong></td>
+      <td>${hookTypeBadge(h.type)}</td>
+      <td><code>${escapeHtml((h.url||h.cmd||'').substring(0,50))}</code></td>
+      <td>${(h.event_types||[]).slice(0,3).map(t => eventTypeBadge(t)).join(' ')}${(h.event_types||[]).length > 3 ? `<span class="muted"> +${h.event_types.length-3}</span>` : ''}</td>
+      <td class="text-right"><div class="actions-group" style="justify-content:flex-end"><button class="btn small secondary" onclick="openHookModal(${h.id})">编辑</button><button class="btn small danger" onclick="deleteHook(${h.id})">删除</button></div></td>
+    </tr>
+  `).join('');
+}
+
+function hookTypeBadge(t) {
+  const map = { webhook:'info', bark:'success', telegram:'purple', script:'warning' };
+  return `<span class="badge ${map[t]||'muted'}">${t}</span>`;
+}
+
+function toggleHookTypeFields() {
+  const type = document.getElementById('hook-type').value;
+  document.getElementById('hook-url-row').style.display = (type !== 'script') ? '' : 'none';
+  document.getElementById('hook-token-row').style.display = (type === 'telegram') ? '' : 'none';
+  document.getElementById('hook-cmd-row').style.display = (type === 'script') ? '' : 'none';
+  const urlLabels = { webhook:'Webhook URL *', bark:'Bark 推送地址 *', telegram:'Bot Token *' };
+  document.getElementById('hook-url-label').textContent = urlLabels[type] || 'URL';
+  document.getElementById('hook-token-label').textContent = 'Chat ID *';
+}
+
+function buildEventCheckboxes(selected) {
+  selected = selected || [];
+  const selSet = new Set(selected);
+  let html = '';
+  let ci = 0;
+  for (const [cat, types] of Object.entries(EVENT_CATEGORIES)) {
+    html += `<div style="margin:6px 0 2px;font-size:12px;color:#86909c;font-weight:500;">${cat}<a href="javascript:void(0)" style="font-size:11px;color:#58a6ff;text-decoration:none;margin-left:8px;font-weight:400;" data-ci="${ci}" class="cat-toggle">[全选/取消]</a></div>`;
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;">`;
+    types.forEach(t => { html += `<label class="checkbox-row" style="width:auto;"><input type="checkbox" class="event-cb" data-ci="${ci}" value="${t}" ${selSet.has(t)?'checked':''}>${EVENT_TRANSLATIONS[t]||t}</label>`; });
+    html += `</div>`;
+    ci++;
+  }
+  document.getElementById('hook-events').innerHTML = html;
+  document.querySelectorAll('.cat-toggle').forEach(a => {
+    a.onclick = function() { toggleCategory(parseInt(this.dataset.ci)); };
+  });
+}
+
+function toggleCategory(ci) {
+  const cbs = document.querySelectorAll('.event-cb[data-ci="' + ci + '"]');
+  const allChecked = Array.from(cbs).every(cb => cb.checked);
+  cbs.forEach(cb => cb.checked = !allChecked);
+}
+
+function selectAllEvents(select) { document.querySelectorAll('.event-cb').forEach(cb => cb.checked = select); }
+function getSelectedEvents() { return Array.from(document.querySelectorAll('.event-cb:checked')).map(cb => cb.value); }
+
+function openHookModal(id) {
+  document.getElementById('hook-modal-title').textContent = id ? '编辑钩子' : '新建钩子';
+  document.getElementById('hook-id').value = id || '';
+  buildEventCheckboxes([]);
+  if (id) {
+    const h = hooksCache.find(x => x.id === id);
+    if (!h) return;
+    document.getElementById('hook-name').value = h.name;
+    document.getElementById('hook-type').value = h.type;
+    toggleHookTypeFields();
+    document.getElementById('hook-url').value = h.url || '';
+    document.getElementById('hook-token').value = h.token || '';
+    document.getElementById('hook-cmd').value = h.cmd || '';
+    document.getElementById('hook-headers').value = h.headers || '';
+    buildEventCheckboxes(h.event_types);
+  } else {
+    ['hook-name','hook-url','hook-token','hook-cmd','hook-headers'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('hook-type').value = 'webhook';
+    toggleHookTypeFields();
+  }
+  document.getElementById('hook-modal').style.display = 'flex';
+}
+function closeHookModal() { document.getElementById('hook-modal').style.display = 'none'; }
+
+async function saveHook() {
+  const id = document.getElementById('hook-id').value;
+  const type = document.getElementById('hook-type').value;
+  const data = {
+    name: document.getElementById('hook-name').value.trim(),
+    type: type, enabled: true,
+    url: type !== 'script' ? document.getElementById('hook-url').value.trim() : '',
+    token: type === 'telegram' ? document.getElementById('hook-token').value.trim() : '',
+    cmd: type === 'script' ? document.getElementById('hook-cmd').value.trim() : '',
+    headers: document.getElementById('hook-headers').value.trim(),
+    event_types: getSelectedEvents(),
+  };
+  if (!data.name) { toast('请填写名称', 'error'); return; }
+  if (type === 'script' && !data.cmd) { toast('请填写脚本路径', 'error'); return; }
+  if (type !== 'script' && !data.url) { toast('请填写 URL', 'error'); return; }
+  if (type === 'telegram' && !data.token) { toast('请填写 Chat ID', 'error'); return; }
+  if (data.event_types.length === 0) { toast('请选择至少一个事件类型', 'error'); return; }
+  try {
+    if (id) { await api('/api/hooks/' + id, { method: 'PUT', body: JSON.stringify(data) }); toast('已更新', 'success'); }
+    else { await api('/api/hooks', { method: 'POST', body: JSON.stringify(data) }); toast('已创建', 'success'); }
+    closeHookModal(); loadHooks();
+  } catch (e) {}
+}
+
+async function deleteHook(id) {
+  if (!confirm('确认删除该钩子？')) return;
+  try { await api('/api/hooks/' + id, { method: 'DELETE' }); toast('已删除', 'success'); loadHooks(); } catch (e) {}
+}
+
+async function toggleHook(id, enabled) {
+  try { await api('/api/hooks/' + id + '/toggle', { method: 'POST' }); } catch (e) {}
+}
+
+async function loadSettings() {
+  try {
+    const s = await api('/api/settings');
+    document.getElementById('set-poll-interval').value = s.poll_interval || 5;
+    document.getElementById('set-dedup-window').value = s.dedup_window || 300;
+    document.getElementById('set-dnd-start').value = s.dnd_start || '';
+    document.getElementById('set-dnd-end').value = s.dnd_end || '';
+    document.getElementById('set-db-path').value = s.eventlogger_db || '/usr/trim/var/eventlogger_service/logger_data.db3';
+  } catch (e) {}
+}
+
+async function saveSettings() {
+  const data = {
+    poll_interval: parseInt(document.getElementById('set-poll-interval').value) || 5,
+    dedup_window: parseInt(document.getElementById('set-dedup-window').value) || 300,
+    dnd_start: document.getElementById('set-dnd-start').value.trim(),
+    dnd_end: document.getElementById('set-dnd-end').value.trim(),
+    eventlogger_db: document.getElementById('set-db-path').value.trim(),
+  };
+  try { await api('/api/settings', { method: 'PUT', body: JSON.stringify(data) }); toast('设置已保存', 'success'); } catch (e) {}
+}
+
+async function loadServerLog() {
+  try { const r = await fetch(apiURL('/api/log?lines=200')); const text = await r.text(); document.getElementById('server-log').textContent = text || '（无日志）'; } catch (e) {}
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>

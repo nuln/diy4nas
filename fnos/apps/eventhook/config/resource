@@ -1,0 +1,18 @@
+{
+  "port-config": {
+    "protocol-file": "eventhook.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "eventhook",
+        "permission": {
+          "rw": [
+            "eventhook"
+          ]
+        }
+      }
+    ]
+  },
+  "systemd-unit": {}
+}

@@ -1,0 +1,14 @@
+appname         = eventhook
+version         = 0.0.0
+display_name    = 事件钩子
+platform        = x86
+maintainer      = diy4nas
+maintainer_url  = https://github.com/dukangxu/diy4nas
+distributor     = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = eventhook.Application
+service_port    = 7683
+checkport       = false
+desc            = 系统事件监听与钩子服务，监控登录、SSH、硬盘、UPS 等事件，通过 Webhook/脚本推送通知
+source          = thirdparty
+checksum        = 
