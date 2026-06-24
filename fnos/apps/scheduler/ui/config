@@ -8,7 +8,7 @@
             "port": "7681",
             "protocol": "http",
             "url": "/",
-            "allUsers": true,
+            "allUsers": false,
             "width": 900,
             "height": 760,
             "minWidth": 600,
