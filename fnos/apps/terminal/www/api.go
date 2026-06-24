@@ -110,6 +110,7 @@ func handleSessions(w http.ResponseWriter, r *http.Request) {
 		count := len(sessions)
 		sessionsMu.RUnlock()
 		if count >= maxN {
+			appLogf("create session blocked: count=%d maxN=%d", count, maxN)
 			writeErr(w, 429, "session limit reached")
 			return
 		}

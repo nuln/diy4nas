@@ -281,6 +281,8 @@ func (s *Session) waitLoop() {
 	for _, sub := range s.subs {
 		subs = append(subs, sub)
 	}
+	id := s.ID
+	mu := &s.mu
 	s.mu.Unlock()
 	for _, sub := range subs {
 		select {
@@ -288,6 +290,20 @@ func (s *Session) waitLoop() {
 		default:
 		}
 	}
+	appLogf("session %s exited (code=%d), will auto-cleanup in 60s", id, code)
+	// 延迟 60s 后自动从 map 移除, 避免 exited session 累加超 max_sessions
+	// 用户可在这 60s 内手动 close tab (立即删) 或 保存到后台 (detach 变 persistent)
+	go func() {
+		time.Sleep(60 * time.Second)
+		mu.Lock()
+		stillExited := s.exited
+		stillDetached := s.detached
+		mu.Unlock()
+		if stillExited && !stillDetached {
+			appLogf("auto-cleanup: removing exited session %s", id)
+			removeSession(id)
+		}
+	}()
 }
 
 func (s *Session) broadcast(data []byte) {
