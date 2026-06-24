@@ -353,8 +353,16 @@ function connectWS(tab) {
             tab.term.write('\r\n\x1b[2m[会话已结束]\x1b[0m\r\n');
             renderTabs();
             if (tab === activeTab()) updateStatus();
-            // 检查: 如果没有前台 active session 了, 关 app 窗口
-            // (detached tab 不会关 — 因为 tab.exited=true 但 tab.detached=true 不算前台)
+            if (tab.persistent) {
+              // 持久 tab 输入 exit: 彻底关闭 (杀进程 + 删 sidebar)
+              // 不会"回到后台" — 用户在持久 tab 输入 exit 就是想真结束
+              killSession(tab.id, true);
+            } else {
+              // 普通 tab 输入 exit: 关闭当前 tab
+              // server 端 60s 后 auto-cleanup 删 map, 不必调 /kill
+              closeSessionTab(tab.id);
+            }
+            // 检查: 如果没前台 active session 了, 关 app 窗口
             checkCloseAppWindow();
           } else if (msg.type === 'resize') {
             // ignore
@@ -450,6 +458,18 @@ async function closeSession(id) {
       await fetch(API + '/api/sessions/' + id + '/kill', { method: 'POST' });
     }
   } catch (e) { /* ignore */ }
+  closeSessionTab(id);
+  loadSidebar();
+  // 检查是否要关 app 窗口
+  checkCloseAppWindow();
+}
+
+// 本地关 tab (不调 server). 用于 tab 进程已死的场景.
+// 普通 tab 输入 `exit` 命令: 进程死了, server 端 auto-cleanup 60s 后从 map 删.
+// 前端立即关 tab, 不必再调 /kill.
+function closeSessionTab(id) {
+  if (!sessions.has(id)) return;
+  const tab = sessions.get(id);
   if (tab.paneEl) tab.paneEl.remove();
   sessions.delete(id);
   renderTabs();
@@ -462,9 +482,6 @@ async function closeSession(id) {
     document.getElementById('status-size').textContent = '—';
     document.getElementById('status-shell').textContent = '—';
   }
-  loadSidebar();
-  // 检查是否要关 app 窗口
-  checkCloseAppWindow();
 }
 
 // 检查是否需要关 app 窗口
@@ -846,23 +863,26 @@ async function attachFromSidebar(id) {
   }
 }
 
-// 彻底杀死 detached session (从 sidebar)
-async function killSession(id) {
-  if (!confirm('彻底结束这个后台会话？（杀进程）')) return;
+// 彻底杀死 detached session (从 sidebar).
+// silent=true 跳过 confirm (用于持久 tab 收到 exit 消息自动调).
+async function killSession(id, silent = false) {
+  if (!silent && !confirm('彻底结束这个后台会话？（杀进程）')) return;
   try {
     const r = await fetch(API + '/api/sessions/' + id + '/kill', { method: 'POST' });
     if (!r.ok) {
       const e = await r.json().catch(() => ({ error: r.statusText }));
-      toast('结束失败: ' + e.error, 'error');
+      if (!silent) toast('结束失败: ' + e.error, 'error');
       return;
     }
-    // 如果 tab 还开着, 关掉
-    if (sessions.has(id)) await closeSession(id);
+    // 如果 tab 还开着, 关掉 (直接 closeSessionTab, 不再调 /kill)
+    if (sessions.has(id)) closeSessionTab(id);
     loadSidebar();
-    toast('已结束会话', 'success');
+    if (!silent) toast('已结束会话', 'success');
   } catch (e) {
-    toast('结束失败: ' + e.message, 'error');
+    if (!silent) toast('结束失败: ' + e.message, 'error');
   }
+  // 检查是否要关 app 窗口
+  checkCloseAppWindow();
 }
 
 // 把当前 active session 保存到后台 (tab 关闭, session 进 sidebar)

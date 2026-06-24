@@ -207,6 +207,10 @@ func main() {
 	// 启动后台 detached session 自动清理（默认 24h）
 	startAutoCleanup()
 
+	// 启动自动关闭 goroutine: 所有 session exited + 无 detached + 无 ws client
+	// -> server os.Exit(0), fnOS 框架 watch service 进程会关 app 窗口
+	startAutoShutdown()
+
 	// 加载脚本 (从 scripts.json)
 	loadScripts()
 
