@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"os"
 	"sync"
 	"time"
 )
@@ -138,6 +139,46 @@ func startAutoCleanup() {
 		time.Sleep(1 * time.Minute)
 		cleanupDetached()
 	}()
+}
+
+// startAutoShutdown 启动自动关闭 goroutine: 每 5s 检查一次
+// 条件: 所有 session 都 exited + 没有 detached session + 没有 ws client 连接
+// -> server exit(0), fnOS 框架会关 app 窗口
+func startAutoShutdown() {
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		// 启动后 60s 才开始检查 (避免刚启动时误判)
+		time.Sleep(60 * time.Second)
+		for range ticker.C {
+			if canShutdown() {
+				appLogf("auto-shutdown: all sessions exited, no detached sessions, no ws clients, exiting")
+				os.Exit(0)
+			}
+		}
+	}()
+}
+
+// canShutdown 检查是否可以安全退出
+func canShutdown() bool {
+	sessionsMu.RLock()
+	defer sessionsMu.RUnlock()
+	for _, s := range sessions {
+		s.mu.Lock()
+		exited := s.exited
+		detached := s.detached
+		subs := len(s.subs)
+		s.mu.Unlock()
+		// 任何 active (非 exited) 或 detached (后台运行) 的 session 都不退出
+		if !exited || detached {
+			return false
+		}
+		// 有 ws client 也不退出
+		if subs > 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func cleanupDetached() {

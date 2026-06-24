@@ -207,6 +207,9 @@ func main() {
 	// 启动后台 detached session 自动清理（默认 24h）
 	startAutoCleanup()
 
+	// 启动自动关闭检测: 所有 session exited + 无 detached + 无 client 时退出
+	startAutoShutdown()
+
 	// 加载脚本 (从 scripts.json)
 	loadScripts()
 
