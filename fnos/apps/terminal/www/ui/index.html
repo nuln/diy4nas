@@ -353,6 +353,9 @@ function connectWS(tab) {
             tab.term.write('\r\n\x1b[2m[会话已结束]\x1b[0m\r\n');
             renderTabs();
             if (tab === activeTab()) updateStatus();
+            // 检查: 如果没有前台 active session 了, 关 app 窗口
+            // (detached tab 不会关 — 因为 tab.exited=true 但 tab.detached=true 不算前台)
+            checkCloseAppWindow();
           } else if (msg.type === 'resize') {
             // ignore
           }
@@ -460,6 +463,29 @@ async function closeSession(id) {
     document.getElementById('status-shell').textContent = '—';
   }
   loadSidebar();
+  // 检查是否要关 app 窗口
+  checkCloseAppWindow();
+}
+
+// 检查是否需要关 app 窗口
+// 条件: 没有 active (前台) session 了 (所有 tab 都 exited, 或 detached 进 sidebar)
+// -> window.close() 关闭 fnOS 反代 iframe
+function checkCloseAppWindow() {
+  let hasActive = false;
+  sessions.forEach(tab => {
+    // 持久 tab (关 tab 不会杀进程) 不算前台
+    if (tab.persistent) return;
+    // 已退出的不算
+    if (tab.exited) return;
+    // 还有 active session
+    hasActive = true;
+  });
+  if (!hasActive) {
+    // 没前台 session 了 — 关 iframe 窗口
+    // server 继续跑 (detached sessions 后台保留)
+    console.log('No active session, closing app window...');
+    setTimeout(() => window.close(), 200);
+  }
 }
 
 // 真杀所有 session（包括 detached）
