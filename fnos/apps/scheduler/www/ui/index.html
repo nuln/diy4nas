@@ -138,6 +138,7 @@
             <th>名称</th>
             <th>cron 表达式</th>
             <th>命令</th>
+            <th>用户</th>
             <th>状态</th>
             <th>下次执行</th>
             <th style="width:280px" class="text-right">操作</th>
@@ -274,12 +275,17 @@
       <div class="form-grid">
         <div class="form-row">
           <label>工作目录</label>
-          <input type="text" id="job-workdir" placeholder="留空使用数据目录">
+          <input type="text" id="job-workdir" placeholder="留空使用用户 home">
         </div>
         <div class="form-row">
           <label>超时（秒，0=使用默认）</label>
           <input type="number" id="job-timeout" min="0" value="0">
         </div>
+      </div>
+      <div class="form-row">
+        <label>运行用户</label>
+        <input type="text" id="job-username" placeholder="留空使用当前 fnOS 登录用户">
+        <div class="cron-hint">系统用户（须存在于 /etc/passwd）。留空 = 启动 scheduler 时打开 app 的 fnOS 登录用户；任务会以该用户身份 setuid 执行（HOME 切到该用户的 home，权限收窄）。</div>
       </div>
       <div class="form-grid">
         <div class="form-row">
@@ -464,6 +470,7 @@ function renderJobs() {
       </td>
       <td><code>${escapeHtml(j.spec)}</code></td>
       <td><code style="font-size:12px">${escapeHtml(truncate(j.command, 60))}</code></td>
+      <td class="nowrap">${j.username ? `<code style="font-size:12px">${escapeHtml(j.username)}</code>` : '<span class="muted" title="默认使用当前 fnOS 登录用户">—</span>'}</td>
       <td class="nowrap">${j.last_status ? statusBadge(j.last_status) : '<span class="muted">—</span>'}</td>
       <td class="nowrap">${j.next_run || '<span class="muted">—</span>'}</td>
       <td class="text-right">
@@ -519,12 +526,13 @@ function openJobModal(id) {
     document.getElementById('job-spec').value = j.spec;
     document.getElementById('job-cmd').value = j.command;
     document.getElementById('job-workdir').value = j.workdir || '';
+    document.getElementById('job-username').value = j.username || '';
     document.getElementById('job-timeout').value = j.timeout_sec || 0;
     document.getElementById('job-notify').value = j.notify_on || 'failure';
     document.getElementById('job-enabled').value = j.enabled ? 'true' : 'false';
     document.getElementById('job-desc').value = j.description || '';
   } else {
-    ['job-name','job-spec','job-cmd','job-workdir','job-desc'].forEach(i => document.getElementById(i).value = '');
+    ['job-name','job-spec','job-cmd','job-workdir','job-desc','job-username'].forEach(i => document.getElementById(i).value = '');
     document.getElementById('job-timeout').value = '0';
     document.getElementById('job-notify').value = 'failure';
     document.getElementById('job-enabled').value = 'true';
@@ -541,6 +549,7 @@ async function saveJob() {
     spec: document.getElementById('job-spec').value.trim(),
     command: document.getElementById('job-cmd').value,
     workdir: document.getElementById('job-workdir').value.trim(),
+    username: document.getElementById('job-username').value.trim(),
     enabled: document.getElementById('job-enabled').value === 'true',
     notify_on: document.getElementById('job-notify').value,
     timeout_sec: parseInt(document.getElementById('job-timeout').value) || 0,

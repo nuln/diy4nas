@@ -138,13 +138,28 @@ func executeJob(jobID int64, trigger string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSec)*time.Second)
 	defer cancel()
 
+	// 解析执行用户 (per-task user, fallback 到 FNOS_USER -> root)
+	uid, gid, userHome, runAsUser, userErr := resolveJobUser(job.Username)
+	if userErr != nil {
+		appLogf("job %d (%s): %v - falling back to root", jobID, job.Name, userErr)
+		uid, gid, userHome, runAsUser = 0, 0, "/root", "root"
+	} else if job.Username != "" {
+		appLogf("job %d (%s) will run as user: %s (uid=%d gid=%d home=%s)", jobID, job.Name, runAsUser, uid, gid, userHome)
+	}
+
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", job.Command)
 	cmd.Env = append(os.Environ(),
 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-		"HOME="+appVar,
+		"HOME="+userHome,
+		"USER="+runAsUser,
+		"LOGNAME="+runAsUser,
 		"LANG=zh_CN.UTF-8",
 		"LC_ALL=zh_CN.UTF-8",
 	)
+	// setuid 必须在 Start() 之前设置 (SysProcAttr 由 fork exec 时使用)
+	cmd.SysProcAttr = credentialFor(uid, gid)
+	// 工作目录: job.Workdir 优先, 否则用 data dir (确保存在)
+	// 不直接用 userHome 因为 nobody 等系统用户的 home 可能不存在
 	if job.Workdir != "" {
 		cmd.Dir = job.Workdir
 	} else {

@@ -70,6 +70,16 @@ start() {
     export TRIM_APPDEST="$APP_DEST"
     export TRIM_PKGVAR="$APP_VAR"
     export TRIM_SERVICE_PORT="7681"
+    # 把 fnOS 桌面当前登录用户透传给 Go server（参考 terminal app）
+    # 任务的默认执行用户: job.username 为空时使用 FNOS_USER
+    if [ -n "$TRIM_RUN_USERNAME" ]; then
+        export FNOS_USER="$TRIM_RUN_USERNAME"
+    elif [ -n "$TRIM_USERNAME" ]; then
+        export FNOS_USER="$TRIM_USERNAME"
+    fi
+    if [ -n "$FNOS_USER" ]; then
+        echo "  detected fnOS user: $FNOS_USER" >> "$LOG_FILE" 2>/dev/null
+    fi
 
     "$SRV" >> "$LOG_FILE" 2>&1 &
     PID=$!

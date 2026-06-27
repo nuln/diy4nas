@@ -8,6 +8,7 @@ type Job struct {
 	Spec         string `json:"spec"`
 	Command      string `json:"command"`
 	Workdir      string `json:"workdir"`
+	Username     string `json:"username"`
 	Enabled      bool   `json:"enabled"`
 	Description  string `json:"description"`
 	NotifyOn     string `json:"notify_on"`
@@ -58,6 +59,7 @@ type JobInput struct {
 	Spec        string `json:"spec"`
 	Command     string `json:"command"`
 	Workdir     string `json:"workdir"`
+	Username    string `json:"username"`
 	Enabled     *bool  `json:"enabled"`
 	Description string `json:"description"`
 	NotifyOn    string `json:"notify_on"`

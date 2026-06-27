@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     spec          TEXT NOT NULL,
     command       TEXT NOT NULL,
     workdir       TEXT DEFAULT '',
+    username      TEXT DEFAULT '',
     enabled       INTEGER NOT NULL DEFAULT 1,
     description   TEXT DEFAULT '',
     notify_on     TEXT DEFAULT 'failure',
@@ -51,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_runs_status ON runs(status);
 `
 
 func migrateSchema(conn *sql.DB) error {
-	for _, col := range []string{"last_status TEXT DEFAULT ''", "last_run_at TEXT DEFAULT ''"} {
+	for _, col := range []string{"last_status TEXT DEFAULT ''", "last_run_at TEXT DEFAULT ''", "username TEXT DEFAULT ''"} {
 		var n int
 		row := conn.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('jobs') WHERE name = ?`, strings.SplitN(col, " ", 2)[0])
 		if err := row.Scan(&n); err != nil {
@@ -91,7 +92,7 @@ func (d *DB) RecoverInterruptedRuns() error {
 }
 
 func (d *DB) ListJobs() ([]Job, error) {
-	rows, err := d.conn.Query(`SELECT id, name, spec, command, workdir, enabled, description, notify_on, timeout_sec, created_at, updated_at, COALESCE(last_status, ''), COALESCE(last_run_at, '') FROM jobs ORDER BY id DESC`)
+	rows, err := d.conn.Query(`SELECT id, name, spec, command, workdir, COALESCE(username, ''), enabled, description, notify_on, timeout_sec, created_at, updated_at, COALESCE(last_status, ''), COALESCE(last_run_at, '') FROM jobs ORDER BY id DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func (d *DB) ListJobs() ([]Job, error) {
 	for rows.Next() {
 		var j Job
 		var enabled int
-		if err := rows.Scan(&j.ID, &j.Name, &j.Spec, &j.Command, &j.Workdir, &enabled, &j.Description, &j.NotifyOn, &j.TimeoutSec, &j.CreatedAt, &j.UpdatedAt, &j.LastStatus, &j.LastRunAt); err != nil {
+		if err := rows.Scan(&j.ID, &j.Name, &j.Spec, &j.Command, &j.Workdir, &j.Username, &enabled, &j.Description, &j.NotifyOn, &j.TimeoutSec, &j.CreatedAt, &j.UpdatedAt, &j.LastStatus, &j.LastRunAt); err != nil {
 			return nil, err
 		}
 		j.Enabled = enabled == 1
@@ -110,10 +111,10 @@ func (d *DB) ListJobs() ([]Job, error) {
 }
 
 func (d *DB) GetJob(id int64) (*Job, error) {
-	row := d.conn.QueryRow(`SELECT id, name, spec, command, workdir, enabled, description, notify_on, timeout_sec, created_at, updated_at, COALESCE(last_status, ''), COALESCE(last_run_at, '') FROM jobs WHERE id = ?`, id)
+	row := d.conn.QueryRow(`SELECT id, name, spec, command, workdir, COALESCE(username, ''), enabled, description, notify_on, timeout_sec, created_at, updated_at, COALESCE(last_status, ''), COALESCE(last_run_at, '') FROM jobs WHERE id = ?`, id)
 	var j Job
 	var enabled int
-	if err := row.Scan(&j.ID, &j.Name, &j.Spec, &j.Command, &j.Workdir, &enabled, &j.Description, &j.NotifyOn, &j.TimeoutSec, &j.CreatedAt, &j.UpdatedAt, &j.LastStatus, &j.LastRunAt); err != nil {
+	if err := row.Scan(&j.ID, &j.Name, &j.Spec, &j.Command, &j.Workdir, &j.Username, &enabled, &j.Description, &j.NotifyOn, &j.TimeoutSec, &j.CreatedAt, &j.UpdatedAt, &j.LastStatus, &j.LastRunAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -128,8 +129,8 @@ func (d *DB) CreateJob(in JobInput) (int64, error) {
 	if in.Enabled != nil && !*in.Enabled {
 		enabled = 0
 	}
-	res, err := d.conn.Exec(`INSERT INTO jobs (name, spec, command, workdir, enabled, description, notify_on, timeout_sec) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		in.Name, in.Spec, in.Command, in.Workdir, enabled, in.Description, in.NotifyOn, in.TimeoutSec)
+	res, err := d.conn.Exec(`INSERT INTO jobs (name, spec, command, workdir, username, enabled, description, notify_on, timeout_sec) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		in.Name, in.Spec, in.Command, in.Workdir, in.Username, enabled, in.Description, in.NotifyOn, in.TimeoutSec)
 	if err != nil {
 		return 0, err
 	}
@@ -141,8 +142,8 @@ func (d *DB) UpdateJob(id int64, in JobInput) error {
 	if in.Enabled != nil && !*in.Enabled {
 		enabled = 0
 	}
-	_, err := d.conn.Exec(`UPDATE jobs SET name = ?, spec = ?, command = ?, workdir = ?, enabled = ?, description = ?, notify_on = ?, timeout_sec = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-		in.Name, in.Spec, in.Command, in.Workdir, enabled, in.Description, in.NotifyOn, in.TimeoutSec, id)
+	_, err := d.conn.Exec(`UPDATE jobs SET name = ?, spec = ?, command = ?, workdir = ?, username = ?, enabled = ?, description = ?, notify_on = ?, timeout_sec = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		in.Name, in.Spec, in.Command, in.Workdir, in.Username, enabled, in.Description, in.NotifyOn, in.TimeoutSec, id)
 	return err
 }
 

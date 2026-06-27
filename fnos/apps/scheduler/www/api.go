@@ -17,6 +17,7 @@ func registerRoutes(mux *http.ServeMux) {
 	api := http.NewServeMux()
 
 	api.HandleFunc("/api/healthz", handleHealthz)
+	api.HandleFunc("/api/current-user", handleCurrentUser)
 	api.HandleFunc("/api/jobs", handleJobs)
 	api.HandleFunc("/api/jobs/", handleJobByID)
 	api.HandleFunc("/api/runs", handleRuns)
@@ -47,6 +48,14 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, 200, map[string]any{"ok": true, "time": timeNow().Format("2006-01-02 15:04:05")})
+}
+
+func handleCurrentUser(w http.ResponseWriter, r *http.Request) {
+	user := currentFnOSUser()
+	if user == "" {
+		user = "root"
+	}
+	jsonResponse(w, 200, map[string]any{"user": user, "source": "FNOS_USER env (set by cmd/main from TRIM_RUN_USERNAME)"})
 }
 
 func handleJobs(w http.ResponseWriter, r *http.Request) {
