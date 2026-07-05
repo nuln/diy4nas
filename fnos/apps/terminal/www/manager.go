@@ -11,12 +11,18 @@ import (
 var (
 	sessionsMu sync.RWMutex
 	sessions   = make(map[string]*Session)
+
+	hadSessionMu sync.Mutex
+	hadSession   bool
 )
 
 func addSession(s *Session) {
 	sessionsMu.Lock()
 	sessions[s.ID] = s
 	sessionsMu.Unlock()
+	hadSessionMu.Lock()
+	hadSession = true
+	hadSessionMu.Unlock()
 }
 
 func getSession(id string) *Session {
@@ -161,6 +167,12 @@ func startAutoShutdown() {
 
 // canShutdown 检查是否可以安全退出
 func canShutdown() bool {
+	hadSessionMu.Lock()
+	hs := hadSession
+	hadSessionMu.Unlock()
+	if !hs {
+		return false // 从未创建过 session，不自动退出
+	}
 	sessionsMu.RLock()
 	defer sessionsMu.RUnlock()
 	for _, s := range sessions {

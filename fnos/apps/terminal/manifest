@@ -1,7 +1,7 @@
 appname         = terminal
 version         = 0.0.0
 display_name    = 网页终端
-platform        = all
+platform        = x86_64
 maintainer      = diy4nas
 maintainer_url  = https://github.com/dukangxu/diy4nas
 distributor     = nuln
