@@ -28,6 +28,7 @@ var tsBin = findBin("tailscale", getEnv("TAILSCALE_BIN", ""))
 var tsdBin = findBin("tailscaled", getEnv("TAILSCALED_BIN", ""))
 var appVar = getEnv("TRIM_PKGVAR", "/var/apps/tailscale/data")
 var stateFile = appVar + "/tailscaled.state"
+var proxyFile = appVar + "/proxy.conf"
 
 var upLock sync.Mutex
 var lastUpErr string
@@ -155,6 +156,30 @@ func getEnv(key, def string) string {
 	return def
 }
 
+func readProxy() string {
+	b, err := os.ReadFile(proxyFile)
+	if err != nil || len(bytes.TrimSpace(b)) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
+
+func saveProxy(proxy string) error {
+	if proxy == "" {
+		os.Remove(proxyFile)
+		return nil
+	}
+	return os.WriteFile(proxyFile, []byte(strings.TrimSpace(proxy)+"\n"), 0644)
+}
+
+func restartTailscaled() error {
+	appLogf("正在重启 tailscaled（代理配置变更）")
+	stopTailscaled()
+	os.Remove(sockPath)
+	time.Sleep(500 * time.Millisecond)
+	return startTailscaled()
+}
+
 func startTailscaled() error {
 	os.MkdirAll(appVar, 0755)
 	exec.Command("modprobe", "tun").Run()
@@ -165,6 +190,26 @@ func startTailscaled() error {
 		"--socket="+sockPath,
 		"--port=41641",
 	)
+
+	env := []string{}
+	for _, e := range os.Environ() {
+		key := strings.SplitN(e, "=", 2)[0]
+		uk := strings.ToUpper(key)
+		if uk == "HTTP_PROXY" || uk == "HTTPS_PROXY" || uk == "ALL_PROXY" || uk == "NO_PROXY" {
+			continue
+		}
+		env = append(env, e)
+	}
+	if proxy := readProxy(); proxy != "" {
+		env = append(env,
+			"HTTP_PROXY="+proxy,
+			"HTTPS_PROXY="+proxy,
+			"NO_PROXY=100.64.0.0/10,fd7a:115c:a1e0::/48,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,localhost,127.0.0.1",
+		)
+		appLogf("tailscaled 使用代理: %s", proxy)
+	}
+	tsdCmd.Env = env
+
 	tsdCmd.Stdout = &logBuf
 	tsdCmd.Stderr = &logBuf
 	if err := tsdCmd.Start(); err != nil {
@@ -238,6 +283,7 @@ func main() {
 	mux.HandleFunc("/api/log/app", handleLogApp)
 	mux.HandleFunc("/api/log/clear", handleLogClear)
 	mux.HandleFunc("/api/events", handleEvents)
+	mux.HandleFunc("/api/proxy", handleProxy)
 
 	startBackgroundFetchers()
 
@@ -455,6 +501,33 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 	appLogf("logout: %s", string(out))
 	fetchStatus()
 	writeJSON(w, map[string]string{"output": string(out)})
+}
+
+func handleProxy(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		proxy := readProxy()
+		writeJSON(w, map[string]string{"proxy": proxy})
+	case "POST":
+		b, _ := io.ReadAll(r.Body)
+		var req struct {
+			Proxy string `json:"proxy"`
+		}
+		json.Unmarshal(b, &req)
+		proxy := strings.TrimSpace(req.Proxy)
+		if err := saveProxy(proxy); err != nil {
+			writeJSON(w, map[string]string{"error": "保存代理配置失败: " + err.Error()})
+			return
+		}
+		go func() {
+			if err := restartTailscaled(); err != nil {
+				appLogf("重启 tailscaled 失败: %v", err)
+			}
+		}()
+		writeJSON(w, map[string]string{"output": "代理配置已保存，tailscaled 重启中..."})
+	default:
+		http.Error(w, "", 405)
+	}
 }
 
 func handlePing(w http.ResponseWriter, r *http.Request) {
