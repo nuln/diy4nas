@@ -8,11 +8,7 @@
             "port": "7681",
             "protocol": "http",
             "url": "/",
-            "allUsers": false,
-            "width": 900,
-            "height": 760,
-            "minWidth": 600,
-            "minHeight": 600
+            "allUsers": false
         }
     }
 }
