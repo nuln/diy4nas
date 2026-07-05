@@ -5,27 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>计划任务</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
-  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 12px 24px; display: flex; align-items: center; gap: 24px; position: sticky; top: 0; z-index: 10; }
-  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  nav { display: flex; gap: 4px; margin-left: 24px; }
-  nav button { background: transparent; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: #8b949e; font-size: 14px; transition: all .15s; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #0d1117; color: #e6edf3; }
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 10px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; flex-wrap: wrap; }
+  header h1 { font-size: 16px; font-weight: 600; white-space: nowrap; }
+  nav { display: flex; gap: 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav button { background: transparent; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: #8b949e; font-size: 12px; white-space: nowrap; flex-shrink: 0; transition: all .15s; }
   nav button.active { background: #1f6feb; color: #fff; }
   nav button:hover:not(.active) { background: #21262d; color: #e6edf3; }
-  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
-  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 18px 20px; }
-  .stat .label { color: #8b949e; font-size: 12px; margin-bottom: 6px; }
-  .stat .value { font-size: 26px; font-weight: 600; }
-  .stat.success .value { color: #3fb950; }
-  .stat.failed .value { color: #f85149; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #21262d; }
-  th { color: #8b949e; font-weight: 500; background: #161b22; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+  #health-info { margin-left: auto; font-size: 11px; color: #8b949e; white-space: nowrap; }
+  main { padding: 16px; max-width: 1400px; margin: 0 auto; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #e6edf3; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px 16px; }
+  .stat .label { color: #8b949e; font-size: 11px; margin-bottom: 4px; }
+  .stat .stat-icon { font-size: 18px; margin-bottom: 2px; }
+  .stat .value-lg { font-size: 24px; font-weight: 700; }
+  .stat.success .value-lg { color: #3fb950; }
+  .stat.failed .value-lg { color: #f85149; }
+  .stat .value-lg.blue { color: #58a6ff; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { color: #8b949e; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; background: #161b22; padding: 8px 10px; text-align: left; border-bottom: 1px solid #21262d; position: sticky; top: 0; white-space: nowrap; }
+  td { padding: 8px 10px; border-bottom: 1px solid #21262d; vertical-align: middle; }
   tr:hover td { background: #1c2128; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+  tr.clickable { cursor: pointer; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 500; }
   .badge.info { background: #0c2d6b; color: #58a6ff; }
   .badge.success { background: #0e442a; color: #3fb950; }
   .badge.failed { background: #490202; color: #f85149; }
@@ -34,115 +40,108 @@
   .badge.interrupted { background: #21262d; color: #8b949e; }
   .badge.disabled { background: #21262d; color: #8b949e; }
   .badge.enabled { background: #0e442a; color: #3fb950; }
-  .btn { background: #1f6feb; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .15s; }
+  .btn { background: #1f6feb; color: #fff; border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all .15s; }
   .btn:hover { background: #388bfd; }
   .btn.secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
   .btn.secondary:hover { background: #30363d; }
   .btn.danger { background: #da3633; }
   .btn.danger:hover { background: #f85149; }
-  .btn.small { padding: 3px 10px; font-size: 12px; }
+  .btn.small { padding: 3px 8px; font-size: 11px; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
-  .toolbar .left, .toolbar .right { display: flex; gap: 8px; align-items: center; }
-  input[type="text"], input[type="number"], textarea, select { padding: 7px 12px; border: 1px solid #30363d; border-radius: 6px; font-size: 14px; font-family: inherit; width: 100%; background: #0d1117; color: #e6edf3; }
+  .btn-icon { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
+  .toolbar .left, .toolbar .right { display: flex; gap: 6px; align-items: center; }
+  input[type="text"], input[type="number"], textarea, select { padding: 6px 10px; border: 1px solid #30363d; border-radius: 6px; font-size: 13px; font-family: inherit; width: 100%; background: #0d1117; color: #e6edf3; }
   input:focus, textarea:focus, select:focus { outline: none; border-color: #1f6feb; box-shadow: 0 0 0 3px rgba(31,111,235,0.15); }
-  textarea { min-height: 80px; resize: vertical; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
-  label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
-  .form-row { margin-bottom: 14px; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .modal { background: #161b22; border: 1px solid #30363d; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
-  .modal-header { padding: 16px 20px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
-  .modal-header h2 { margin: 0; font-size: 16px; }
-  .modal-body { padding: 20px; }
-  .modal-footer { padding: 12px 20px; border-top: 1px solid #30363d; display: flex; justify-content: flex-end; gap: 8px; }
+  textarea { min-height: 80px; resize: vertical; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+  label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+  .form-row { margin-bottom: 12px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { padding: 14px 16px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { margin: 0; font-size: 15px; }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 12px 16px; border-top: 1px solid #30363d; display: flex; justify-content: flex-end; gap: 8px; }
   .close { background: none; border: none; font-size: 20px; cursor: pointer; color: #8b949e; padding: 0; line-height: 1; }
   .close:hover { color: #e6edf3; }
-  .empty { text-align: center; padding: 40px 20px; color: #8b949e; font-size: 14px; }
-  .log-box { background: #0d1117; color: #d4d4d4; padding: 16px; border-radius: 6px; border: 1px solid #30363d; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+  .empty { text-align: center; padding: 32px 16px; color: #8b949e; font-size: 13px; }
+  .log-box { background: #0d1117; color: #d4d4d4; padding: 12px; border-radius: 6px; border: 1px solid #30363d; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
   .log-stdout { color: #d4d4d4; }
   .log-stderr { color: #ff7875; }
-  .cron-hint { background: #21262d; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #8b949e; margin-top: 6px; border: 1px solid #30363d; font-family: ui-monospace, monospace; }
-  .toast { position: fixed; top: 24px; right: 24px; background: #21262d; color: #e6edf3; padding: 10px 18px; border-radius: 6px; border: 1px solid #30363d; z-index: 1000; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .cron-hint { background: #21262d; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #8b949e; margin-top: 4px; border: 1px solid #30363d; font-family: ui-monospace, monospace; line-height: 1.5; }
+  .toast { position: fixed; top: 16px; right: 16px; background: #21262d; color: #e6edf3; padding: 8px 14px; border-radius: 6px; border: 1px solid #30363d; z-index: 1000; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
   .toast.error { background: #490202; border-color: #f85149; }
   .toast.success { background: #0e442a; border-color: #3fb950; }
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
   .status-dot.running { background: #58a6ff; animation: pulse 1.5s ease-in-out infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-  .actions { display: flex; gap: 4px; }
-  code { background: #21262d; padding: 1px 6px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12px; }
   .section { display: none; }
   .section.active { display: block; }
-  .filter-bar { display: flex; gap: 8px; align-items: center; }
+  .filter-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .filter-bar select, .filter-bar input { width: auto; }
   .muted { color: #8b949e; }
   .nowrap { white-space: nowrap; }
   .text-right { text-align: right; }
-  .set-group { margin-bottom: 20px; }
-  .set-group h4 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid #21262d; }
-  .settings-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 768px) { .settings-cols { grid-template-columns: 1fr; } }
-  .card-header { display: flex; justify-content: space-between; align-items: center; margin: -4px 0 16px 0; }
-  .card-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  code { background: #21262d; padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 11px; }
+  .set-group { margin-bottom: 16px; }
+  .set-group h4 { font-size: 12px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.3px; margin: 0 0 10px 0; padding-bottom: 6px; border-bottom: 1px solid #21262d; }
+  .settings-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .table-wrap { overflow-x: auto; }
-  .table-wrap table { min-width: 700px; }
-  .table-wrap td, .table-wrap th { white-space: nowrap; }
-  .table-wrap td:first-child, .table-wrap th:first-child { padding-left: 0; }
-  .table-wrap td:last-child, .table-wrap th:last-child { padding-right: 0; }
-  tr.clickable { cursor: pointer; }
-  tr.clickable td { transition: background .1s; }
-  tr.clickable:hover td { background: #1c2128 !important; }
-  .actions-group { display: flex; gap: 4px; flex-wrap: nowrap; }
-  .stat-icon { font-size: 22px; margin-bottom: 4px; }
-  .value-lg { font-size: 28px; font-weight: 700; }
-  .value-sm { font-size: 20px; font-weight: 600; }
+  .table-wrap table { min-width: 600px; }
+  .actions-group { display: flex; gap: 3px; flex-wrap: nowrap; }
+  .actions-group .btn-text { display: inline; }
+  @media (max-width: 1024px) {
+    .table-wrap table { min-width: auto; }
+    .hide-tablet { display: none; }
+  }
   @media (max-width: 768px) {
-    header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
-    header h1 { font-size: 15px; }
-    nav { margin-left: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; width: 100%; }
-    nav button { font-size: 12px; padding: 5px 10px; white-space: nowrap; flex-shrink: 0; }
-    main { padding: 12px; }
-    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .stat { padding: 12px 14px; }
-    .stat .value-lg { font-size: 22px; }
-    .stat .stat-icon { font-size: 18px; }
-    .card { padding: 14px; }
-    .table-wrap table { min-width: 550px; }
-    th, td { padding: 7px 8px; font-size: 12px; }
-    .actions-group { gap: 3px; flex-wrap: wrap; }
-    .btn.small { padding: 2px 7px; font-size: 11px; }
-    .btn { font-size: 12px; padding: 5px 10px; }
-    .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+    header { padding: 8px 12px; gap: 8px; }
+    header h1 { font-size: 14px; }
+    nav button { font-size: 11px; padding: 4px 8px; }
+    main { padding: 10px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .stat { padding: 10px 12px; }
+    .stat .value-lg { font-size: 20px; }
+    .stat .stat-icon { font-size: 16px; }
+    .stat .label { font-size: 10px; }
+    .card { padding: 12px; }
+    th { font-size: 10px; padding: 6px 6px; }
+    td { padding: 6px 6px; font-size: 12px; }
+    .hide-mobile { display: none; }
+    .btn.small { padding: 2px 6px; font-size: 10px; }
+    .btn-icon { width: 26px; height: 26px; font-size: 13px; }
+    .actions-group .btn-text { display: none; }
+    .toolbar { flex-direction: column; align-items: stretch; gap: 6px; }
     .toolbar .left, .toolbar .right { flex-wrap: wrap; }
-    .filter-bar { flex-wrap: wrap; gap: 6px; }
-    .filter-bar label { font-size: 12px; }
-    .filter-bar select, .filter-bar input { font-size: 12px; padding: 5px 8px; width: auto; }
-    .modal { margin: 10px; max-width: none; }
-    .modal-body { padding: 14px; }
+    .filter-bar { gap: 4px; }
+    .filter-bar label { font-size: 11px; }
+    .filter-bar select, .filter-bar input { font-size: 11px; padding: 4px 6px; }
+    .modal-backdrop { padding: 0; align-items: flex-end; }
+    .modal { border-radius: 12px 12px 0 0; max-height: 85vh; }
     .modal-header { padding: 12px 14px; }
     .modal-header h2 { font-size: 14px; }
+    .modal-body { padding: 14px; }
     .modal-footer { padding: 10px 14px; flex-wrap: wrap; }
     .form-grid { grid-template-columns: 1fr; }
     .settings-cols { grid-template-columns: 1fr; }
-    .log-box { max-height: 300px; font-size: 11px; padding: 10px; }
-    .toast { top: 12px; right: 12px; font-size: 12px; padding: 8px 14px; }
-    .empty { padding: 24px 14px; font-size: 13px; }
-    .cron-hint { font-size: 11px; padding: 6px 10px; }
-    code { font-size: 11px; }
-    .modal-backdrop { padding: 0; align-items: flex-end; }
-    .modal { border-radius: 12px 12px 0 0; max-height: 85vh; }
-    .text-right { white-space: normal; }
+    .log-box { max-height: 250px; font-size: 11px; padding: 8px; }
+    .toast { top: 10px; right: 10px; font-size: 12px; padding: 6px 12px; }
+    .empty { padding: 20px 12px; font-size: 12px; }
+    .cron-hint { font-size: 10px; padding: 5px 8px; }
+    code { font-size: 10px; }
+    #health-info { font-size: 10px; }
+    .table-wrap table { min-width: auto; }
   }
   @media (max-width: 480px) {
-    main { padding: 8px; }
-    .stat-grid { gap: 6px; }
-    .stat { padding: 10px; }
-    .stat .value-lg { font-size: 18px; }
-    .stat .stat-icon { font-size: 16px; }
-    .stat .label { font-size: 11px; }
-    .table-wrap table { min-width: 400px; font-size: 11px; }
-    th, td { padding: 5px 6px; }
-    .health-info { font-size: 10px; }
+    main { padding: 6px; }
+    .stat-grid { gap: 4px; }
+    .stat { padding: 8px 10px; }
+    .stat .value-lg { font-size: 17px; }
+    .card { padding: 10px; border-radius: 6px; }
+    th, td { padding: 5px 4px; font-size: 11px; }
+    .hide-xs { display: none; }
+    .btn-icon { width: 24px; height: 24px; font-size: 12px; }
   }
 </style>
 </head>
@@ -155,20 +154,18 @@
     <button data-tab="runs">执行历史</button>
     <button data-tab="settings">设置</button>
   </nav>
-  <div style="margin-left:auto; font-size:12px; color:#86909c;" id="health-info"></div>
+  <div id="health-info"></div>
 </header>
 
 <main>
-  <!-- 仪表盘 -->
   <section id="sec-dashboard" class="section active">
     <div class="stat-grid" id="stat-grid"></div>
     <div class="card">
-      <h3 style="margin-top:0;">最近执行</h3>
+      <div class="card-title">最近执行</div>
       <div id="recent-runs"></div>
     </div>
   </section>
 
-  <!-- 任务列表 -->
   <section id="sec-jobs" class="section">
     <div class="toolbar">
       <div class="left">
@@ -182,23 +179,22 @@
       <table>
         <thead>
           <tr>
-            <th style="width:60px">ID</th>
+            <th class="hide-mobile" style="width:40px">ID</th>
             <th>名称</th>
-            <th>cron 表达式</th>
-            <th>命令</th>
-            <th>用户</th>
+            <th class="hide-xs">cron</th>
+            <th class="hide-tablet">命令</th>
+            <th class="hide-tablet">用户</th>
             <th>状态</th>
-            <th>下次执行</th>
-            <th style="width:280px" class="text-right">操作</th>
+            <th class="hide-mobile">下次执行</th>
+            <th style="width:140px" class="text-right">操作</th>
           </tr>
         </thead>
         <tbody id="jobs-tbody"></tbody>
       </table>
-      <div id="jobs-empty" class="empty" style="display:none">暂无任务，点击右上角"新建任务"开始</div>
+      <div id="jobs-empty" class="empty" style="display:none">暂无任务，点击"新建任务"开始</div>
     </div>
   </section>
 
-  <!-- 执行历史 -->
   <section id="sec-runs" class="section">
     <div class="toolbar">
       <div class="left filter-bar">
@@ -224,14 +220,14 @@
       <table>
         <thead>
           <tr>
-            <th style="width:60px">ID</th>
+            <th class="hide-mobile" style="width:40px">ID</th>
             <th>任务</th>
-            <th>触发方式</th>
-            <th>开始时间</th>
-            <th>耗时</th>
+            <th class="hide-xs">触发</th>
+            <th class="hide-mobile">开始时间</th>
+            <th class="hide-tablet">耗时</th>
             <th>状态</th>
-            <th>退出码</th>
-            <th class="text-right" style="width:120px">操作</th>
+            <th class="hide-tablet">退出码</th>
+            <th style="width:80px" class="text-right">日志</th>
           </tr>
         </thead>
         <tbody id="runs-tbody"></tbody>
@@ -240,7 +236,6 @@
     </div>
   </section>
 
-  <!-- 设置 -->
   <section id="sec-settings" class="section">
     <div class="settings-cols">
       <div>
@@ -269,9 +264,9 @@
         <div class="card">
           <div class="set-group">
             <h4>维护</h4>
-            <div class="form-row" style="display:flex; gap:8px; align-items:center">
+            <div class="form-row" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
               <label style="margin:0">保留执行历史</label>
-              <input type="number" id="cleanup-days" min="1" value="30" style="width:80px">
+              <input type="number" id="cleanup-days" min="1" value="30" style="width:70px">
               <span class="muted">天</span>
               <button class="btn secondary" onclick="cleanupRuns()">清理历史</button>
             </div>
@@ -283,17 +278,16 @@
         <div class="set-group">
           <h4>服务端日志</h4>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
-            <span class="muted" style="font-size:12px">最近 200 行</span>
+            <span class="muted" style="font-size:11px">最近 200 行</span>
             <button class="btn small secondary" onclick="loadServerLog()">刷新</button>
           </div>
-          <pre class="log-box" id="server-log" style="max-height:400px">加载中...</pre>
+          <pre class="log-box" id="server-log">加载中...</pre>
         </div>
       </div>
     </div>
   </section>
 </main>
 
-<!-- 任务编辑 Modal -->
 <div class="modal-backdrop" id="job-modal" style="display:none">
   <div class="modal">
     <div class="modal-header">
@@ -309,15 +303,11 @@
       <div class="form-row">
         <label>调度表达式 *</label>
         <input type="text" id="job-spec" placeholder="0 2 * * * 或 @hourly 或 @every 30s">
-        <div class="cron-hint">
-          5 段标准 cron：分 时 日 月 周<br>
-          描述符：@yearly @monthly @weekly @daily @hourly @every 10m<br>
-          示例：<code>0 2 * * *</code>（每天凌晨2点） / <code>*/5 * * * *</code>（每5分钟）
-        </div>
+        <div class="cron-hint">5 段标准 cron：分 时 日 月 周<br>描述符：@yearly @monthly @weekly @daily @hourly @every 10m</div>
       </div>
       <div class="form-row">
         <label>命令 *</label>
-        <textarea id="job-cmd" placeholder="/usr/bin/sh /path/to/script.sh" style="min-height:100px"></textarea>
+        <textarea id="job-cmd" placeholder="/usr/bin/sh /path/to/script.sh" style="min-height:80px"></textarea>
         <div class="cron-hint">通过 /bin/sh -c 执行，支持任意 shell 语法</div>
       </div>
       <div class="form-grid">
@@ -332,8 +322,8 @@
       </div>
       <div class="form-row">
         <label>运行用户</label>
-        <input type="text" id="job-username" placeholder="留空使用当前 fnOS 登录用户">
-        <div class="cron-hint">系统用户（须存在于 /etc/passwd）。留空 = 启动 scheduler 时打开 app 的 fnOS 登录用户；任务会以该用户身份 setuid 执行（HOME 切到该用户的 home，权限收窄）。</div>
+        <input type="text" id="job-username" placeholder="留空=启动时打开 app 的用户">
+        <div class="cron-hint">系统用户（须存在于 /etc/passwd）。留空使用当前 fnOS 登录用户</div>
       </div>
       <div class="form-grid">
         <div class="form-row">
@@ -364,7 +354,6 @@
   </div>
 </div>
 
-<!-- 日志 Modal -->
 <div class="modal-backdrop" id="log-modal" style="display:none">
   <div class="modal" style="max-width:900px">
     <div class="modal-header">
@@ -372,11 +361,11 @@
       <button class="close" onclick="closeLogModal()">×</button>
     </div>
     <div class="modal-body">
-      <div id="log-meta" style="margin-bottom:12px; font-size:13px; color:#4e5969;"></div>
+      <div id="log-meta" style="margin-bottom:10px; font-size:12px; color:#8b949e;"></div>
       <div class="log-box" id="log-content"></div>
     </div>
     <div class="modal-footer">
-      <span class="muted" id="log-status"></span>
+      <span class="muted" id="log-status" style="font-size:12px"></span>
       <button class="btn secondary" onclick="closeLogModal()">关闭</button>
     </div>
   </div>
@@ -412,9 +401,7 @@ function startRefresh() {
   }, 5000);
 }
 
-function stopRefresh() {
-  if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
-}
+function stopRefresh() { if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; } }
 
 function switchTab(tab) {
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
@@ -423,12 +410,6 @@ function switchTab(tab) {
   else if (tab === 'jobs') loadJobs();
   else if (tab === 'runs') loadRuns();
   else if (tab === 'settings') { loadSettings(); loadServerLog(); }
-}
-
-function refreshActive() {
-  const active = document.querySelector('nav button.active').dataset.tab;
-  if (active === 'dashboard') loadStats();
-  else if (active === 'runs') loadRuns();
 }
 
 function toast(msg, type) {
@@ -452,15 +433,9 @@ function apiURL(path, opts) {
 async function api(path, opts) {
   try {
     const r = await fetch(apiURL(path, opts), opts);
-    if (!r.ok) {
-      const e = await r.json().catch(() => ({ error: r.statusText }));
-      throw new Error(e.error || r.statusText);
-    }
+    if (!r.ok) { const e = await r.json().catch(() => ({ error: r.statusText })); throw new Error(e.error || r.statusText); }
     return await r.json();
-  } catch (e) {
-    toast('请求失败: ' + e.message, 'error');
-    throw e;
-  }
+  } catch (e) { toast('请求失败: ' + e.message, 'error'); throw e; }
 }
 
 async function loadStats() {
@@ -469,7 +444,7 @@ async function loadStats() {
     document.getElementById('health-info').textContent = '🟢 运行中 · ' + new Date().toLocaleTimeString();
     document.getElementById('stat-grid').innerHTML = `
       <div class="stat"><div class="stat-icon">📋</div><div class="label">总任务数</div><div class="value-lg">${s.total_jobs}</div></div>
-      <div class="stat"><div class="stat-icon">✅</div><div class="label">启用中</div><div class="value-lg" style="color:${s.enabled_jobs>0?'#58a6ff':'#8b949e'}">${s.enabled_jobs}</div></div>
+      <div class="stat"><div class="stat-icon">✅</div><div class="label">启用中</div><div class="value-lg blue">${s.enabled_jobs}</div></div>
       <div class="stat success"><div class="stat-icon">✔</div><div class="label">成功执行</div><div class="value-lg">${s.success_runs}</div></div>
       <div class="stat failed"><div class="stat-icon">✖</div><div class="label">失败执行</div><div class="value-lg">${s.failed_runs}</div></div>
     `;
@@ -477,20 +452,20 @@ async function loadStats() {
     if (list.length === 0) {
       document.getElementById('recent-runs').innerHTML = '<div class="empty">暂无执行记录</div>';
     } else {
-      let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>任务</th><th>开始时间</th><th>耗时</th><th>状态</th></tr></thead><tbody>';
+      let html = '<table><thead><tr><th class="hide-mobile" style="width:40px">ID</th><th>任务</th><th class="hide-xs">开始时间</th><th class="hide-mobile">耗时</th><th>状态</th></tr></thead><tbody>';
       list.forEach(r => {
         html += `<tr class="clickable" onclick="viewRunLog(${r.id})">
-          <td><span class="muted">#${r.id}</span></td>
+          <td class="hide-mobile"><span class="muted">#${r.id}</span></td>
           <td><strong>${escapeHtml(r.job_name || '#' + r.job_id)}</strong></td>
-          <td class="nowrap">${r.started_at}</td>
-          <td>${r.status === 'running' ? '<span class="status-dot running"></span>运行中' : formatDuration(r.duration_ms)}</td>
+          <td class="nowrap hide-xs">${r.started_at}</td>
+          <td class="hide-mobile">${r.status === 'running' ? '<span class="status-dot running"></span>运行中' : formatDuration(r.duration_ms)}</td>
           <td>${statusBadge(r.status)}</td>
         </tr>`;
       });
-      html += '</tbody></table></div>';
+      html += '</tbody></table>';
       document.getElementById('recent-runs').innerHTML = html;
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {}
 }
 
 async function loadJobs() {
@@ -511,22 +486,22 @@ function renderJobs() {
   document.getElementById('jobs-empty').style.display = list.length === 0 ? 'block' : 'none';
   tbody.innerHTML = list.map(j => `
     <tr>
-      <td><span class="muted">#${j.id}</span></td>
+      <td class="hide-mobile"><span class="muted">#${j.id}</span></td>
       <td>
-        <div><strong>${escapeHtml(j.name)}</strong> ${!j.enabled ? '<span class="badge disabled">已禁用</span>' : '<span class="badge enabled">已启用</span>'}</div>
-        <div class="muted" style="font-size:12px">${escapeHtml(j.description||'')}</div>
+        <div><strong>${escapeHtml(j.name)}</strong> ${!j.enabled ? '<span class="badge disabled">禁用</span>' : '<span class="badge enabled">启用</span>'}</div>
+        <div class="muted" style="font-size:11px">${escapeHtml(j.description||'')}</div>
       </td>
-      <td><code>${escapeHtml(j.spec)}</code></td>
-      <td><code style="font-size:12px">${escapeHtml(truncate(j.command, 60))}</code></td>
-      <td class="nowrap">${j.username ? `<code style="font-size:12px">${escapeHtml(j.username)}</code>` : '<span class="muted" title="默认使用当前 fnOS 登录用户">—</span>'}</td>
+      <td class="hide-xs"><code>${escapeHtml(j.spec)}</code></td>
+      <td class="hide-tablet"><code style="font-size:11px">${escapeHtml(truncate(j.command, 40))}</code></td>
+      <td class="hide-tablet nowrap">${j.username ? `<code style="font-size:11px">${escapeHtml(j.username)}</code>` : '<span class="muted">—</span>'}</td>
       <td class="nowrap">${j.last_status ? statusBadge(j.last_status) : '<span class="muted">—</span>'}</td>
-      <td class="nowrap">${j.next_run || '<span class="muted">—</span>'}</td>
+      <td class="hide-mobile nowrap">${j.next_run || '<span class="muted">—</span>'}</td>
       <td class="text-right">
         <div class="actions-group" style="justify-content:flex-end">
-          <button class="btn small secondary" onclick="runJobNow(${j.id})" ${!j.enabled?'disabled':''}>运行</button>
-          <button class="btn small secondary" onclick="toggleJob(${j.id})">${j.enabled?'禁用':'启用'}</button>
-          <button class="btn small secondary" onclick="openJobModal(${j.id})">编辑</button>
-          <button class="btn small danger" onclick="deleteJob(${j.id})">删除</button>
+          <button class="btn small secondary" onclick="runJobNow(${j.id})" ${!j.enabled?'disabled':''} title="运行"><span class="btn-text">运行</span><span class="hide-mobile">▶</span></button>
+          <button class="btn small secondary" onclick="toggleJob(${j.id})" title="${j.enabled?'禁用':'启用'}"><span class="btn-text">${j.enabled?'禁用':'启用'}</span><span class="hide-mobile">${j.enabled?'⏸':'▶'}</span></button>
+          <button class="btn small secondary" onclick="openJobModal(${j.id})" title="编辑"><span class="btn-text">编辑</span><span class="hide-mobile">✎</span></button>
+          <button class="btn small danger" onclick="deleteJob(${j.id})" title="删除"><span class="btn-text">删除</span><span class="hide-mobile">✕</span></button>
         </div>
       </td>
     </tr>
@@ -545,14 +520,14 @@ async function loadRuns() {
     document.getElementById('runs-empty').style.display = runsCache.length === 0 ? 'block' : 'none';
     tbody.innerHTML = runsCache.map(r => `
       <tr class="clickable" onclick="viewRunLog(${r.id})">
-        <td><span class="muted">#${r.id}</span></td>
+        <td class="hide-mobile"><span class="muted">#${r.id}</span></td>
         <td><strong>${escapeHtml(r.job_name || '#' + r.job_id)}</strong></td>
-        <td>${r.trigger === 'manual' ? '<span class="badge enabled">手动</span>' : '<span class="badge info">定时</span>'}</td>
-        <td class="nowrap">${r.started_at}</td>
-        <td>${r.status === 'running' ? '<span class="status-dot running"></span>运行中' : formatDuration(r.duration_ms)}</td>
+        <td class="hide-xs">${r.trigger === 'manual' ? '<span class="badge enabled">手动</span>' : '<span class="badge info">定时</span>'}</td>
+        <td class="hide-mobile nowrap">${r.started_at}</td>
+        <td class="hide-tablet">${r.status === 'running' ? '<span class="status-dot running"></span>' : ''}${r.status === 'running' ? '运行中' : formatDuration(r.duration_ms)}</td>
         <td>${statusBadge(r.status)}</td>
-        <td>${r.status === 'running' || r.status === 'interrupted' || r.exit_code == null ? '<span class="muted">—</span>' : r.exit_code}</td>
-        <td class="text-right"><button class="btn small" onclick="event.stopPropagation();viewRunLog(${r.id})">📋 日志</button></td>
+        <td class="hide-tablet">${r.status === 'running' || r.status === 'interrupted' || r.exit_code == null ? '<span class="muted">—</span>' : r.exit_code}</td>
+        <td class="text-right"><button class="btn small" onclick="event.stopPropagation();viewRunLog(${r.id})" title="查看日志">📋</button></td>
       </tr>
     `).join('');
   } catch (e) { runsCache = []; }
@@ -605,43 +580,23 @@ async function saveJob() {
   };
   if (!data.name || !data.spec || !data.command) { toast('请填写必填项', 'error'); return; }
   try {
-    if (id) {
-      await api('jobs/' + id, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-      toast('已更新', 'success');
-    } else {
-      await api('jobs', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-      toast('已创建', 'success');
-    }
-    closeJobModal();
-    loadJobs();
-    loadStats();
+    if (id) { await api('jobs/' + id, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); toast('已更新', 'success'); }
+    else { await api('jobs', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); toast('已创建', 'success'); }
+    closeJobModal(); loadJobs(); loadStats();
   } catch (e) {}
 }
 
 async function deleteJob(id) {
-  if (!confirm('确认删除该任务？执行历史也会一并删除。')) return;
-  try {
-    await api('jobs/' + id, { method: 'DELETE' });
-    toast('已删除', 'success');
-    loadJobs();
-    loadStats();
-  } catch (e) {}
+  if (!confirm('确认删除该任务？')) return;
+  try { await api('jobs/' + id, { method: 'DELETE' }); toast('已删除', 'success'); loadJobs(); loadStats(); } catch (e) {}
 }
 
 async function toggleJob(id) {
-  try {
-    const r = await api('jobs/' + id + '/toggle', { method: 'POST' });
-    toast(r.enabled ? '已启用' : '已禁用', 'success');
-    loadJobs();
-  } catch (e) {}
+  try { const r = await api('jobs/' + id + '/toggle', { method: 'POST' }); toast(r.enabled ? '已启用' : '已禁用', 'success'); loadJobs(); } catch (e) {}
 }
 
 async function runJobNow(id) {
-  try {
-    const r = await api('jobs/' + id + '/run', { method: 'POST' });
-    toast(r.message || '已加入队列', 'success');
-    setTimeout(loadRuns, 500);
-  } catch (e) {}
+  try { const r = await api('jobs/' + id + '/run', { method: 'POST' }); toast(r.message || '已加入队列', 'success'); setTimeout(loadRuns, 500); } catch (e) {}
 }
 
 function viewRunLog(id) {
@@ -656,19 +611,9 @@ function viewRunLog(id) {
   content.textContent = '';
   logEventSource.addEventListener('stdout', e => { appendLog(content, e.data, 'log-stdout'); });
   logEventSource.addEventListener('stderr', e => { appendLog(content, e.data, 'log-stderr'); });
-  logEventSource.addEventListener('done', e => {
-    document.getElementById('log-status').textContent = '已结束: ' + e.data;
-    logEventSource.close(); logEventSource = null;
-  });
-  logEventSource.onerror = () => {
-    document.getElementById('log-status').textContent = '连接已断开';
-    if (logEventSource) { logEventSource.close(); logEventSource = null; }
-  };
-  api('runs/' + id).then(r => {
-    if (r) {
-      document.getElementById('log-meta').innerHTML = `任务: <strong>${escapeHtml(r.job_name||'#'+r.job_id)}</strong> · 触发: ${r.trigger} · 开始: ${r.started_at} · 退出: ${r.exit_code}`;
-    }
-  });
+  logEventSource.addEventListener('done', e => { document.getElementById('log-status').textContent = '已结束: ' + e.data; logEventSource.close(); logEventSource = null; });
+  logEventSource.onerror = () => { document.getElementById('log-status').textContent = '连接已断开'; if (logEventSource) { logEventSource.close(); logEventSource = null; } };
+  api('runs/' + id).then(r => { if (r) { document.getElementById('log-meta').innerHTML = `任务: <strong>${escapeHtml(r.job_name||'#'+r.job_id)}</strong> · 触发: ${r.trigger} · 开始: ${r.started_at} · 退出: ${r.exit_code}`; } });
 }
 
 function appendLog(el, line, cls) {
@@ -679,62 +624,32 @@ function appendLog(el, line, cls) {
   el.scrollTop = el.scrollHeight;
 }
 
-function closeLogModal() {
-  if (logEventSource) { logEventSource.close(); logEventSource = null; }
-  document.getElementById('log-modal').style.display = 'none';
-}
+function closeLogModal() { if (logEventSource) { logEventSource.close(); logEventSource = null; } document.getElementById('log-modal').style.display = 'none'; }
 
 async function loadSettings() {
   const sel = document.getElementById('set-tz');
   sel.innerHTML = TIMEZONES.map(t => `<option value="${t}">${t}</option>`).join('');
-  try {
-    const s = await api('settings');
-    sel.value = s.timezone || 'Asia/Shanghai';
-    document.getElementById('set-timeout').value = s.default_timeout_sec || 3600;
-    document.getElementById('set-maxlog').value = s.max_log_bytes || 2097152;
-  } catch (e) {}
+  try { const s = await api('settings'); sel.value = s.timezone || 'Asia/Shanghai'; document.getElementById('set-timeout').value = s.default_timeout_sec || 3600; document.getElementById('set-maxlog').value = s.max_log_bytes || 2097152; } catch (e) {}
 }
 
 async function saveSettings() {
-  const data = {
-    timezone: document.getElementById('set-tz').value,
-    default_timeout_sec: parseInt(document.getElementById('set-timeout').value) || 3600,
-    max_log_bytes: parseInt(document.getElementById('set-maxlog').value) || 2097152,
-  };
-  try {
-    await api('settings', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-    toast('设置已保存，时区变更已即时生效', 'success');
-  } catch (e) {}
+  const data = { timezone: document.getElementById('set-tz').value, default_timeout_sec: parseInt(document.getElementById('set-timeout').value) || 3600, max_log_bytes: parseInt(document.getElementById('set-maxlog').value) || 2097152 };
+  try { await api('settings', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); toast('设置已保存', 'success'); } catch (e) {}
 }
 
 async function cleanupRuns() {
   const days = parseInt(document.getElementById('cleanup-days').value) || 30;
-  if (!confirm(`确认删除早于 ${days} 天的执行历史？此操作不可恢复。`)) return;
-  try {
-    const r = await api('cleanup?days=' + days, { method: 'POST' });
-    toast(`已清理 ${r.deleted} 条历史记录`, 'success');
-  } catch (e) {}
+  if (!confirm(`确认删除早于 ${days} 天的执行历史？`)) return;
+  try { const r = await api('cleanup?days=' + days, { method: 'POST' }); toast(`已清理 ${r.deleted} 条历史记录`, 'success'); } catch (e) {}
 }
 
 async function loadServerLog() {
-  try {
-    const r = await fetch(isCGI ? 'api.cgi?path=/api/log&lines=200' : '/api/log?lines=200');
-    const text = await r.text();
-    document.getElementById('server-log').textContent = text || '（无日志）';
-  } catch (e) {
-    document.getElementById('server-log').textContent = '加载失败: ' + e.message;
-  }
+  try { const r = await fetch(isCGI ? 'api.cgi?path=/api/log&lines=200' : '/api/log?lines=200'); const text = await r.text(); document.getElementById('server-log').textContent = text || '（无日志）'; } catch (e) { document.getElementById('server-log').textContent = '加载失败: ' + e.message; }
 }
 
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-function truncate(s, n) {
-  s = String(s||'');
-  return s.length > n ? s.slice(0, n) + '…' : s;
-}
+function truncate(s, n) { s = String(s||''); return s.length > n ? s.slice(0, n) + '…' : s; }
 
 function formatDuration(ms) {
   if (!ms) return '—';
