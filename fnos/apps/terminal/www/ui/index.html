@@ -8,7 +8,7 @@
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: #1a1a1a; color: #e0e0e0; }
-  .layout { display: flex; flex-direction: column; height: 100vh; }
+  .layout { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
   .toolbar { background: #2a2a2a; padding: 8px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #3a3a3a; }
   .toolbar h1 { font-size: 14px; margin: 0; font-weight: 500; color: #fff; }
   .toolbar .spacer { flex: 1; }
@@ -71,6 +71,13 @@
   .statusbar { background: #2a2a2a; padding: 4px 14px; font-size: 11px; color: #86909c; border-top: 1px solid #3a3a3a; display: flex; gap: 16px; }
   .statusbar .item { display: flex; gap: 4px; align-items: center; }
   .statusbar .item .v { color: #e0e0e0; }
+  .kb-toolbar { display: none; background: #222; border-top: 1px solid #3a3a3a; padding: 4px 6px; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .kb-toolbar .key { background: #333; border: 1px solid #4a4a4a; color: #e0e0e0; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 6px 12px; min-width: 36px; text-align: center; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .kb-toolbar .key:active { background: #165dff; border-color: #165dff; }
+  .kb-toolbar .key-sep { width: 1px; height: 24px; background: #3a3a3a; margin: 0 2px; flex: 0 0 auto; }
+  @media (hover: none) and (pointer: coarse) {
+    .kb-toolbar { display: flex; }
+  }
   .toast { position: fixed; top: 60px; right: 20px; background: #1f2329; color: #fff; padding: 8px 16px; border-radius: 4px; z-index: 1000; font-size: 13px; }
   .toast.error { background: #f53f3f; }
   /* 脚本 sidebar 内容 (复用 .sidebar/.sidebar-item) */
@@ -114,6 +121,8 @@
     .statusbar .item { font-size: 10px; }
     .ctx-menu { min-width: 120px; }
     .ctx-submenu > .submenu { left: 0; top: 100%; min-width: 160px; }
+    .kb-toolbar { display: flex; }
+    .kb-toolbar .key { padding: 6px 10px; font-size: 13px; }
     .modal { width: 95vw; }
     .sidebar-item { padding: 10px 12px; font-size: 13px; }
     .sidebar-item .kill, .sidebar-item .run { opacity: 1; padding: 4px 8px; }
@@ -154,6 +163,18 @@
     <div class="item">大小: <span class="v" id="status-size">—</span></div>
     <div class="item">Shell: <span class="v" id="status-shell">—</span></div>
     <div class="item">用户: <span class="v" id="status-user">—</span></div>
+  </div>
+  <div class="kb-toolbar" id="kb-toolbar">
+    <button class="key" data-key="tab" title="Tab">⇥</button>
+    <button class="key" data-key="ctrl-c" title="Ctrl+C">^C</button>
+    <button class="key" data-key="ctrl-d" title="Ctrl+D (exit)">^D</button>
+    <button class="key" data-key="esc" title="Escape">Esc</button>
+    <span class="key-sep"></span>
+    <button class="key" data-key="arrow-up" title="↑">↑</button>
+    <button class="key" data-key="arrow-down" title="↓">↓</button>
+    <span class="key-sep"></span>
+    <button class="key" data-key="arrow-left" title="←">←</button>
+    <button class="key" data-key="arrow-right" title="→">→</button>
   </div>
 </div>
 
@@ -1111,6 +1132,41 @@ document.addEventListener('DOMContentLoaded', () => {
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const KEY_MAP = {
+  'tab': '\t',
+  'ctrl-c': '\x03',
+  'ctrl-d': '\x04',
+  'esc': '\x1b',
+  'arrow-up': '\x1b[A',
+  'arrow-down': '\x1b[B',
+  'arrow-left': '\x1b[D',
+  'arrow-right': '\x1b[C',
+};
+
+document.getElementById('kb-toolbar').addEventListener('click', (e) => {
+  const btn = e.target.closest('.key');
+  if (!btn) return;
+  e.preventDefault();
+  const data = KEY_MAP[btn.dataset.key];
+  if (!data) return;
+  const tab = activeTab();
+  if (!tab) return;
+  if (tab.ws && tab.ws.readyState === WebSocket.OPEN) {
+    tab.ws.send(new TextEncoder().encode(data).buffer);
+  }
+  if (tab.term) tab.term.focus();
+});
+
+// iOS 键盘弹出时调整 layout 高度，确保 toolbar 不被遮住
+if (window.visualViewport) {
+  const layoutEl = document.querySelector('.layout');
+  const onViewportChange = () => {
+    layoutEl.style.height = window.visualViewport.height + 'px';
+  };
+  window.visualViewport.addEventListener('resize', onViewportChange);
+  window.visualViewport.addEventListener('scroll', onViewportChange);
 }
 
 function toast(msg, type) {
