@@ -1,0 +1,38 @@
+Menu="NetworkServices"
+Icon="easytier.png"
+Title="EasyTier"
+Type="xmenu"
+Tabs="true"
+Markdown="false"
+---
+<?php
+$plugin = 'easytier';
+$pluginPath = '/plugins/' . $plugin;
+?>
+<link type="text/css" rel="stylesheet" href="<?= "{$pluginPath}/style.css"; ?>">
+<script src="/webGui/javascript/jquery.tablesorter.widgets.js"></script>
+
+<table class="unraid statusTable">
+<thead><tr><th>Property</th><th>Value</th></tr></thead>
+<tbody id="et-node-info"><tr><td colspan="2"><div class="spinner">Loading...</div></td></tr></tbody>
+</table>
+
+<table class="unraid statusTable">
+<thead><tr><th>Node</th><th>Connection</th><th>Latency</th><th>Loss</th></tr></thead>
+<tbody id="et-peers-content"><tr><td colspan="4"><div class="spinner">Loading...</div></td></tr></tbody>
+</table>
+
+<table class="unraid statusTable">
+<thead><tr><th>Node</th><th>Proxy CIDRs</th><th>Next Hop</th><th>Latency</th></tr></thead>
+<tbody id="et-routes-content"><tr><td colspan="4"><div class="spinner">Loading...</div></td></tr></tbody>
+</table>
+
+<table><tr><td style="padding:4px 0">
+  <input type="button" value="Start" onclick="doAction('start')">
+  <input type="button" value="Stop" onclick="doAction('stop')">
+  <input type="button" value="Restart" onclick="doAction('restart')">
+  <input type="button" value="Refresh" onclick="refresh()">
+  <span id="et-status" style="margin-left:8px;font-size:12px;color:#888;"></span>
+</td></tr></table>
+
+<script src="<?= $pluginPath; ?>/easytier.js"></script>

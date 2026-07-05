@@ -1,0 +1,65 @@
+Menu="Homebrew"
+Icon="homebrew.png"
+Title="Settings"
+Type="xmenu"
+Tag="gears"
+Markdown="false"
+---
+<?php
+$plugin = 'homebrew';
+$pluginPath = '/plugins/' . $plugin;
+?>
+<link type="text/css" rel="stylesheet" href="<?= "{$pluginPath}/style.css"; ?>">
+
+<form method="POST" action="/update.php" target="progressFrame">
+<table class="unraid tablesorter"><thead><tr><td>Homebrew Configuration</td></tr></thead></table>
+
+<dl>
+  <dt>Brew Storage Path</dt>
+  <dd><input type="text" id="hb-storage" style="width:400px" value="/boot/config/plugins/homebrew/linuxbrew"></dd>
+</dl>
+<blockquote class="inline_help">Persistent storage for Homebrew installation. <strong>Warning:</strong> Changing this will require re-installing Homebrew.</blockquote>
+
+<dl>
+  <dt>Auto Setup on Array Start</dt>
+  <dd>
+    <select id="hb-autostart">
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  </dd>
+</dl>
+<blockquote class="inline_help">Automatically run setup (bind mount, shell config) when the array starts.</blockquote>
+
+<dl>
+  <dt>Shell Integration</dt>
+  <dd>
+    <select id="hb-shell">
+      <option value="bash">.bashrc</option>
+      <option value="zsh">.zshrc</option>
+      <option value="">None</option>
+    </select>
+  </dd>
+</dl>
+<blockquote class="inline_help">Add brew wrapper function to shell config for root user.</blockquote>
+
+<dl>
+  <dt>Auto Install GCC</dt>
+  <dd>
+    <select id="hb-gcc">
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  </dd>
+</dl>
+<blockquote class="inline_help">Automatically download and install gcc from Slackware if missing.</blockquote>
+
+<table class="unraid tablesorter"><thead><tr><td>Save</td></tr></thead></table>
+<dl>
+  <dt><strong>Apply configuration changes.</strong></dt>
+  <dd><span><input type="button" id="hb-save" value="Apply"></span></dd>
+</dl>
+<div id="hb-cfg-msg" style="margin-top:4px;font-size:12px;color:#888;"></div>
+</form>
+
+<script src="<?= $pluginPath; ?>/homebrew.js"></script>

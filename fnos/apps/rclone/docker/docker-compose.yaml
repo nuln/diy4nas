@@ -1,0 +1,10 @@
+services:
+  rclone:
+    image: ${DOCKER_MIRROR}docker.io/rclone/rclone:${VERSION}
+    container_name: rclone
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/data
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

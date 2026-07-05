@@ -1,0 +1,18 @@
+#!/bin/sh
+# post-install: create directories and set capabilities
+APP_DEST=${TRIM_APPDEST:-/var/apps/easytier}
+APP_VAR=${TRIM_PKGVAR:-/var/apps/easytier/data}
+
+mkdir -p "$APP_VAR/config" 2>/dev/null || true
+mkdir -p "$APP_VAR/logs" 2>/dev/null || true
+
+# Set network capabilities for easytier-core
+for bin in easytier-core easytier-cli; do
+    for dir in "$APP_DEST/app" "$APP_DEST"; do
+        if [ -x "$dir/$bin" ]; then
+            setcap cap_net_admin,cap_net_raw+eip "$dir/$bin" 2>/dev/null || true
+        fi
+    done
+done
+
+exit 0

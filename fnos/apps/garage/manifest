@@ -1,0 +1,14 @@
+appname         = garage
+version         = 0.0.0
+display_name    = Garage
+platform            = all
+maintainer         = Deuxfleurs
+maintainer_url      = https://garagehq.deuxfleurs.fr
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = garage.Application
+service_port    = 3900
+checkport           = false
+desc            = 分布式 S3 兼容对象存储
+source          = thirdparty
+checksum        = 

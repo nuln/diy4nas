@@ -1,0 +1,1 @@
+[{"stepTitle":"Syncthing 安装说明","items":[{"type":"tips","helpText":"Syncthing 安装完成后，访问 http://<NAS-IP>:8384 打开管理界面。首次启动需要拉取 Docker 镜像，请确保网络通畅。"}]}]

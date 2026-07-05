@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "postgres.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "PostgreSQL",
+        "permission": {
+          "rw": [
+            "postgres"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "postgres",
+        "path": "docker"
+      }
+    ]
+  }
+}

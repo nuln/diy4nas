@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -408,18 +409,64 @@ func (w *Watcher) processEvent(id int64, etype, detail, ts string) {
 		return
 	}
 
+	// Extract additional identifiers from detail JSON (eventId/template)
+	var altNames []string
+	var rawMap map[string]any
+	if json.Unmarshal([]byte(detail), &rawMap) == nil {
+		if v, _ := rawMap["eventId"].(string); v != "" {
+			altNames = append(altNames, strings.ToUpper(v))
+		}
+		if v, _ := rawMap["template"].(string); v != "" {
+			altNames = append(altNames, strings.ToUpper(v))
+		}
+	}
+	allNames := append([]string{strings.ToUpper(etype)}, altNames...)
+
+	// Determine event category (via eventMetaMap or name pattern fallback)
+	eventCat := ""
+	for _, name := range allNames {
+		if cat := getCategory(name); cat != "" {
+			eventCat = cat
+			break
+		}
+	}
+
 	hooksMu.RLock()
+	matchedIDs := make(map[int64]bool)
 	var matchedHooks []Hook
 	for _, h := range hooks {
-		if !h.Enabled {
+		if !h.Enabled || matchedIDs[h.ID] {
 			continue
 		}
-		etypeUpper := strings.ToUpper(etype)
+		// 1) Exact match (by etype or eventId/template)
 		for _, et := range h.EventTypes {
-			if et == "*" || strings.ToUpper(et) == etypeUpper {
-				matchedHooks = append(matchedHooks, h)
+			if et == "*" {
+				matchedIDs[h.ID] = true
 				break
 			}
+			etUpper := strings.ToUpper(et)
+			for _, candidate := range allNames {
+				if etUpper == candidate {
+					matchedIDs[h.ID] = true
+					break
+				}
+			}
+			if matchedIDs[h.ID] {
+				break
+			}
+		}
+		// 2) Category fallback: if we know the event's category,
+		//    match any hook that monitors any event type from the same category
+		if !matchedIDs[h.ID] && eventCat != "" {
+			for _, et := range h.EventTypes {
+				if m, ok := eventMetaMap[et]; ok && m.category == eventCat {
+					matchedIDs[h.ID] = true
+					break
+				}
+			}
+		}
+		if matchedIDs[h.ID] {
+			matchedHooks = append(matchedHooks, h)
 		}
 	}
 	hooksMu.RUnlock()

@@ -1,0 +1,235 @@
+#!/bin/bash
+
+NAME="easytier"
+CONFIG_DIR="/boot/config/plugins/easytier"
+CONFIG_FILE="$CONFIG_DIR/easytier.conf"
+LOG_FILE="$CONFIG_DIR/easytier.log"
+PID_FILE="$CONFIG_DIR/easytier-core.pid"
+USERNAME="root"
+
+NETWORK_NAME="easytier"
+NETWORK_SECRET=""
+DHCP="yes"
+VIRTUAL_IPV4=""
+HOSTNAME=""
+PEER_URLS=""
+LISTENER_URLS="tcp://0.0.0.0:11010, udp://0.0.0.0:11010"
+PROXY_CIDRS=""
+AUTOSTART="yes"
+
+write_default_config() {
+    cat > "$CONFIG_FILE" << EOF
+# EasyTier plugin configuration
+NETWORK_NAME="easytier"
+NETWORK_SECRET=""
+DHCP="yes"
+VIRTUAL_IPV4=""
+HOSTNAME=""
+PEER_URLS=""
+LISTENER_URLS="tcp://0.0.0.0:11010, udp://0.0.0.0:11010"
+PROXY_CIDRS=""
+AUTOSTART="yes"
+EOF
+}
+
+load_config() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        write_default_config
+    fi
+    . "$CONFIG_FILE"
+}
+
+is_running() {
+    if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+        return 0
+    fi
+    pidof easytier-core >/dev/null 2>&1 && return 0
+    return 1
+}
+
+cleanup_pid() {
+    if [ -f "$PID_FILE" ] && ! kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+        rm -f "$PID_FILE"
+    fi
+}
+
+check_binaries() {
+    if [ ! -x /usr/bin/easytier-core ] || [ ! -x /usr/bin/easytier-cli ]; then
+        echo "Missing EasyTier binaries in /usr/bin"
+        return 1
+    fi
+    return 0
+}
+
+core_args() {
+    _args=""
+
+    if [ -n "$NETWORK_NAME" ]; then
+        _args="$_args --network-name $(printf '%q' "$NETWORK_NAME")"
+    fi
+    if [ -n "$NETWORK_SECRET" ]; then
+        _args="$_args --network-secret $(printf '%q' "$NETWORK_SECRET")"
+    fi
+    if [ "$DHCP" = "yes" ]; then
+        _args="$_args --dhcp"
+    fi
+    if [ -n "$VIRTUAL_IPV4" ]; then
+        _args="$_args -i $(printf '%q' "$VIRTUAL_IPV4")"
+    fi
+    if [ -n "$HOSTNAME" ]; then
+        _args="$_args --hostname $(printf '%q' "$HOSTNAME")"
+    fi
+    if [ -n "$PEER_URLS" ]; then
+        IFS=','
+        set -f
+        for _peer in $PEER_URLS; do
+            _peer=$(echo "$_peer" | xargs)
+            [ -n "$_peer" ] && _args="$_args -p $(printf '%q' "$_peer")"
+        done
+        set +f
+        unset IFS
+    fi
+    if [ -n "$LISTENER_URLS" ]; then
+        IFS=','
+        set -f
+        for _listener in $LISTENER_URLS; do
+            _listener=$(echo "$_listener" | xargs)
+            [ -n "$_listener" ] && _args="$_args -l $(printf '%q' "$_listener")"
+        done
+        set +f
+        unset IFS
+    fi
+    if [ -n "$PROXY_CIDRS" ]; then
+        IFS=','
+        set -f
+        for _cidr in $PROXY_CIDRS; do
+            _cidr=$(echo "$_cidr" | xargs)
+            [ -n "$_cidr" ] && _args="$_args -n $(printf '%q' "$_cidr")"
+        done
+        set +f
+        unset IFS
+    fi
+
+    echo "$_args"
+}
+
+func_stop() {
+    cleanup_pid
+    if is_running; then
+        echo -n "Stopping $NAME ... "
+        local _pid
+        _pid=$(cat "$PID_FILE" 2>/dev/null)
+        [ -n "$_pid" ] && kill "$_pid" 2>/dev/null
+        sleep 1
+    fi
+    cleanup_pid
+    if ! is_running; then
+        rm -f "$PID_FILE"
+        echo "Done!"
+    else
+        echo "Error!"
+    fi
+}
+
+func_start() {
+    load_config
+    cleanup_pid
+
+    echo -n "Starting $NAME ... "
+
+    if is_running; then
+        echo "Already running"
+        return 0
+    fi
+
+    if ! check_binaries; then
+        echo "Error!"
+        return 1
+    fi
+
+    if [ ! -d "$CONFIG_DIR" ]; then
+        mkdir -p "$CONFIG_DIR"
+    fi
+
+    touch "$LOG_FILE"
+
+    local args
+    args=$(core_args)
+
+    su -p - "$USERNAME" -c "/usr/bin/easytier-core $args >> $LOG_FILE 2>&1 & echo \$! > $PID_FILE"
+
+    # Poll for up to 10 seconds
+    for _i in 1 2 3 4 5 6 7 8 9 10; do
+        sleep 1
+        if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+            echo "Started!"
+            return 0
+        fi
+    done
+
+    echo "Error!"
+    tail -5 "$LOG_FILE"
+    return 1
+}
+
+func_status() {
+    load_config
+    cleanup_pid
+
+    if is_running; then
+        echo "running=1"
+    else
+        echo "running=0"
+    fi
+
+    if is_running; then
+        local node_info
+        node_info=$(/usr/bin/easytier-cli node info -o json 2>/dev/null)
+        if [ -n "$node_info" ]; then
+            local ipv4
+            ipv4=$(echo "$node_info" | grep -o '"addr":"[0-9.]*"' | cut -d'"' -f4 2>/dev/null)
+            echo "virtual_ipv4_raw=$ipv4"
+            echo "hostname=$(echo "$node_info" | grep -o '"hostname":"[^"]*"' | cut -d'"' -f4 2>/dev/null)"
+            echo "peer_id=$(echo "$node_info" | grep -o '"peer_id":[0-9]*' | cut -d: -f2 2>/dev/null)"
+            echo "version=$(echo "$node_info" | grep -o '"version":"[^"]*"' | cut -d'"' -f4 2>/dev/null)"
+        fi
+
+        local peer_count
+        peer_count=$(/usr/bin/easytier-cli peer list -o json 2>/dev/null | grep -c '"peer_id"' 2>/dev/null)
+        [ -z "$peer_count" ] && peer_count=0
+        echo "peer_count=$peer_count"
+    fi
+
+    echo "log_file=$LOG_FILE"
+    echo "autostart=$AUTOSTART"
+    echo "network_name=$NETWORK_NAME"
+    echo "dhcp=$DHCP"
+    echo "virtual_ipv4=$VIRTUAL_IPV4"
+    echo "hostname=$HOSTNAME"
+    echo "peer_urls=$PEER_URLS"
+    echo "listener_urls=$LISTENER_URLS"
+    echo "proxy_cidrs=$PROXY_CIDRS"
+}
+
+case "${1:-}" in
+    "version")
+        echo "2026.06.07"
+        ;;
+    "start")
+        func_start
+        ;;
+    "stop")
+        func_stop
+        ;;
+    "restart")
+        func_stop
+        sleep 1
+        func_start
+        ;;
+    "status")
+        func_status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status|version}"
+        ;;
+esac

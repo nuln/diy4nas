@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "samba.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Samba",
+        "permission": {
+          "rw": [
+            "samba"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "samba",
+        "path": "docker"
+      }
+    ]
+  }
+}

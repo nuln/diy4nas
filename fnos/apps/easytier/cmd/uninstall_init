@@ -1,0 +1,15 @@
+#!/bin/sh
+# pre-uninstall: stop service and disconnect
+APP_DEST=${TRIM_APPDEST:-/var/apps/easytier}
+PORT="${TRIM_SERVICE_PORT:-11210}"
+[ -f /tmp/easytier-port ] && PORT=$(cat /tmp/easytier-port)
+
+# Disconnect from network
+/usr/bin/curl -sf -X POST "http://127.0.0.1:$PORT/api/service/stop" 2>/dev/null || true
+
+# Stop service manager
+if [ -f "$APP_DEST/cmd/main" ]; then
+    "$APP_DEST/cmd/main" stop 2>/dev/null || true
+fi
+
+exit 0

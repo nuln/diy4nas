@@ -1,0 +1,12 @@
+services:
+  wg-easy:
+    image: ${DOCKER_MIRROR}ghcr.io/wg-easy/wg-easy:${VERSION}
+    container_name: wg-easy
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/etc/wireguard
+    environment:
+      - WG_HOST=localhost
+      - PASSWORD=admin
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

@@ -1,0 +1,31 @@
+Menu="Homebrew"
+Icon="homebrew.png"
+Title="Packages"
+Type="xmenu"
+Tag="search"
+Markdown="false"
+---
+<?php
+$plugin = 'homebrew';
+$pluginPath = '/plugins/' . $plugin;
+?>
+<link type="text/css" rel="stylesheet" href="<?= "{$pluginPath}/style.css"; ?>">
+
+<h2 style="margin-bottom:8px;">Search & Install Packages</h2>
+
+<div style="padding:4px 8px;display:flex;gap:8px;align-items:center;">
+  <input type="text" id="hb-search-q" placeholder="Search formulae..." style="width:300px">
+  <input type="button" value="Search" onclick="searchPackages()">
+</div>
+
+<div id="hb-search-results" style="margin-top:8px;"></div>
+
+<h2 style="margin:16px 0 8px;">Installed Casks</h2>
+<table class="unraid statusTable">
+<thead><tr><th>Cask</th><th></th></tr></thead>
+<tbody id="hb-casks"><tr><td><div class="spinner">Loading...</div></td><td></td></tr></tbody>
+</table>
+
+<div id="hb-pkg-msg" style="margin-top:4px;font-size:12px;color:#888;"></div>
+
+<script src="<?= $pluginPath; ?>/homebrew.js"></script>

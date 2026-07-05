@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "rclone.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Rclone",
+        "permission": {
+          "rw": [
+            "rclone"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "rclone",
+        "path": "docker"
+      }
+    ]
+  }
+}

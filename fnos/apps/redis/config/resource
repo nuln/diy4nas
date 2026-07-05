@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "redis.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Redis",
+        "permission": {
+          "rw": [
+            "redis"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "redis",
+        "path": "docker"
+      }
+    ]
+  }
+}

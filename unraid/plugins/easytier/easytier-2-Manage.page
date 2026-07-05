@@ -1,0 +1,33 @@
+Menu="EasyTier"
+Icon="easytier.png"
+Title="Management"
+Type="xmenu"
+Tag="wrench"
+Markdown="false"
+---
+<?php
+$plugin = 'easytier';
+$pluginPath = '/plugins/' . $plugin;
+?>
+<link type="text/css" rel="stylesheet" href="<?= "{$pluginPath}/style.css"; ?>">
+
+<table class="unraid tablesorter"><thead><tr><td>Connectors (Dynamic Peers)</td></tr></thead></table>
+<div style="padding:4px 8px;">
+  <input type="text" id="et-conn-url" placeholder="tcp://host:11010" style="width:200px">
+  <input type="button" value="Add" onclick="addConnector()">
+</div>
+<table class="unraid statusTable"><tbody id="et-conn-list"><tr><td><div class="spinner">Loading...</div></td></tr></tbody></table>
+<div id="et-conn-msg" style="margin-top:4px;font-size:12px;color:#888;"></div>
+
+<table class="unraid tablesorter"><thead><tr><td>Log Level</td></tr></thead></table>
+<div style="padding:4px 8px;">
+  <select id="et-log-level">
+    <option value="disabled">disabled</option><option value="error">error</option>
+    <option value="warning">warning</option><option value="info" selected>info</option>
+    <option value="debug">debug</option><option value="trace">trace</option>
+  </select>
+  <input type="button" value="Set" onclick="setLogLevel()">
+</div>
+<div id="et-logger-msg" style="margin-top:4px;font-size:12px;color:#888;"></div>
+
+<script src="<?= $pluginPath; ?>/easytier.js"></script>

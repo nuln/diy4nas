@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "rsshub.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "RSSHub",
+        "permission": {
+          "rw": [
+            "rsshub"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "rsshub",
+        "path": "docker"
+      }
+    ]
+  }
+}

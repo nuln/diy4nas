@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "forgejo.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Forgejo",
+        "permission": {
+          "rw": [
+            "forgejo"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "forgejo",
+        "path": "docker"
+      }
+    ]
+  }
+}

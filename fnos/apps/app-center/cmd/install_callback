@@ -1,0 +1,4 @@
+#!/bin/sh
+# post-install: create data directory
+mkdir -p "${TRIM_PKGVAR}/data" 2>/dev/null || true
+exit 0

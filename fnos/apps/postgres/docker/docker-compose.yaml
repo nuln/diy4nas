@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: ${DOCKER_MIRROR}docker.io/postgres:16-bookworm
+    container_name: postgres
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

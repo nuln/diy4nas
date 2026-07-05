@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "syncthing.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Syncthing",
+        "permission": {
+          "rw": [
+            "syncthing"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "syncthing",
+        "path": "docker"
+      }
+    ]
+  }
+}

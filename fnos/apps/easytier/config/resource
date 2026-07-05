@@ -1,0 +1,18 @@
+{
+  "port-config": {
+    "protocol-file": "easytier.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "EasyTier",
+        "permission": {
+          "rw": [
+            "easytier"
+          ]
+        }
+      }
+    ]
+  },
+  "systemd-unit": {}
+}

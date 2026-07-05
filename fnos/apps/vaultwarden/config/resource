@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "vaultwarden.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Vaultwarden",
+        "permission": {
+          "rw": [
+            "vaultwarden"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "vaultwarden",
+        "path": "docker"
+      }
+    ]
+  }
+}

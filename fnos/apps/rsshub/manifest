@@ -1,0 +1,14 @@
+appname         = rsshub
+version         = 0.0.0
+display_name    = RSSHub
+platform            = all
+maintainer         = DIYgod
+maintainer_url      = https://rsshub.app
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = rsshub.Application
+service_port    = 1200
+checkport           = false
+desc            = 万物皆可 RSS
+source          = thirdparty
+checksum        = 

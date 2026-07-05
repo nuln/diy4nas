@@ -1,0 +1,240 @@
+#!/bin/sh
+
+NAME="ohmyzsh"
+CONFIG_DIR="/boot/config/plugins/ohmyzsh"
+CONFIG_FILE="$CONFIG_DIR/ohmyzsh.conf"
+ZSH_DIR="$CONFIG_DIR/oh-my-zsh"
+ZSHRC_FILE="$CONFIG_DIR/.zshrc"
+TARGET_ZSHRC="/root/.zshrc"
+
+write_default_config() {
+    cat > "$CONFIG_FILE" << 'CONF'
+# oh-my-zsh plugin configuration
+AUTOSTART="yes"
+ZSH_THEME="robbyrussell"
+ZSH_PLUGINS="git"
+CUSTOM_ALIASES=""
+CONF
+}
+
+load_config() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        write_default_config
+    fi
+    . "$CONFIG_FILE"
+}
+
+is_installed() {
+    [ -f "$ZSH_DIR/oh-my-zsh.sh" ]
+}
+
+func_install() {
+    echo "Installing oh-my-zsh..."
+
+    if ! command -v zsh >/dev/null 2>&1; then
+        echo "Installing zsh..."
+
+        # Try glob first
+        set -- "$CONFIG_DIR"/zsh-*.tgz
+        if [ -f "$1" ]; then
+            installpkg "$1" >/dev/null 2>&1 || true
+        fi
+
+        if ! command -v zsh >/dev/null 2>&1; then
+            echo "zsh not found in plugin directory, attempting to install from slackware..."
+            ZSH_VERSIONS="zsh-5.9-x86_64-1.tgz zsh-5.8.1-x86_64-1.tgz zsh-5.8-x86_64-1.tgz"
+            ZSH_BASE="https://mirrors.kernel.org/slackware/slackware64-current/slackware64/ap"
+            for ZSH_PKG in $ZSH_VERSIONS; do
+                wget -q -O "$CONFIG_DIR/zsh.tgz" "$ZSH_BASE/$ZSH_PKG" 2>/dev/null || continue
+                installpkg "$CONFIG_DIR/zsh.tgz" >/dev/null 2>&1 || true
+                if command -v zsh >/dev/null 2>&1; then
+                    break
+                fi
+            done
+        fi
+
+        if ! command -v zsh >/dev/null 2>&1; then
+            echo "ERROR: Cannot install zsh automatically."
+            echo "Please install zsh manually: slackpkg install zsh"
+            return 1
+        fi
+    fi
+
+    if is_installed; then
+        echo "oh-my-zsh already installed, updating..."
+        (cd "$ZSH_DIR" && git pull --rebase --stat origin master 2>&1) || echo "WARNING: git pull failed"
+    else
+        echo "Cloning oh-my-zsh to persistent storage..."
+        mkdir -p "$CONFIG_DIR"
+        git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git "$ZSH_DIR" 2>&1 || {
+            echo "ERROR: Failed to clone oh-my-zsh"
+            return 1
+        }
+    fi
+
+    func_setup
+    echo ""
+    echo "oh-my-zsh installed. Run 'zsh' or log out and back in."
+}
+
+func_update() {
+    if ! is_installed; then
+        echo "oh-my-zsh is not installed. Run 'install' first."
+        return 1
+    fi
+
+    echo "Updating oh-my-zsh..."
+    (cd "$ZSH_DIR" && git pull --rebase --stat origin master 2>&1) || echo "WARNING: git pull failed"
+
+    # Update plugins in custom directory
+    if [ -d "$ZSH_DIR/custom/plugins" ]; then
+        for plugin in "$ZSH_DIR"/custom/plugins/*/; do
+            if [ -d "$plugin/.git" ]; then
+                echo "Updating plugin: $(basename "$plugin")"
+                (cd "$plugin" && git pull --rebase --stat 2>&1) || echo "WARNING: update failed for $(basename "$plugin")"
+            fi
+        done
+    fi
+
+    func_setup
+    echo "Update complete."
+}
+
+func_setup() {
+    load_config
+
+    echo "Setting up zsh configuration..."
+
+    if ! command -v zsh >/dev/null 2>&1; then
+        echo "WARNING: zsh is not installed. Run 'install' first."
+        return 1
+    fi
+
+    # Generate .zshrc
+    cat > "$ZSHRC_FILE" << ZSHRC
+# oh-my-zsh configuration - managed by unRAID plugin
+# Manual changes will be overwritten when plugin saves configuration.
+
+export ZSH="$ZSH_DIR"
+
+ZSH_THEME="$ZSH_THEME"
+
+plugins=($ZSH_PLUGINS)
+
+source \$ZSH/oh-my-zsh.sh
+
+# Custom aliases
+$(printf '%b' "$CUSTOM_ALIASES")
+
+# Unraid-specific aliases
+alias ls='ls --color=auto'
+alias ll='ls -lah'
+alias la='ls -A'
+alias l='ls -CF'
+alias df='df -h'
+alias du='du -h'
+alias free='free -m'
+alias update=' /etc/rc.d/rc.ohmyzsh update'
+alias install_plugin=' /etc/rc.d/rc.ohmyzsh install_plugin'
+ZSHRC
+
+    # Symlink to /root/.zshrc
+    ln -sf "$ZSHRC_FILE" "$TARGET_ZSHRC"
+
+    # Change root shell to zsh if not already
+    CURRENT_SHELL=$(grep "^root:" /etc/passwd | cut -d: -f7)
+    if [ "$CURRENT_SHELL" != "/usr/bin/zsh" ] && [ "$CURRENT_SHELL" != "/bin/zsh" ]; then
+        ZSH_PATH=$(command -v zsh)
+        if [ -n "$ZSH_PATH" ]; then
+            usermod -s "$ZSH_PATH" root 2>/dev/null || \
+            chsh -s "$ZSH_PATH" root 2>/dev/null || \
+            sed -i "s|^root:.*|root:x:0:0:root:/root:$ZSH_PATH|" /etc/passwd 2>/dev/null || true
+            echo "Root shell changed to zsh"
+        fi
+    fi
+
+    echo "Setup complete."
+}
+
+func_reset() {
+    echo "Resetting oh-my-zsh configuration..."
+
+    rm -f "$TARGET_ZSHRC"
+    rm -rf "$ZSH_DIR"
+    rm -f "$ZSHRC_FILE"
+    write_default_config
+
+    echo "Reset complete. Configuration preserved in $CONFIG_FILE"
+    echo "Run 'install' to re-install oh-my-zsh."
+}
+
+func_install_plugin() {
+    if [ $# -lt 1 ]; then
+        echo "Usage: $0 install_plugin <repo-url>"
+        echo "Example: $0 install_plugin https://github.com/zsh-users/zsh-autosuggestions"
+        return 1
+    fi
+
+    PLUGIN_URL="$1"
+    PLUGIN_NAME=$(basename "$PLUGIN_URL" .git)
+    PLUGIN_DIR="$ZSH_DIR/custom/plugins/$PLUGIN_NAME"
+
+    if [ -d "$PLUGIN_DIR" ]; then
+        echo "Plugin $PLUGIN_NAME already installed"
+        return 0
+    fi
+
+    echo "Installing plugin $PLUGIN_NAME..."
+    git clone --depth=1 "$PLUGIN_URL" "$PLUGIN_DIR" 2>&1 || {
+        echo "ERROR: Failed to install plugin $PLUGIN_NAME"
+        return 1
+    }
+    echo "Plugin $PLUGIN_NAME installed."
+    echo "Add '$PLUGIN_NAME' to the Plugins field in the WebUI to enable it."
+}
+
+func_status() {
+    load_config
+
+    if is_installed; then
+        echo "installed=1"
+        echo "version=$(cd "$ZSH_DIR" && git describe --tags 2>/dev/null || echo 'unknown')"
+    else
+        echo "installed=0"
+    fi
+
+    echo "theme=$ZSH_THEME"
+    echo "plugins=$ZSH_PLUGINS"
+
+    SHELL_PATH=$(grep "^root:" /etc/passwd | cut -d: -f7)
+    echo "shell=$SHELL_PATH"
+    echo "config=$ZSHRC_FILE"
+}
+
+case "${1:-}" in
+    "version")
+        echo "2026.06.12"
+        ;;
+    "install")
+        func_install
+        ;;
+    "update")
+        func_update
+        ;;
+    "setup")
+        func_setup
+        ;;
+    "reset")
+        func_reset
+        ;;
+    "install_plugin")
+        shift
+        func_install_plugin "$@"
+        ;;
+    "status")
+        func_status
+        ;;
+    *)
+        echo "Usage: $0 {install|update|setup|reset|install_plugin|status|version}"
+        ;;
+esac

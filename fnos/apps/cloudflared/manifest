@@ -1,0 +1,14 @@
+appname         = cloudflared
+version         = 0.0.0
+display_name    = Cloudflare Tunnel
+platform            = all
+maintainer         = Cloudflare
+maintainer_url      = https://cloudflare.com
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = cloudflared.Application
+service_port    = 14333
+checkport           = false
+desc            = Cloudflare 内网穿透
+source          = thirdparty
+checksum        = 

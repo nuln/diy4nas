@@ -1,0 +1,14 @@
+appname         = transmission
+version         = 0.0.0
+display_name    = Transmission
+platform            = all
+maintainer         = Transmission
+maintainer_url      = https://transmissionbt.com
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = transmission.Application
+service_port    = 9091
+checkport           = false
+desc            = 轻量级 BT 客户端
+source          = thirdparty
+checksum        = 

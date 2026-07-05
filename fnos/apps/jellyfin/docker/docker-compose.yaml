@@ -1,0 +1,13 @@
+services:
+  jellyfin:
+    image: ${DOCKER_MIRROR}docker.io/jellyfin/jellyfin:${VERSION}
+    container_name: jellyfin
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/config:/config
+      - ${TRIM_PKGVAR:?}/cache:/cache
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

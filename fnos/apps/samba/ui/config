@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "samba.Application": {
+            "title": "Samba",
+            "desc": "SMB \u6587\u4ef6\u5171\u4eab",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "139",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

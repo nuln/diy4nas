@@ -1,0 +1,10 @@
+services:
+  vaultwarden:
+    image: ${DOCKER_MIRROR}docker.io/vaultwarden/server:${VERSION}-alpine
+    container_name: vaultwarden
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/data
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

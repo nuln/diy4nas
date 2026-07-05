@@ -1,0 +1,14 @@
+appname         = rclone
+version         = 0.0.0
+display_name    = Rclone
+platform            = all
+maintainer         = Rclone
+maintainer_url      = https://rclone.org
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = rclone.Application
+service_port    = 5572
+checkport           = false
+desc            = 云存储同步工具
+source          = thirdparty
+checksum        = 

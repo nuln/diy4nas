@@ -1,0 +1,14 @@
+#!/bin/sh
+
+CONFIG_FILE="/boot/config/plugins/homebrew/homebrew.conf"
+SERVICE_SCRIPT="/etc/rc.d/rc.homebrew"
+
+if [ ! -f "$CONFIG_FILE" ] || [ ! -x "$SERVICE_SCRIPT" ]; then
+    exit 0
+fi
+
+. "$CONFIG_FILE"
+
+if [ "${AUTOSTART:-yes}" = "yes" ]; then
+    "$SERVICE_SCRIPT" setup >/dev/null 2>&1
+fi

@@ -1,0 +1,14 @@
+appname         = samba
+version         = 0.0.0
+display_name    = Samba
+platform            = all
+maintainer         = Samba Team
+maintainer_url      = https://samba.org
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = samba.Application
+service_port    = 139
+checkport           = false
+desc            = SMB 文件共享
+source          = thirdparty
+checksum        = 

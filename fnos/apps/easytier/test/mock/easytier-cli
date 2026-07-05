@@ -1,0 +1,16 @@
+#!/bin/sh
+case "$1 $2" in
+  "node info")
+    echo '{"hostname":"test-node","peer_id":"abc123def456","version":"2.6.4","proxy_cidrs":["10.0.0.0/24"],"rx_bytes":123456,"tx_bytes":78901}';;
+  "peer list")
+    echo '[{"hostname":"peer-1","id":"peer1id","ip":"10.0.0.2","connected":true,"online":true,"lat_ms":12,"tunnel_proto":"wst","rx_bytes":1000,"tx_bytes":500},{"hostname":"peer-2","id":"peer2id","ip":"10.0.0.3","connected":false,"online":false,"lat_ms":0,"tunnel_proto":"","rx_bytes":0,"tx_bytes":0}]';;
+  "route list")
+    echo '[{"hostname":"peer-1","proxy_cidrs":["192.168.1.0/24"],"next_hop_hostname":"peer-1","next_hop_lat":8.5},{"hostname":"peer-2","proxy_cidrs":["192.168.2.0/24"],"next_hop_hostname":"peer-2","next_hop_lat":15.2}]';;
+  "connector list")
+    echo '[{"type":"tcp","status":"connected","remote":"1.2.3.4:11010"}]';;
+  "node ping")
+    shift 2
+    echo '{"target":"'"$2"'","success":true,"latency_ms":5.0}';;
+  *)
+    echo "{}";;
+esac

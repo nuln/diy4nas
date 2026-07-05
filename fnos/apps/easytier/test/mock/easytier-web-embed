@@ -1,0 +1,4 @@
+#!/bin/sh
+PORT="${API_SERVER_PORT:-11212}"
+echo "mock easytier-web-embed running on port $PORT"
+while true; do sleep 10; done

@@ -1,0 +1,12 @@
+services:
+  samba:
+    image: ${DOCKER_MIRROR}docker.io/dperson/samba:${VERSION}
+    container_name: samba
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      - USER=admin;admin
+      - SHARE=public;/data;yes;no
+    restart: unless-stopped

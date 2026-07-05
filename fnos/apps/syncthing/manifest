@@ -1,0 +1,14 @@
+appname         = syncthing
+version         = 0.0.0
+display_name    = Syncthing
+platform            = all
+maintainer         = Syncthing
+maintainer_url      = https://syncthing.net
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = syncthing.Application
+service_port    = 8384
+checkport           = false
+desc            = 开源文件同步工具
+source          = thirdparty
+checksum        = 

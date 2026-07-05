@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "pocket-id.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Pocket ID",
+        "permission": {
+          "rw": [
+            "pocket-id"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "pocket-id",
+        "path": "docker"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "cloudflared.Application": {
+            "title": "Cloudflare Tunnel",
+            "desc": "Cloudflare \u5185\u7f51\u7a7f\u900f",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "14333",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "app-center.Application": {
+            "title": "App Center",
+            "desc": "diy4nas \u5e94\u7528\u4e2d\u5fc3",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "http",
+            "port": "8011",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

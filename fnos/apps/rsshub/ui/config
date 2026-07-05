@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "rsshub.Application": {
+            "title": "RSSHub",
+            "desc": "\u4e07\u7269\u7686\u53ef RSS",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "1200",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

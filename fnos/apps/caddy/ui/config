@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "caddy.Application": {
+            "title": "Caddy",
+            "desc": "\u81ea\u52a8 HTTPS \u7684 Web \u670d\u52a1\u5668",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "80",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

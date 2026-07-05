@@ -1,0 +1,10 @@
+#!/bin/sh
+# pre-upgrade: backup and stop
+APP_DEST=${TRIM_APPDEST:-/var/apps/easytier}
+APP_VAR=${TRIM_PKGVAR:-/var/apps/easytier/data}
+mkdir -p "$APP_VAR/config" 2>/dev/null || true
+if [ -f "$APP_VAR/config/settings.json" ]; then
+    cp "$APP_VAR/config/settings.json" "$APP_VAR/config/settings.json.bak" 2>/dev/null || true
+fi
+"$APP_DEST/cmd/main" stop 2>/dev/null || true
+exit 0

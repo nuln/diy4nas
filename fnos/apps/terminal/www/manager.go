@@ -192,7 +192,13 @@ func cleanupDetached() {
 		exited := s.exited
 		detachedAt := s.DetachedAt
 		s.mu.Unlock()
-		if !detached || exited {
+		if exited {
+			// exited + detached 也杀 (zombie), exited + !detached 正常走 60s cleanup
+			if !detached {
+				continue
+			}
+			// exited + detached: 清理僵尸
+		} else if !detached {
 			continue
 		}
 		if now.Sub(detachedAt) > time.Duration(maxHours)*time.Hour {

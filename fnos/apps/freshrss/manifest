@@ -1,0 +1,14 @@
+appname         = freshrss
+version         = 0.0.0
+display_name    = FreshRSS
+platform            = all
+maintainer         = FreshRSS
+maintainer_url      = https://freshrss.org
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = freshrss.Application
+service_port    = 8180
+checkport           = false
+desc            = 自托管 RSS 阅读器
+source          = thirdparty
+checksum        = 

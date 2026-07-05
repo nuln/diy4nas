@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "rclone.Application": {
+            "title": "Rclone",
+            "desc": "\u4e91\u5b58\u50a8\u540c\u6b65\u5de5\u5177",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "5572",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

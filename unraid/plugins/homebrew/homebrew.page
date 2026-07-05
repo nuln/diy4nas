@@ -1,0 +1,43 @@
+Menu="UserUtilities"
+Icon="homebrew.png"
+Title="Homebrew"
+Type="xmenu"
+Tabs="true"
+Markdown="false"
+---
+<?php
+$plugin = 'homebrew';
+$pluginPath = '/plugins/' . $plugin;
+?>
+<link type="text/css" rel="stylesheet" href="<?= "{$pluginPath}/style.css"; ?>">
+<script src="/webGui/javascript/jquery.tablesorter.widgets.js"></script>
+
+<h2 style="margin-bottom:8px;">Homebrew Status</h2>
+
+<table class="unraid statusTable">
+<thead><tr><th style="width:200px">Property</th><th>Value</th></tr></thead>
+<tbody id="hb-status-content"><tr><td colspan="2"><div class="spinner">Loading...</div></td></tr></tbody>
+</table>
+
+<table><tr><td style="padding:4px 0">
+  <input type="button" value="Install Homebrew" id="hb-install-btn" onclick="doAction('install')" style="display:none">
+  <input type="button" value="Update" id="hb-update-btn" onclick="doAction('update')">
+  <input type="button" value="Upgrade All" id="hb-upgrade-btn" onclick="doAction('upgrade')">
+  <input type="button" value="Remove" id="hb-remove-btn" onclick="confirmRemove()">
+  <input type="button" value="Refresh" onclick="refreshStatus()">
+  <span id="hb-msg" style="margin-left:8px;font-size:12px;color:#888;"></span>
+</td></tr></table>
+
+<h2 style="margin:16px 0 8px;">Installed Formulae</h2>
+<table class="unraid statusTable" id="hb-packages-table">
+<thead><tr><th>Formula</th><th></th></tr></thead>
+<tbody id="hb-packages"><tr><td><div class="spinner">Loading...</div></td><td></td></tr></tbody>
+</table>
+
+<h2 style="margin:16px 0 8px;">Outdated Packages</h2>
+<table class="unraid statusTable">
+<thead><tr><th>Formula</th><th>Action</th></tr></thead>
+<tbody id="hb-outdated"><tr><td><div class="spinner">Loading...</div></td><td></td></tr></tbody>
+</table>
+
+<script src="<?= $pluginPath; ?>/homebrew.js"></script>

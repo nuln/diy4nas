@@ -1,0 +1,14 @@
+appname         = redis
+version         = 0.0.0
+display_name    = Redis
+platform            = all
+maintainer         = Redis Ltd
+maintainer_url      = https://redis.io
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = redis.Application
+service_port    = 6379
+checkport           = false
+desc            = 高性能内存数据库
+source          = thirdparty
+checksum        = 

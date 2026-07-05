@@ -1,0 +1,11 @@
+services:
+  garage:
+    image: ${DOCKER_MIRROR}docker.io/dxflrs/garage:${VERSION}
+    container_name: garage
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/var/lib/garage
+      - ${TRIM_PKGVAR:?}/config:/etc/garage
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

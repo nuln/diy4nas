@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "garage.Application": {
+            "title": "Garage",
+            "desc": "\u5206\u5e03\u5f0f S3 \u517c\u5bb9\u5bf9\u8c61\u5b58\u50a8",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "3900",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

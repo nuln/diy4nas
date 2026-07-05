@@ -1,0 +1,4 @@
+#!/bin/sh
+APP_DEST=${TRIM_APPDEST:-/var/apps/app-center}
+"$APP_DEST/cmd/main" restart 2>/dev/null || true
+exit 0

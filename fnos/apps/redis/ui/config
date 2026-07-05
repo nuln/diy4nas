@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "redis.Application": {
+            "title": "Redis",
+            "desc": "\u9ad8\u6027\u80fd\u5185\u5b58\u6570\u636e\u5e93",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "6379",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

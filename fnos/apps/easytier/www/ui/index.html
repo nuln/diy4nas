@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>EasyTier</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0f17;--bg2:#131822;--bg3:#1c2333;--card:#1a2130;--fg:#e8edf5;--fg2:#8892b0;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:0;padding-bottom:64px;min-height:100vh}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px;max-width:1100px;margin:0 auto}
+.hd h1{font-size:1.15rem;font-weight:700}
+.st{font-size:.72rem;padding:4px 12px;border-radius:20px;font-weight:500}
+.st.on{background:rgba(34,197,94,.12);color:var(--green)}.st.off{background:rgba(239,68,68,.12);color:var(--red)}
+.ct{padding:8px 14px;max-width:1100px;margin:0 auto}
+.pt{display:none}.pt.act{display:block;animation:fade .2s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.cd{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.04)}
+.cd h3{font-size:.82rem;font-weight:600;margin-bottom:10px;color:var(--fg2);letter-spacing:.3px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.si{background:var(--bg3);border-radius:10px;padding:12px;text-align:center}
+.si .l{font-size:.65rem;color:var(--fg2);margin-bottom:2px}.si .v{font-size:.95rem;font-weight:600}
+.si .ip{font-size:.72rem;font-family:monospace;color:var(--blue)}
+#ch{width:100%;height:110px;border-radius:8px;background:var(--bg3);display:block;margin:6px 0 2px}
+.fg{margin-bottom:8px}.fg label{display:block;font-size:.72rem;color:var(--fg2);margin-bottom:3px;font-weight:500}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;background:var(--bg3);border:1px solid transparent;border-radius:8px;color:var(--fg);font-size:.82rem;outline:none}
+.fg input:focus,.fg textarea:focus{border-color:var(--blue)}
+.fg textarea{resize:vertical;min-height:60px;font-family:monospace;font-size:.78rem}
+.tg{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.tg:last-child{border:none}
+.tg label{font-size:.78rem;color:var(--fg)}
+.sw{position:relative;width:44px;height:24px;background:var(--bg3);border-radius:12px;cursor:pointer;transition:.2s}
+.sw.on{background:var(--blue)}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s}
+.sw.on::after{transform:translateX(20px)}
+.btnw{width:100%;padding:9px;border:none;border-radius:8px;font-size:.8rem;font-weight:500;cursor:pointer;margin-top:4px}
+.btnw.p{background:var(--blue);color:#fff}.btnw.s{background:var(--bg3);color:var(--fg2)}.btnw.d{background:rgba(239,68,68,.15);color:var(--red)}.btnw.g{background:rgba(34,197,94,.15);color:var(--green)}
+.dg{display:grid;grid-template-columns:1fr;gap:4px}
+.dv{background:var(--bg3);border-radius:8px;padding:8px 10px;cursor:pointer;transition:.08s}
+.dv .hdr{display:flex;align-items:center;justify-content:space-between}
+.dv .nm{font-size:.78rem;font-weight:500}.dv .ip{font-size:.65rem;color:var(--fg2);font-family:monospace;margin-top:1px}
+.dv .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.dv .dot.g{background:var(--green)}.dv .dot.r{background:var(--red)}
+.lb{background:var(--bg3);border-radius:8px;padding:10px;font:13px/1.5 monospace;color:var(--fg2);white-space:pre-wrap;max-height:260px;overflow-y:auto;margin-top:6px}
+.tb-s{width:100%;border-collapse:collapse;font-size:.75rem}.tb-s th{text-align:left;color:var(--fg2);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--bg3)}.tb-s td{padding:6px 8px;border-bottom:1px solid var(--bg3);color:var(--fg);font-size:.72rem}.tb-s tr:last-child td{border-bottom:none}
+.tb-s .act{color:var(--red);cursor:pointer;text-decoration:underline;background:none;border:none;font-size:.7rem}
+.bn{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);display:flex;border-top:1px solid rgba(255,255,255,.05);padding:4px 0 env(safe-area-inset-bottom);overflow-x:auto}
+.bn a{flex-shrink:0;width:70px;text-align:center;padding:5px 2px;font-size:.56rem;color:var(--fg2);text-decoration:none;cursor:pointer}
+.bn a.act{color:var(--blue)}
+.bn a svg{display:block;margin:0 auto 2px;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.f2{display:flex;gap:12px;align-items:stretch}.f2>div{flex:1;min-width:0}
+.tp-l{width:200px;flex-shrink:0;max-height:500px;overflow-y:auto}
+.tp-c{flex:1;height:500px;background:var(--bg3);border-radius:8px;position:relative;overflow:hidden}
+.tp-d{display:none;flex:1;height:500px;background:var(--bg3);border-radius:8px;padding:16px;overflow-y:auto}
+#stl{font-size:.72rem;color:var(--fg2);margin-bottom:6px;padding:0 4px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal.show{display:flex}
+.modal-c{background:var(--card);border-radius:var(--radius);width:90%;max-width:400px;padding:16px;max-height:80vh;overflow-y:auto}
+.modal-c h3{margin-bottom:6px;font-size:.9rem}.modal-c .mb{font-size:.78rem;color:var(--fg2)}
+.ts{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--fg);padding:8px 16px;border-radius:8px;font-size:.8rem;z-index:200;display:none}
+.lt{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.lt a{padding:6px 14px;border-radius:6px;font-size:.78rem;color:var(--fg2);background:var(--bg3);cursor:pointer;text-decoration:none}
+.lt a.act{color:var(--fg);background:var(--blue)}
+.gear{background:none;border:none;color:var(--fg2);cursor:pointer;padding:4px;vertical-align:middle}
+.gear svg{width:16px;height:16px}
+.gear-menu{display:none;position:absolute;right:0;top:24px;background:var(--card);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:6px 0;z-index:50;min-width:140px}
+.gear-menu.show{display:block}
+.gear-menu a{display:block;padding:8px 14px;color:var(--fg2);font-size:.78rem;cursor:pointer;text-decoration:none}
+.gear-menu a:hover{background:var(--bg3);color:var(--fg)}
+.adv-toggle{cursor:pointer;color:var(--blue);font-size:.78rem;padding:8px 0;display:block;user-select:none}
+.adv-area{display:none;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);margin-top:8px}
+.adv-area.show{display:block}
+.lvl-sel{display:flex;gap:6px;align-items:center}
+.lvl-sel select{flex:1}
+</style>
+</head>
+<body>
+<div class="hd"><h1>EasyTier</h1><span id="st" class="st off">离线</span></div>
+<div class="ct">
+
+<div id="pt-ov" class="pt act">
+<div class="f2">
+<div>
+<div class="cd"><h3>运行状态</h3><div class="sg" id="sg"></div></div>
+<div class="cd"><h3>实时流量</h3><canvas id="ch" height="110"></canvas></div>
+<div class="cd">
+<h3 style="display:flex;align-items:center;justify-content:space-between"><span>服务控制</span><span id="svc-status" style="font-size:.72rem;color:var(--fg2)">已停止</span></h3>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btnw p" style="margin:0;flex:1" onclick="svcStart()" id="btn-start">启动服务</button>
+<button class="btnw s" style="margin:0;flex:1" onclick="svcRestart()">重启</button>
+<button class="btnw d" style="margin:0;flex:1" onclick="svcStop()">停止</button>
+</div>
+<div class="tg" style="margin-top:8px;border-bottom:none;padding-bottom:0"><label>开机自启</label><div class="sw" id="sw-autostart" onclick="toggleAutostart()"></div></div>
+</div>
+</div>
+<div>
+<div class="cd">
+<h3>节点配置</h3>
+<div class="fg"><label>网络密钥</label><input id="s-secret" type="password" placeholder="留空使用默认"></div>
+<div class="fg"><label>网络名称</label><input id="s-network" placeholder="留空自动生成"></div>
+<div class="fg"><label>主机名</label><input id="s-hostname" placeholder="留空使用本机主机名"></div>
+<div class="fg"><label>虚拟IPv4</label><input id="s-ipv4" placeholder="例: 10.144.144.1/24（DHCP时留空）"></div>
+<div class="fg"><label>实例名</label><input id="s-instname" placeholder="实例标识符"></div>
+<div class="fg"><label>对等节点地址</label><textarea id="s-peers" placeholder="每行一个，例: tcp://1.2.3.4:11010"></textarea></div>
+<div class="fg"><label>监听地址</label><textarea id="s-listeners" placeholder="每行一个，例: tcp://0.0.0.0:11010"></textarea></div>
+<div class="fg"><label>代理网段</label><textarea id="s-proxy" placeholder="每行一个，例: 192.168.1.0/24"></textarea></div>
+
+<span class="adv-toggle" onclick="toggleAdv()">▼ 高级选项</span>
+<div class="adv-area" id="adv-area">
+<div class="fg"><label>虚拟IPv6</label><input id="s-ipv6" placeholder="例: fd00::1/64"></div>
+<div class="tg"><label>DHCP</label><div class="sw" id="sw-dhcp" onclick="toggleDHCP()"></div></div>
+<div class="tg"><label>加密</label><div class="sw" id="sw-encrypt" onclick="toggleEncrypt()"></div></div>
+<div class="tg"><label>延迟优先</label><div class="sw" id="sw-latency" onclick="toggleLatency()"></div></div>
+<div class="tg"><label>无TUN</label><div class="sw" id="sw-notun" onclick="toggleNoTun()"></div></div>
+<div class="tg"><label>禁用IPv6</label><div class="sw" id="sw-noipv6" onclick="toggleDisableIPv6()"></div></div>
+<div class="tg"><label>私有模式</label><div class="sw" id="sw-priv" onclick="togglePrivate()"></div></div>
+<div class="tg"><label>P2P only</label><div class="sw" id="sw-p2p" onclick="toggleP2P()"></div></div>
+<div class="tg"><label>Lazy P2P</label><div class="sw" id="sw-lazy" onclick="toggleLazy()"></div></div>
+<div class="tg"><label>多线程</label><div class="sw" id="sw-mt" onclick="toggleMT()"></div></div>
+<div class="fg"><label>压缩</label><select id="s-compression"><option value="">默认</option><option value="none">none</option><option value="zstd">zstd</option></select></div>
+<div class="fg"><label>默认协议</label><select id="s-defaultproto"><option value="">默认</option><option value="tcp">tcp</option><option value="udp">udp</option><option value="ws">ws</option><option value="wss">wss</option><option value="quic">quic</option></select></div>
+<div class="fg"><label>加密算法</label><select id="s-encralgo"><option value="">默认</option><option value="aes-gcm">aes-gcm</option><option value="aes-gcm-12">aes-gcm-12</option><option value="sm4-gcm">sm4-gcm</option><option value="plain">plain</option></select></div>
+<div class="fg"><label>MTU</label><input id="s-mtu" type="number" min="0" placeholder="默认1420"></div>
+<div class="fg"><label>反代监听</label><textarea id="s-mapped" placeholder="每行一个，例: wss://example.com:443"></textarea></div>
+<div class="fg"><label>手动路由</label><textarea id="s-routes" placeholder="每行一个CIDR"></textarea></div>
+<div class="tg"><label>启用为出口节点</label><div class="sw" id="sw-exit" onclick="toggleExit()"></div></div>
+<div class="fg"><label>出口节点IP</label><textarea id="s-exitnodes" placeholder="每行一个IP"></textarea></div>
+<div class="fg"><label>SOCKS5端口</label><input id="s-socks5" type="number" min="0" placeholder="0=禁用"></div>
+<div class="fg"><label>TCP端口转发</label><textarea id="s-tcpfwd" placeholder="每行一个，例: 0.0.0.0:8080/10.0.0.1:80"></textarea></div>
+<div class="fg"><label>UDP端口转发</label><textarea id="s-udpfwd" placeholder="每行一个，例: 0.0.0.0:53/10.0.0.1:53"></textarea></div>
+<div class="fg"><label>TCP白名单</label><textarea id="s-tcpwl" placeholder="每行一个，例: 80,443,8000-9000"></textarea></div>
+<div class="fg"><label>UDP白名单</label><textarea id="s-udpwl" placeholder="每行一个，例: 53,5000-5010"></textarea></div>
+<div class="fg"><label>VPN Portal (WireGuard)</label><input id="s-vpn" placeholder="wg://0.0.0.0:11013/10.14.14.0/24"></div>
+<div class="fg"><label>TLD DNS Zone</label><input id="s-tld" placeholder="留空禁用"></div>
+</div>
+
+<button class="btnw p" onclick="saveSettings()">保存并应用</button>
+</div>
+</div>
+</div>
+</div>
+
+<div id="pt-tp" class="pt">
+<div class="cd">
+<h3 style="display:flex;justify-content:space-between;align-items:center;position:relative">
+<span>网络拓扑图</span>
+<div style="position:relative">
+<button class="gear" onclick="toggleGearMenu()">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+</button>
+<div class="gear-menu" id="gear-menu">
+<a onclick="batchPing();closeGearMenu()">批量 Ping</a>
+<a onclick="if(topoNetwork)topoNetwork.fit({animation:true});closeGearMenu()">还原视图</a>
+<a onclick="toggleTopoZoom();closeGearMenu()" id="zoom-toggle">启用缩放</a>
+</div>
+</div>
+</h3>
+<div style="display:flex;gap:12px;margin-top:6px">
+<div class="tp-l">
+<div id="stl"><span id="dc"></span> 个节点</div>
+<div class="dg" id="dl"></div>
+</div>
+<div class="tp-c" id="topo-container"><div style="color:var(--fg2);font-size:.8rem;padding:20px;text-align:center">点击"拓扑"标签加载...</div></div>
+<div class="tp-d" id="dp"></div>
+</div>
+</div>
+<div class="cd"><h3 style="display:flex;justify-content:space-between"><span>路由管理</span><button onclick="loadRoutes()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline">刷新</button></h3>
+<div id="routes-content" style="font-size:.78rem;color:var(--fg2)">点击刷新加载...</div>
+</div>
+<div class="cd">
+<h3 style="display:flex;justify-content:space-between"><span>连接器管理</span>
+<span style="display:flex;gap:8px">
+<button onclick="openConnectorAdd()" style="background:var(--blue);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.72rem;cursor:pointer">+ 添加</button>
+<button onclick="loadConnectors()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline">刷新</button>
+</span></h3>
+<div id="connectors-content" style="font-size:.78rem;color:var(--fg2)">点击刷新加载...</div>
+</div>
+<div class="cd"><h3 style="display:flex;justify-content:space-between"><span>运行日志</span><span><button onclick="lg('core')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline;margin-right:8px">核心</button><button onclick="lg('app')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline;margin-right:8px">服务</button><button onclick="pingDlg()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline">Ping</button></span></h3>
+<div class="lb" id="lo">点击刷新加载...</div>
+</div>
+</div>
+
+<div id="pt-fw" class="pt">
+<div class="cd">
+<h3>端口转发</h3>
+<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+<button class="btnw p" style="margin:0;flex:1;min-width:120px" onclick="openPfAdd()">+ 添加转发</button>
+<button class="btnw s" style="margin:0;flex:1;min-width:120px" onclick="loadPortForwards()">刷新</button>
+</div>
+<div id="pf-content" style="font-size:.78rem;color:var(--fg2)">点击刷新加载...</div>
+</div>
+<div class="cd">
+<h3>白名单</h3>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<select id="wl-proto" style="background:var(--bg3);color:var(--fg);border:none;border-radius:8px;padding:8px;font-size:.78rem"><option value="tcp">TCP</option><option value="udp">UDP</option></select>
+<input id="wl-ports" placeholder="端口列表，例: 80,443,8000-9000" style="background:var(--bg3);color:var(--fg);border:none;border-radius:8px;padding:8px;font-size:.78rem;flex:1">
+<button class="btnw p" style="margin:0;width:80px" onclick="setWhitelist()">设置</button>
+<button class="btnw s" style="margin:0;width:80px" onclick="clearWhitelist()">清除</button>
+</div>
+<div id="wl-content" style="font-size:.78rem;color:var(--fg2)">点击刷新加载...</div>
+</div>
+</div>
+
+<div id="pt-cr" class="pt">
+<div class="cd">
+<h3>临时凭证</h3>
+<div style="margin-bottom:8px">
+<div class="fg"><label>凭证ID（可选）</label><input id="c-id" placeholder="留空自动生成"></div>
+<div class="fg"><label>有效期（秒）</label><input id="c-ttl" type="number" value="3600"></div>
+<div class="fg"><label>分组（逗号分隔）</label><input id="c-groups" placeholder="例: admin,user"></div>
+<div class="fg"><label>允许代理网段（逗号分隔）</label><input id="c-cidrs" placeholder="例: 10.0.0.0/8,192.168.0.0/16"></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<div class="tg" style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 12px"><label>允许中继</label><div class="sw" id="c-relay" onclick="this.classList.toggle('on')"></div></div>
+<div class="tg" style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:6px 12px"><label>可重复使用</label><div class="sw" id="c-reuse" onclick="this.classList.toggle('on')"></div></div>
+</div>
+</div>
+<button class="btnw p" onclick="generateCred()">生成凭证</button>
+<div class="lb" id="c-result" style="margin-top:8px">凭证会显示在这里</div>
+</div>
+<div class="cd">
+<h3 style="display:flex;justify-content:space-between"><span>已生成凭证</span><button onclick="loadCreds()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline">刷新</button></h3>
+<div id="creds-content" style="font-size:.78rem;color:var(--fg2)">点击刷新加载...</div>
+</div>
+</div>
+
+<div id="pt-st" class="pt">
+<div class="cd">
+<h3>运行时日志级别</h3>
+<div class="lvl-sel" style="margin-top:8px">
+<select id="lvl-sel" style="background:var(--bg3);color:var(--fg);border:none;border-radius:8px;padding:9px;font-size:.82rem">
+<option value="disabled">disabled</option>
+<option value="error">error</option>
+<option value="warning">warning</option>
+<option value="info">info</option>
+<option value="debug">debug</option>
+<option value="trace">trace</option>
+</select>
+<button class="btnw p" style="margin:0;width:100px" onclick="setLogLevel()">应用</button>
+<button class="btnw s" style="margin:0;width:100px" onclick="loadLogLevel()">当前</button>
+</div>
+<div id="lvl-cur" style="font-size:.72rem;color:var(--fg2);margin-top:6px">当前: 未知</div>
+</div>
+<div class="cd">
+<h3>WireGuard VPN Portal</h3>
+<div id="vpn-content" style="font-size:.78rem;color:var(--fg2)">点击刷新加载...</div>
+<button class="btnw s" style="margin-top:6px" onclick="loadVPN()">刷新</button>
+</div>
+<div class="cd">
+<h3>统计指标</h3>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<button class="btnw p" style="margin:0;flex:1" onclick="loadStats()">刷新</button>
+<button class="btnw s" style="margin:0;flex:1" onclick="downloadProm()">下载 Prometheus</button>
+</div>
+<div id="stats-content" style="font-size:.72rem;color:var(--fg2);font-family:monospace;white-space:pre-wrap;max-height:400px;overflow-y:auto;background:var(--bg3);border-radius:8px;padding:10px">点击刷新加载...</div>
+</div>
+</div>
+
+<div id="pt-lg" class="pt">
+<div class="lt"><a id="lt-app" class="act" onclick="switchLog('app')">应用日志</a><a id="lt-core" onclick="switchLog('core')">核心日志</a></div>
+<div class="cd">
+<h3 style="display:flex;justify-content:space-between"><span id="log-title">日志</span><button onclick="clearLog()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.72rem;text-decoration:underline">清除</button></h3>
+<div class="lb" id="log-content" style="max-height:500px">点击刷新加载...</div>
+</div>
+</div>
+
+</div>
+
+<div class="bn">
+<a class="act" data-p="ov"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>概览</a>
+<a data-p="tp"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="6.5" y2="16.5"/><line x1="12" y1="8" x2="17.5" y2="16.5"/><line x1="8" y1="19" x2="16" y2="19"/></svg>拓扑</a>
+<a data-p="fw"><svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>转发</a>
+<a data-p="cr"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>凭证</a>
+<a data-p="st"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>工具</a>
+<a data-p="lg"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>日志</a>
+</div>
+
+<div class="ts" id="ts"></div>
+
+<div class="modal" id="pm"><div class="modal-c">
+<h3>Ping <span id="pm-target" style="font-weight:400;color:var(--fg2)"></span></h3>
+<div class="fg" style="margin-top:8px"><input id="pm-input" placeholder="目标 IP 或 Peer ID"></div>
+<div class="lb" id="pm-out" style="max-height:300px">输入目标后发送</div>
+<button class="btnw p" onclick="doPing()" style="margin-bottom:6px">发送 Ping</button>
+<button class="btnw s" onclick="document.getElementById('pm').classList.remove('show')">关闭</button>
+</div></div>
+
+<div class="modal" id="cm"><div class="modal-c">
+<h3>添加连接器</h3>
+<div class="fg" style="margin-top:8px"><label>URL</label><input id="cm-url" placeholder="例: tcp://1.2.3.4:11010"></div>
+<button class="btnw p" onclick="addConnector()" style="margin-bottom:6px">添加</button>
+<button class="btnw s" onclick="document.getElementById('cm').classList.remove('show')">取消</button>
+</div></div>
+
+<div class="modal" id="pfa"><div class="modal-c">
+<h3>添加端口转发</h3>
+<div class="fg" style="margin-top:8px"><label>协议</label><select id="pf-proto" style="background:var(--bg3);color:var(--fg);border:none;border-radius:8px;padding:9px"><option value="tcp">TCP</option><option value="udp">UDP</option></select></div>
+<div class="fg"><label>绑定地址</label><input id="pf-bind" placeholder="0.0.0.0:8080"></div>
+<div class="fg"><label>目标地址</label><input id="pf-dst" placeholder="10.0.0.1:80"></div>
+<button class="btnw p" onclick="addPortForward()" style="margin-bottom:6px">添加</button>
+<button class="btnw s" onclick="document.getElementById('pfa').classList.remove('show')">取消</button>
+</div></div>
+
+<script>
+const $=x=>document.getElementById(x),F=b=>{if(!b)return'0 B';const u=['B','KB','MB','GB'];let i=0,v=b;while(v>=1024&&i<3){v/=1024;i++}return v.toFixed(1)+' '+u[i]};
+const api=async(p,m,b)=>{try{const r=await fetch('/api/'+p,{method:m||'GET',body:b?JSON.stringify(b):null,headers:{'Content-Type':'application/json'}});return await r.json()}catch(e){return{}}};
+const toast=(m,t)=>{const e=$('ts');e.textContent=m;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',t||2000)};
+document.querySelectorAll('.bn a').forEach(a=>a.onclick=()=>{document.querySelectorAll('.bn a').forEach(x=>x.classList.toggle('act',x.dataset.p===a.dataset.p));document.querySelectorAll('.pt').forEach(x=>x.classList.toggle('act',x.id==='pt-'+a.dataset.p));if(a.dataset.p==='tp')drawTopo();if(a.dataset.p==='ov')drawChart();if(a.dataset.p==='lg')lg(logTab);if(a.dataset.p==='fw'){loadPortForwards();loadWhitelist()};if(a.dataset.p==='cr')loadCreds();if(a.dataset.p==='st'){loadLogLevel();loadVPN();}});
+
+let peersData={},logTab='app',currentSettings={},topoZoomEnabled=false;
+const st=async()=>{
+const d=await api('status'),node=d.node||{},peers=Array.isArray(d.peers)?d.peers:[];
+peersData={};peers.forEach(p=>{peersData[p.id||p.hostname]=p});
+currentSettings=d.settings||{};
+const oc=peers.filter(p=>p.connected||p.online).length;
+const running=d.running||d.daemon;
+$('st').textContent=d.online?'在线':'离线';$('st').className='st '+(d.online?'on':'off');
+$('svc-status').textContent=running?'运行中':'已停止';$('svc-status').style.color=running?'var(--green)':'var(--fg2)';
+$('btn-start').textContent=running?'运行中':'启动服务';
+$('btn-start').style.opacity=running?'0.6':'1';
+$('sg').innerHTML=`<div class=si><div class=l>节点</div><div class=v>${node.hostname||node.id||'-'}</div></div><div class=si><div class=l>Peer ID</div><div class="v ip">${(node.peer_id||'').substring(0,16)||'-'}</div></div><div class=si><div class=l>版本</div><div class=v>${node.version||'-'}</div></div><div class=si><div class=l>在线节点</div><div class=v>${oc}/${peers.length}</div></div>`;
+if(d.online){if(td.length===0){td.push({rx:d.totalRx||0,tx:d.totalTx||0})}td.push({rx:d.totalRx||0,tx:d.totalTx||0});if(td.length>60)td.shift();drawChart()}
+$('dc').textContent=peers.length;
+$('dl').innerHTML=peers.length?peers.map(p=>`<div class=dv onclick="showDetail('${(p.id||p.hostname||'')}')"><div class=hdr><span><span class="dot ${(p.connected||p.online)?'g':'r'}"></span><span class=nm>${p.hostname||p.id||'?'}</span></span><span style="font-size:.62rem;color:var(--fg2)">${p.ip||'-'}</span></div></div>`).join(''):'<div style="color:var(--fg2);font-size:.8rem;padding:10px">暂无节点</div>';
+syncSettingsUI(currentSettings);
+};
+
+function syncSettingsUI(s){
+$('sw-autostart').className='sw'+(s.service_enabled?' on':'');
+$('sw-dhcp').className='sw'+(s.dhcp?' on':'');
+$('sw-encrypt').className='sw'+(s.encryption?' on':'');
+$('sw-latency').className='sw'+(s.latency_first?' on':'');
+$('sw-notun').className='sw'+(s.no_tun?' on':'');
+$('sw-noipv6').className='sw'+(s.disable_ipv6?' on':'');
+$('sw-priv').className='sw'+(s.private_mode?' on':'');
+$('sw-p2p').className='sw'+(s.p2p_only?' on':'');
+$('sw-lazy').className='sw'+(s.lazy_p2p?' on':'');
+$('sw-mt').className='sw'+(s.multi_thread?' on':'');
+$('sw-exit').className='sw'+(s.enable_exit_node?' on':'');
+$('s-secret').value=s.network_secret||'';
+$('s-network').value=s.network_name||'';
+$('s-hostname').value=s.hostname||'';
+$('s-ipv4').value=s.virtual_ipv4||'';
+$('s-ipv6').value=s.virtual_ipv6||'';
+$('s-instname').value=s.instance_name||'';
+$('s-mtu').value=s.mtu||'';
+$('s-compression').value=s.compression||'';
+$('s-defaultproto').value=s.default_protocol||'';
+$('s-encralgo').value=s.encryption_algorithm||'';
+$('s-vpn').value=s.vpn_portal||'';
+$('s-tld').value=s.tld_dns_zone||'';
+$('s-socks5').value=s.socks5||'';
+$('s-peers').value=(s.peer_urls||[]).join('\n');
+$('s-listeners').value=(s.listener_urls||[]).join('\n');
+$('s-proxy').value=(s.proxy_cidrs||[]).join('\n');
+$('s-routes').value=(s.manual_routes||[]).join('\n');
+$('s-mapped').value=(s.mapped_listeners||[]).join('\n');
+$('s-exitnodes').value=(s.exit_nodes||[]).join('\n');
+$('s-tcpfwd').value=(s.tcp_port_forward||[]).join('\n');
+$('s-udpfwd').value=(s.udp_port_forward||[]).join('\n');
+$('s-tcpwl').value=(s.tcp_whitelist||[]).join('\n');
+$('s-udpwl').value=(s.udp_whitelist||[]).join('\n');
+}
+
+async function toggleAutostart(){currentSettings.service_enabled=!currentSettings.service_enabled;syncSettingsUI(currentSettings);const r=await api('settings','POST',currentSettings);toast(r.ok?(currentSettings.service_enabled?'已开启自启':'已关闭自启'):'保存失败')}
+function toggleDHCP(){currentSettings.dhcp=!currentSettings.dhcp;syncSettingsUI(currentSettings)}
+function toggleEncrypt(){currentSettings.encryption=!currentSettings.encryption;syncSettingsUI(currentSettings)}
+function toggleLatency(){currentSettings.latency_first=!currentSettings.latency_first;syncSettingsUI(currentSettings)}
+function toggleNoTun(){currentSettings.no_tun=!currentSettings.no_tun;syncSettingsUI(currentSettings)}
+function toggleDisableIPv6(){currentSettings.disable_ipv6=!currentSettings.disable_ipv6;syncSettingsUI(currentSettings)}
+function togglePrivate(){currentSettings.private_mode=!currentSettings.private_mode;syncSettingsUI(currentSettings)}
+function toggleP2P(){currentSettings.p2p_only=!currentSettings.p2p_only;syncSettingsUI(currentSettings)}
+function toggleLazy(){currentSettings.lazy_p2p=!currentSettings.lazy_p2p;syncSettingsUI(currentSettings)}
+function toggleMT(){currentSettings.multi_thread=!currentSettings.multi_thread;syncSettingsUI(currentSettings)}
+function toggleExit(){currentSettings.enable_exit_node=!currentSettings.enable_exit_node;syncSettingsUI(currentSettings)}
+function toggleAdv(){$('adv-area').classList.toggle('show')}
+
+async function svcStart(){const r=await api('service/start','POST');toast(r.ok?'服务已启动':'启动失败: '+(r.error||''));setTimeout(st,1500)}
+async function svcStop(){const r=await api('service/stop','POST');toast(r.ok?'服务已停止':'停止失败');setTimeout(st,1000)}
+async function svcRestart(){const r=await api('service/restart','POST');toast(r.ok?'服务重启中':'重启失败: '+(r.error||''));setTimeout(st,2000)}
+
+async function saveSettings(){
+const splitLines=id=>$('s-'+id).value.split('\n').map(x=>x.trim()).filter(x=>x);
+const s={
+service_enabled:$('sw-autostart').classList.contains('on'),
+network_secret:$('s-secret').value,
+network_name:$('s-network').value,
+hostname:$('s-hostname').value,
+virtual_ipv4:$('s-ipv4').value,
+virtual_ipv6:$('s-ipv6').value,
+instance_name:$('s-instname').value,
+mtu:parseInt($('s-mtu').value)||0,
+compression:$('s-compression').value||'',
+default_protocol:$('s-defaultproto').value||'',
+encryption_algorithm:$('s-encralgo').value||'',
+vpn_portal:$('s-vpn').value||'',
+tld_dns_zone:$('s-tld').value||'',
+socks5:parseInt($('s-socks5').value)||0,
+peer_urls:splitLines('peers'),
+listener_urls:splitLines('listeners'),
+proxy_cidrs:splitLines('proxy'),
+manual_routes:splitLines('routes'),
+mapped_listeners:splitLines('mapped'),
+exit_nodes:splitLines('exitnodes'),
+tcp_port_forward:splitLines('tcpfwd'),
+udp_port_forward:splitLines('udpfwd'),
+tcp_whitelist:splitLines('tcpwl'),
+udp_whitelist:splitLines('udpwl'),
+dhcp:$('sw-dhcp').classList.contains('on'),
+encryption:$('sw-encrypt').classList.contains('on'),
+latency_first:$('sw-latency').classList.contains('on'),
+no_tun:$('sw-notun').classList.contains('on'),
+disable_ipv6:$('sw-noipv6').classList.contains('on'),
+private_mode:$('sw-priv').classList.contains('on'),
+p2p_only:$('sw-p2p').classList.contains('on'),
+lazy_p2p:$('sw-lazy').classList.contains('on'),
+multi_thread:$('sw-mt').classList.contains('on'),
+enable_exit_node:$('sw-exit').classList.contains('on')
+};
+const r=await api('settings','POST',s);toast(r.ok?'配置已保存并应用':'保存失败: '+(r.error||''));setTimeout(st,2000)
+}
+
+let td=[];const drawChart=()=>{
+const c=$('ch');if(!c||td.length<2)return;
+const w=c.parentElement.clientWidth;c.width=w*2;c.height=110*2;const ctx=c.getContext('2d');ctx.scale(2,2);ctx.clearRect(0,0,w,110);
+const mx=Math.max(...td.flatMap(x=>[x.rx,x.tx]),1);
+[['rx','#3b82f6'],['tx','#22c55e']].forEach(([k,col])=>{
+ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.lineJoin='round';
+td.forEach((d,i)=>{const x=6+(i/(td.length-1))*(w-12),y=8+94-(d[k]/mx)*94;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke()})};
+
+const logMap={app:'app',core:'core'};
+const lg=async(t)=>{logTab=t||logTab;$('log-title').textContent=logTab==='app'?'应用日志':'核心日志';document.querySelectorAll('.lt a').forEach(a=>a.classList.toggle('act',a.id==='lt-'+logTab));const r=await api('log/'+logMap[logTab]);$('log-content').textContent=r.log||'暂无日志'};
+function switchLog(t){logTab=t;lg(t)}
+async function clearLog(){await api('log/clear','POST');toast('日志已清除');lg(logTab)}
+
+const loadRoutes=async()=>{$('routes-content').textContent='加载中...';const r=await api('routes');const items=Array.isArray(r)?r:(r.routes||[]);
+if(!items.length){$('routes-content').textContent='暂无路由';return}
+const h=['<table class=tb-s><tr><th>网络</th><th>下一跳</th><th>类型</th></tr>'];
+items.forEach(item=>{
+const net=item.network||item.destination||item.cidr||'-';
+const via=item.via||item.next_hop||item.peer_id||item.hostname||'-';
+const t=item.type||item.kind||'proxy';
+h.push(`<tr><td>${net}</td><td style="font-family:monospace;font-size:.7rem">${via}</td><td>${t}</td></tr>`)});
+h.push('</table>');$('routes-content').innerHTML=h.join('')};
+
+function openConnectorAdd(){$('cm-url').value='';$('cm').classList.add('show');setTimeout(()=>$('cm-url').focus(),100)}
+async function addConnector(){const url=$('cm-url').value.trim();if(!url){toast('输入URL');return}const r=await api('connector/add','POST',{url});toast(r.ok?'已添加':'添加失败: '+(r.error||r.output||''));if(r.ok){$('cm').classList.remove('show');setTimeout(loadConnectors,500)}}
+
+const loadConnectors=async()=>{$('connectors-content').textContent='加载中...';const r=await api('connectors');const items=Array.isArray(r)?r:(r.connectors||[]);
+if(!items.length){$('connectors-content').textContent='暂无连接器';return}
+const h=['<table class=tb-s><tr><th>协议</th><th>地址</th><th>状态</th><th></th></tr>'];
+items.forEach((item,i)=>{
+const proto=item.protocol||item.proto||item.tunnel_proto||'-';
+const addr=item.address||item.addr||item.bind||item.listen||'-';
+const st=item.status||item.state||(item.connected?'在线':'离线');
+const url=item.url||item.addr||'';
+h.push(`<tr><td>${proto}</td><td style="font-family:monospace;font-size:.7rem">${addr}</td><td><span style="color:${st==='在线'||st===true?'var(--green)':'var(--fg2)'}">${st===true?'在线':st}</span></td><td><button class="act" onclick="removeConnector('${url.replace(/'/g,"\\'")}')">删除</button></td></tr>`)});
+h.push('</table>');$('connectors-content').innerHTML=h.join('')};
+
+async function removeConnector(url){if(!confirm('确定删除连接器 ' + url + ' ?'))return;const r=await api('connector/remove','POST',{url});toast(r.ok?'已删除':'删除失败: '+(r.error||r.output||''));setTimeout(loadConnectors,500)}
+
+function openPfAdd(){$('pf-bind').value='';$('pf-dst').value='';$('pfa').classList.add('show')}
+async function addPortForward(){const proto=$('pf-proto').value,bind=$('pf-bind').value.trim(),dst=$('pf-dst').value.trim();if(!bind||!dst){toast('请填写完整');return}const r=await api('port-forward/add','POST',{proto,bind,dst});toast(r.ok?'已添加':'添加失败: '+(r.error||''));if(r.ok){$('pfa').classList.remove('show');setTimeout(loadPortForwards,500)}}
+
+const loadPortForwards=async()=>{$('pf-content').textContent='加载中...';const r=await api('port-forward/list');const items=Array.isArray(r)?r:[];
+if(!items.length){$('pf-content').textContent='暂无端口转发';return}
+const h=['<table class=tb-s><tr><th>协议</th><th>绑定</th><th>目标</th><th></th></tr>'];
+items.forEach(item=>{
+const proto=item.proto||item.protocol||'-';
+const bind=item.bind_addr||item.bind||'-';
+const dst=item.dst_addr||item.dst||'-';
+const enc=encodeURIComponent(JSON.stringify({proto,bind,dst}));
+h.push(`<tr><td>${proto}</td><td style="font-family:monospace;font-size:.7rem">${bind}</td><td style="font-family:monospace;font-size:.7rem">${dst}</td><td><button class="act" onclick='removePortForward(${enc})'>删除</button></td></tr>`)});
+h.push('</table>');$('pf-content').innerHTML=h.join('')};
+
+async function removePortForward(enc){const o=JSON.parse(decodeURIComponent(enc));if(!confirm(`确定删除 ${o.proto} ${o.bind}?`))return;const r=await api('port-forward/remove','POST',o);toast(r.ok?'已删除':'删除失败: '+(r.error||''));setTimeout(loadPortForwards,500)}
+
+const loadWhitelist=async()=>{$('wl-content').textContent='加载中...';const r=await api('whitelist/show');const tcp=r.tcp||r.TCP||'';const udp=r.udp||r.UDP||'';$('wl-content').innerHTML=`<div>TCP: <code style="color:var(--blue)">${tcp||'(无)'}</code></div><div>UDP: <code style="color:var(--blue)">${udp||'(无)'}</code></div>`};
+async function setWhitelist(){const proto=$('wl-proto').value,ports=$('wl-ports').value.trim();if(!ports){toast('请输入端口列表');return}const r=await api('whitelist/set','POST',{proto,ports});toast(r.ok?'已设置':'设置失败: '+(r.error||''));setTimeout(loadWhitelist,500)}
+async function clearWhitelist(){const proto=$('wl-proto').value;const r=await api('whitelist/clear','POST',{proto});toast(r.ok?'已清除':'清除失败: '+(r.error||''));setTimeout(loadWhitelist,500)}
+
+const loadCreds=async()=>{$('creds-content').textContent='加载中...';const r=await api('credential/list');const items=Array.isArray(r)?r:[];
+if(!items.length){$('creds-content').textContent='暂无凭证';return}
+const h=['<table class=tb-s><tr><th>ID</th><th>状态</th><th>到期</th><th></th></tr>'];
+items.forEach(item=>{
+const id=item.id||item.credential_id||'-';
+const status=item.disabled?'已撤销':'有效';
+const expiry=item.expiry||item.expired_at||'-';
+h.push(`<tr><td style="font-family:monospace;font-size:.7rem">${id}</td><td>${status}</td><td>${expiry}</td><td><button class="act" onclick="revokeCred('${id}')">撤销</button></td></tr>`)});
+h.push('</table>');$('creds-content').innerHTML=h.join('')};
+
+async function generateCred(){
+const id=$('c-id').value.trim(),ttl=parseInt($('c-ttl').value)||3600,groups=$('c-groups').value.trim(),cidrs=$('c-cidrs').value.trim(),allowRelay=$('c-relay').classList.contains('on'),reusable=$('c-reuse').classList.contains('on');
+const r=await api('credential/generate','POST',{credential_id:id,ttl,groups,allow_relay:allowRelay,allowed_proxy_cidrs:cidrs,reusable});
+if(r.ok){$('c-result').textContent=r.output||'已生成';toast('凭证已生成');setTimeout(loadCreds,500)}else{$('c-result').textContent='生成失败: '+(r.error||r.output||'');toast('生成失败')}
+}
+async function revokeCred(id){if(!confirm('确定撤销凭证 '+id+' ?'))return;const r=await api('credential/revoke','POST',{credential_id:id});toast(r.ok?'已撤销':'撤销失败: '+(r.error||''));setTimeout(loadCreds,500)}
+
+const loadLogLevel=async()=>{const r=await api('log/level');$('lvl-cur').textContent='当前: '+(r.level||JSON.stringify(r))};
+async function setLogLevel(){const level=$('lvl-sel').value;const r=await api('log/level/set','POST',{level});toast(r.ok?'已设置为 '+level:'失败: '+(r.error||r.output||''));setTimeout(loadLogLevel,500)}
+
+const loadVPN=async()=>{$('vpn-content').textContent='加载中...';const r=await api('vpn-portal');if(r.error){$('vpn-content').textContent='未启用VPN Portal';return}const c=r.connector||'';$('vpn-content').innerHTML=`<pre style="margin:0;font-size:.7rem;white-space:pre-wrap;color:var(--fg2)">${JSON.stringify(r,null,2)}</pre>`};
+
+const loadStats=async()=>{$('stats-content').textContent='加载中...';const r=await api('stats');$('stats-content').textContent=typeof r==='string'?r:JSON.stringify(r,null,2)};
+async function downloadProm(){try{const r=await fetch('/api/stats/prometheus');const t=await r.text();const b=new Blob([t],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='easytier-metrics.txt';a.click();URL.revokeObjectURL(u)}catch(e){toast('下载失败')}}
+
+const pingDlg=()=>{$('pm-input').value='';$('pm-target').textContent='';$('pm-out').textContent='输入目标后发送';$('pm').classList.add('show');setTimeout(()=>$('pm-input').focus(),100)};
+const doPing=async()=>{const t=$('pm-input').value.trim();if(!t){toast('输入目标');return}$('pm-target').textContent=t;$('pm-out').textContent='Ping '+t+'...\n';const r=await api('ping','POST',{target:t,count:4});$('pm-out').textContent+=r.output||'无响应'};
+
+const showDetail=(id)=>{const p=peersData[id];if(!p)return;$('topo-container').style.display='none';const dp=$('dp');dp.style.display='block';dp.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0;color:var(--fg)">'+(p.hostname||'节点详情')+'</h3><button onclick="hideDetail()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.72rem;text-decoration:underline">返回拓扑</button></div><div style="display:grid;grid-template-columns:1fr;gap:6px">'+[['主机名',p.hostname],['Peer ID',p.id],['IP 地址',p.ip],['在线状态',(p.connected||p.online)?'在线':'离线'],['延迟',p.lat_ms?p.lat_ms+'ms':'-'],['接收流量',p.rx_bytes?F(p.rx_bytes):'-'],['发送流量',p.tx_bytes?F(p.tx_bytes):'-']].map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg2);border-radius:6px"><span style="font-size:.72rem;color:var(--fg2)">${l}</span><span style="font-size:.8rem;color:var(--fg)">${v||'-'}</span></div>`).join('')+'</div>'};
+const hideDetail=()=>{$('topo-container').style.display='block';$('dp').style.display='none'};
+
+function toggleGearMenu(){$('gear-menu').classList.toggle('show')}
+function closeGearMenu(){$('gear-menu').classList.remove('show')}
+document.addEventListener('click',e=>{if(!e.target.closest('.gear')&&!e.target.closest('.gear-menu'))closeGearMenu()});
+function toggleTopoZoom(){if(!topoNetwork)return;topoZoomEnabled=!topoZoomEnabled;topoNetwork.setOptions({interaction:{zoomView:topoZoomEnabled}});$('zoom-toggle').textContent=topoZoomEnabled?'禁用缩放':'启用缩放';toast(topoZoomEnabled?'已启用缩放':'已禁用缩放')}
+
+let visLoaded=false,topoNetwork=null;
+const loadVisNetwork=()=>new Promise((resolve,reject)=>{if(window.vis){resolve();return}const s=document.createElement('script');s.src='vis-network.min.js';s.onload=()=>{visLoaded=true;resolve()};s.onerror=()=>reject(new Error('加载失败'));document.head.appendChild(s)});
+const drawTopo=async()=>{const container=$('topo-container');if(!container||container.innerHTML.includes('vis'))return;container.innerHTML='<div style="color:var(--fg2);font-size:.8rem;padding:20px;text-align:center;">加载拓扑图...</div>';try{await loadVisNetwork();container.innerHTML='';const d=await api('status');const node=d.node||{};const peers=Array.isArray(d.peers)?d.peers:[];const nodes=[{id:'self',label:(node.hostname||'当前节点')+'\n'+(node.peer_id?node.peer_id.substring(0,8):'-'),color:{background:'#1d4ed8',border:'#3b82f6',highlight:{background:'#2563eb',border:'#60a5fa'}},shape:'database',size:25,font:{color:'#ffffff',size:12}}];const edges=[];peers.forEach(p=>{const lid=p.id||Math.random().toString(36).substr(2,9);nodes.push({id:lid,label:(p.hostname||'?')+'\n'+(p.ip||String(p.id||'').substring(0,8)||'-'),color:(p.connected||p.online)?{background:'#047857',border:'#10b981',highlight:{background:'#059669',border:'#34d399'}}:{background:'#b91c1c',border:'#ef4444',highlight:{background:'#dc2626',border:'#f87171'}},shape:'dot',size:18,font:{color:'#8892b0',size:11}});edges.push({from:'self',to:lid,color:(p.connected||p.online)?'#10b981':'#475569',width:(p.connected||p.online)?2:1,length:160})});const data={nodes:new vis.DataSet(nodes),edges:new vis.DataSet(edges)};const options={interaction:{dragNodes:true,zoomView:false,dragView:true},physics:{solver:'forceAtlas2Based',forceAtlas2Based:{gravitationalConstant:-50,centralGravity:0.01,springLength:100,springConstant:0.08}}};topoNetwork=new vis.Network(container,data,options);topoNetwork.on('click',params=>{if(params.nodes.length){const id=params.nodes[0];if(id==='self')return;showDetail(id)}})}catch(e){container.innerHTML=`<div style="color:var(--red);font-size:.8rem;padding:20px;text-align:center;">加载失败</div>`}};
+
+const batchPing=async()=>{const btn=$('btn-batch-ping');btn.disabled=true;btn.textContent='Ping...';try{const d=await api('status');const peers=Array.isArray(d.peers)?d.peers.filter(p=>p.connected||p.online):[];if(peers.length===0){toast('没有在线节点');btn.disabled=false;btn.textContent='批量 Ping';return}for(let i=0;i<peers.length;i+=3){await Promise.all(peers.slice(i,i+3).map(async p=>{const t=p.ip||p.id||p.hostname;await api('ping','POST',{target:t,count:3})}))}toast('测速完成')}catch(e){toast('测速出错')}finally{btn.disabled=false;btn.textContent='批量 Ping'}};
+
+let touchStartX=0,touchEndX=0;
+document.addEventListener('touchstart',e=>{touchStartX=e.changedTouches[0].screenX},{passive:true});
+document.addEventListener('touchend',e=>{touchEndX=e.changedTouches[0].screenX;handleSwipe()},{passive:true});
+const handleSwipe=()=>{const tabs=['ov','tp','fw','cr','st','lg'];const al=document.querySelector('.bn a.act');if(!al)return;const ci=tabs.indexOf(al.dataset.p);if(ci===-1)return;const d=touchEndX-touchStartX;if(Math.abs(d)>80){let ni=ci;if(d>0&&ci>0)ni=ci-1;else if(d<0&&ci<tabs.length-1)ni=ci+1;if(ni!==ci){const nl=document.querySelector(`.bn a[data-p="${tabs[ni]}"]`);if(nl)nl.click()}}};
+
+st();setInterval(st,3000);
+</script>
+</body>
+</html>

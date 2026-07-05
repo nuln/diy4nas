@@ -1,0 +1,14 @@
+services:
+  transmission:
+    image: ${DOCKER_MIRROR}docker.io/linuxserver/transmission:${VERSION}
+    container_name: transmission
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/config:/config
+      - ${TRIM_PKGVAR:?}/downloads:/downloads
+      - ${TRIM_PKGVAR:?}/watch:/watch
+    environment:
+      - PUID=${TRIM_UID}
+      - PGID=${TRIM_GID}
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

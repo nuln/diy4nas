@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "freshrss.Application": {
+            "title": "FreshRSS",
+            "desc": "\u81ea\u6258\u7ba1 RSS \u9605\u8bfb\u5668",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "8180",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

@@ -1,0 +1,14 @@
+appname         = jellyfin
+version         = 0.0.0
+display_name    = Jellyfin
+platform            = all
+maintainer         = Jellyfin Team
+maintainer_url      = https://jellyfin.org
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = jellyfin.Application
+service_port    = 8097
+checkport           = false
+desc            = 免费开源媒体系统
+source          = thirdparty
+checksum        = 

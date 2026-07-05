@@ -1,0 +1,14 @@
+appname         = headscale
+version         = 0.0.0
+display_name    = Headscale
+platform            = all
+maintainer         = Headscale
+maintainer_url      = https://headscale.net
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = headscale.Application
+service_port    = 8480
+checkport           = false
+desc            = Tailscale 自托管控制服务器
+source          = thirdparty
+checksum        = 

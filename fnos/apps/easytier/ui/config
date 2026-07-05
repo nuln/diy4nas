@@ -1,0 +1,18 @@
+{
+    ".url": {
+        "easytier.Application": {
+            "title": "EasyTier",
+            "desc": "\u53bb\u4e2d\u5fc3\u5316\u5f02\u5730\u7ec4\u7f51",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "port": "11210",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true,
+            "width": 550,
+            "height": 690,
+            "minWidth": 500,
+            "minHeight": 600
+        }
+    }
+}

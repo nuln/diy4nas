@@ -1,0 +1,4 @@
+#!/bin/sh
+# Legacy wrapper - the Go server (app/server) manages easytier-core directly.
+# This script is kept for backward compatibility.
+exec "$@"

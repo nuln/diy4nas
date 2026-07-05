@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "headscale.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Headscale",
+        "permission": {
+          "rw": [
+            "headscale"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "headscale",
+        "path": "docker"
+      }
+    ]
+  }
+}

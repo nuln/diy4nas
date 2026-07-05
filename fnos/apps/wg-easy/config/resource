@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "wg-easy.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "WG Easy",
+        "permission": {
+          "rw": [
+            "wg-easy"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "wg-easy",
+        "path": "docker"
+      }
+    ]
+  }
+}

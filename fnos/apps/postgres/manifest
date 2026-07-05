@@ -1,0 +1,14 @@
+appname         = postgres
+version         = 0.0.0
+display_name    = PostgreSQL
+platform            = all
+maintainer         = PostgreSQL Global Development Group
+maintainer_url      = https://postgresql.org
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = postgres.Application
+service_port    = 5432
+checkport           = false
+desc            = 开源关系型数据库
+source          = thirdparty
+checksum        = 

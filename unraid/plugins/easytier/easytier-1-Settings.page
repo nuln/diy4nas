@@ -1,0 +1,87 @@
+Menu="EasyTier"
+Icon="easytier.png"
+Title="Settings"
+Type="xmenu"
+Tag="gears"
+Markdown="false"
+---
+<?php
+$plugin = 'easytier';
+$pluginPath = '/plugins/' . $plugin;
+?>
+<link type="text/css" rel="stylesheet" href="<?= "{$pluginPath}/style.css"; ?>">
+
+<table class="unraid tablesorter"><thead><tr><td>Network Configuration</td></tr></thead></table>
+
+<dl>
+  <dt>Network Name</dt>
+  <dd><input type="text" id="et-name" value="easytier"></dd>
+</dl>
+<blockquote class="inline_help">All nodes must use the same network name.</blockquote>
+
+<dl>
+  <dt>Network Secret</dt>
+  <dd><input type="password" id="et-secret" placeholder="Leave blank"></dd>
+</dl>
+<blockquote class="inline_help">Password for the network.</blockquote>
+
+<dl>
+  <dt>Virtual IPv4</dt>
+  <dd><input type="text" id="et-ipv4" placeholder="10.144.144.1/24"></dd>
+</dl>
+<blockquote class="inline_help">Static IP. Leave empty for DHCP.</blockquote>
+
+<dl>
+  <dt>Hostname</dt>
+  <dd><input type="text" id="et-host"></dd>
+</dl>
+<blockquote class="inline_help">Node display name.</blockquote>
+
+<dl>
+  <dt>Peer URLs</dt>
+  <dd><input type="text" id="et-peers" placeholder="tcp://host:11010"></dd>
+</dl>
+<blockquote class="inline_help">Comma-separated peer addresses.</blockquote>
+
+<dl>
+  <dt>Listener URLs</dt>
+  <dd><input type="text" id="et-listeners" value="tcp://0.0.0.0:11010, udp://0.0.0.0:11010"></dd>
+</dl>
+<blockquote class="inline_help">Addresses to listen on.</blockquote>
+
+<dl>
+  <dt>Proxy CIDRs</dt>
+  <dd><input type="text" id="et-proxy" placeholder="192.168.1.0/24"></dd>
+</dl>
+<blockquote class="inline_help">Subnets reachable via this node.</blockquote>
+
+<dl>
+  <dt>DHCP (Auto IP)</dt>
+  <dd>
+    <select id="et-dhcp">
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  </dd>
+</dl>
+<blockquote class="inline_help">Automatically assign IP via DHCP.</blockquote>
+
+<dl>
+  <dt>Auto Start on Array Mount</dt>
+  <dd>
+    <select id="et-autostart">
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+  </dd>
+</dl>
+<blockquote class="inline_help">Start EasyTier automatically when the array mounts.</blockquote>
+
+<table class="unraid tablesorter"><thead><tr><td>Save</td></tr></thead></table>
+<dl>
+  <dt><strong>Apply configuration changes.</strong></dt>
+  <dd><span><input type="button" id="et-save" value="Apply"></span></dd>
+</dl>
+<div id="et-cfg-msg" style="margin-top:4px;font-size:12px;color:#888;"></div>
+
+<script src="<?= $pluginPath; ?>/easytier.js"></script>

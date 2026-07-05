@@ -1,0 +1,14 @@
+#!/bin/bash
+# 配置 sudoers：允许 Web 用户执行 appcfg
+SERVICE_COMMAND=""
+SVC_BACKGROUND=n
+
+service_postinst() {
+    echo "www-data ALL=(root) NOPASSWD: /usr/sbin/appcfg" > /etc/sudoers.d/app-center
+    chmod 440 /etc/sudoers.d/app-center
+    mkdir -p "${TRIM_PKGVAR}/fpk" 2>/dev/null || true
+}
+
+service_preuninst() {
+    rm -f /etc/sudoers.d/app-center 2>/dev/null || true
+}

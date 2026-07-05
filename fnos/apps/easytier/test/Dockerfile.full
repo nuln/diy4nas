@@ -1,0 +1,14 @@
+FROM alpine:3.19
+
+RUN apk add --no-cache curl bash
+
+COPY server /app/server
+COPY easytier-core /app/easytier-core
+COPY easytier-cli /app/easytier-cli
+COPY test_full.sh /test.sh
+
+RUN chmod +x /app/server /app/easytier-core /app/easytier-cli /test.sh
+
+EXPOSE 11217
+
+CMD ["/test.sh"]

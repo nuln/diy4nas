@@ -64,6 +64,10 @@
   .empty-state h2 { font-weight: 400; margin: 0 0 20px 0; }
   .empty-state button { background: #165dff; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; }
   .empty-state button:hover { background: #0e4cd9; }
+  .user-error { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; color: #86909c; padding: 20px; text-align: center; }
+  .user-error h2 { font-weight: 400; margin: 0 0 10px 0; color: #f53f3f; font-size: 16px; }
+  .user-error p { margin: 4px 0; font-size: 13px; }
+  .user-error code { background: #232323; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
   .statusbar { background: #2a2a2a; padding: 4px 14px; font-size: 11px; color: #86909c; border-top: 1px solid #3a3a3a; display: flex; gap: 16px; }
   .statusbar .item { display: flex; gap: 4px; align-items: center; }
   .statusbar .item .v { color: #e0e0e0; }
@@ -97,6 +101,26 @@
   .ctx-submenu > .submenu { display: none; position: absolute; left: 100%; top: 0; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 4px 0; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); max-height: 400px; overflow-y: auto; }
   .ctx-submenu.open > .submenu { display: block; }
   .ctx-submenu > .item::after { content: "▶"; float: right; opacity: 0.5; margin-left: 12px; }
+  /* ── 响应式：手机端适配 ── */
+  @media (max-width: 640px) {
+    .toolbar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
+    .toolbar .spacer { display: none; }
+    .toolbar button { padding: 3px 8px; font-size: 11px; }
+    .toolbar .badge { font-size: 10px; padding: 2px 6px; }
+    .tab { min-width: 80px; max-width: 130px; padding: 4px 8px; font-size: 11px; gap: 4px; }
+    .sidebar { width: 100%; }
+    .toast { top: auto; bottom: 50px; right: 10px; left: 10px; text-align: center; }
+    .statusbar { flex-wrap: wrap; gap: 8px; padding: 4px 10px; }
+    .statusbar .item { font-size: 10px; }
+    .ctx-menu { min-width: 120px; }
+    .ctx-submenu > .submenu { left: 0; top: 100%; min-width: 160px; }
+    .modal { width: 95vw; }
+    .sidebar-item { padding: 10px 12px; font-size: 13px; }
+    .sidebar-item .kill, .sidebar-item .run { opacity: 1; padding: 4px 8px; }
+    .sidebar-header { padding: 10px 12px; }
+    .sidebar-header h3 { font-size: 13px; }
+    .sidebar-close { font-size: 20px; padding: 4px; }
+  }
 </style>
 </head>
 <body>
@@ -1173,7 +1197,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 <!-- 右键菜单容器（动态插入） -->
 <div id="ctx-menu-host"></div>
-</body>
-</html>
 </body>
 </html>

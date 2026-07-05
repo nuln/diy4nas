@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "syncthing.Application": {
+            "title": "Syncthing",
+            "desc": "\u5f00\u6e90\u6587\u4ef6\u540c\u6b65\u5de5\u5177",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "8384",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

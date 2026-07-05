@@ -1,0 +1,11 @@
+services:
+  headscale:
+    image: ${DOCKER_MIRROR}headscale/headscale:${VERSION}
+    container_name: headscale
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/var/lib/headscale
+      - ${TRIM_PKGVAR:?}/config:/etc/headscale
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

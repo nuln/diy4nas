@@ -1,0 +1,10 @@
+services:
+  redis:
+    image: ${DOCKER_MIRROR}docker.io/redis:7-alpine
+    container_name: redis
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/data
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

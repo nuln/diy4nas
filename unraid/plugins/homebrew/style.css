@@ -1,0 +1,3 @@
+.tablesorter .filtered { display: none; }
+.tablesorter-filter.disabled { display: none; }
+#hb-search-results { max-height: 400px; overflow-y: auto; }

@@ -1,0 +1,10 @@
+#!/bin/sh
+APP_VAR=${TRIM_PKGVAR:-/var/apps/app-center/data}
+# 始终删除：日志、缓存、PID
+rm -f "${APP_VAR}"/*.log "${APP_VAR}"/*.pid 2>/dev/null || true
+pkill -x server 2>/dev/null || true
+# 可选删除：配置和数据
+if [ "${wizard_delete_data}" = "true" ]; then
+    rm -rf "${APP_VAR}" 2>/dev/null || true
+fi
+exit 0

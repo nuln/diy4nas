@@ -1,0 +1,20 @@
+#!/bin/sh
+APP_VAR=${TRIM_PKGVAR:-/var/apps/easytier/data}
+# Always delete: logs, cache, PID
+rm -f "${APP_VAR}"/*.log "${APP_VAR}"/*.pid 2>/dev/null || true
+pkill -x easytier-core 2>/dev/null || true
+pkill -x easytier-web-embed 2>/dev/null || true
+# Remove capabilities
+APP_DEST=${TRIM_APPDEST:-/var/apps/easytier}
+for bin in easytier-core easytier-cli; do
+    for dir in "$APP_DEST/app" "$APP_DEST"; do
+        if [ -x "$dir/$bin" ]; then
+            setcap -r "$dir/$bin" 2>/dev/null || true
+        fi
+    done
+done
+# Optional delete: config and data
+if [ "${wizard_delete_data}" = "true" ]; then
+    rm -rf "${APP_VAR}" 2>/dev/null || true
+fi
+exit 0

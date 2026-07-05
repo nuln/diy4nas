@@ -1,0 +1,14 @@
+appname         = app-center
+version         = 0.0.0
+display_name    = App Center
+platform        = x86
+maintainer         = diy4nas
+maintainer_url      = 
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = app-center.Application
+service_port    = 8011
+checkport       = false
+desc            = diy4nas 应用中心
+source          = thirdparty
+checksum        = 

@@ -1,0 +1,389 @@
+#!/bin/bash
+
+NAME="homebrew"
+CONFIG_DIR="/boot/config/plugins/homebrew"
+CONFIG_FILE="$CONFIG_DIR/homebrew.conf"
+
+BREW_STORAGE="/boot/config/plugins/homebrew/linuxbrew"
+BREW_HOME="/home/linuxbrew"
+BREW_DIR="$BREW_HOME/.linuxbrew"
+BREW_BIN="$BREW_DIR/bin/brew"
+BREW_ENV="$BREW_DIR/bin/brew shellenv"
+GCC_AUTOINSTALL="yes"
+SHELL_INTEGRATION="bash"
+
+write_default_config() {
+    cat > "$CONFIG_FILE" << 'CONF'
+# Homebrew plugin configuration
+BREW_STORAGE="/boot/config/plugins/homebrew/linuxbrew"
+AUTOSTART="yes"
+SHELL_INTEGRATION="bash"
+GCC_AUTOINSTALL="yes"
+CONF
+}
+
+load_config() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        write_default_config
+    fi
+    . "$CONFIG_FILE"
+}
+
+_brew() {
+    local _args=""
+    for _a in "$@"; do
+        _args="$_args $(printf '%q' "$_a")"
+    done
+    su linuxbrew -s /bin/bash -c "cd '$BREW_HOME' && '$BREW_BIN' $_args" 2>&1
+}
+
+_brew_env() {
+    su linuxbrew -s /bin/bash -c "cd '$BREW_HOME' && '$BREW_BIN' shellenv" 2>&1
+}
+
+ensure_user() {
+    if ! id linuxbrew >/dev/null 2>&1; then
+        useradd --system --uid 95 --gid 100 --no-user-group --home-dir "$BREW_HOME" linuxbrew 2>/dev/null || true
+    fi
+}
+
+ensure_bind() {
+    mkdir -p "$BREW_STORAGE" "$BREW_HOME"
+    if ! mountpoint -q "$BREW_HOME" 2>/dev/null; then
+        if ! mount --bind "$BREW_STORAGE" "$BREW_HOME" 2>/dev/null; then
+            echo "ERROR: Failed to bind mount $BREW_STORAGE to $BREW_HOME"
+            return 1
+        fi
+    fi
+    chown -R linuxbrew:users "$BREW_HOME" 2>/dev/null || true
+}
+
+# GCC version detection — try several known versions
+GCC_VERSIONS="gcc-14.2.0-x86_64-2.txz gcc-14.2.1-x86_64-1.txz gcc-14.1.0-x86_64-1.txz gcc-13.2.0-x86_64-1.txz"
+
+install_gcc() {
+    if command -v gcc >/dev/null 2>&1; then
+        return 0
+    fi
+
+    echo "Installing gcc from Slackware..."
+    GCC_BASE="https://slackware.uk/slackware/slackware64-current/slackware64/d"
+
+    mkdir -p "$BREW_STORAGE"
+
+    for GCC_PKG in $GCC_VERSIONS; do
+        if [ -f "$BREW_STORAGE/$GCC_PKG" ]; then
+            installpkg "$BREW_STORAGE/$GCC_PKG" >/dev/null 2>&1 || true
+            if command -v gcc >/dev/null 2>&1; then
+                echo "gcc installed (from cached $GCC_PKG)"
+                return 0
+            fi
+        fi
+        wget -q -O "$BREW_STORAGE/$GCC_PKG" "$GCC_BASE/$GCC_PKG" 2>/dev/null || continue
+        installpkg "$BREW_STORAGE/$GCC_PKG" >/dev/null 2>&1 || true
+        if command -v gcc >/dev/null 2>&1; then
+            echo "gcc installed successfully"
+            return 0
+        fi
+    done
+
+    echo "ERROR: Failed to install gcc (tried: $GCC_VERSIONS)"
+    return 1
+}
+
+func_install_gcc() {
+    install_gcc
+}
+
+func_install() {
+    load_config
+
+    if command -v gcc >/dev/null 2>&1; then
+        :
+    elif [ "$GCC_AUTOINSTALL" = "yes" ]; then
+        if ! install_gcc; then
+            echo "WARNING: gcc installation failed. Homebrew may not work correctly."
+        fi
+    else
+        echo "WARNING: gcc is not installed. Install gcc first."
+    fi
+
+    ensure_user
+    ensure_bind
+
+    if [ -f "$BREW_BIN" ]; then
+        echo "Homebrew already installed, running setup..."
+        func_setup
+        return 0
+    fi
+
+    echo "Installing Homebrew..."
+    su linuxbrew -s /bin/bash -c "export NONINTERACTIVE=1; cd $BREW_HOME && /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"" 2>&1 || {
+        echo "ERROR: Homebrew installation failed"
+        return 1
+    }
+
+    func_setup
+    echo "Homebrew installed successfully!"
+}
+
+func_setup() {
+    load_config
+    ensure_user
+    ensure_bind || return 1
+
+    chmod 755 /usr/local/lib 2>/dev/null || true
+
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "Homebrew is not installed. Run 'install' first."
+        return 1
+    fi
+
+    if [ "$SHELL_INTEGRATION" = "bash" ]; then
+        _add_shell_config ".bashrc"
+    elif [ "$SHELL_INTEGRATION" = "zsh" ]; then
+        _add_shell_config ".zshrc"
+    fi
+
+    echo "Setup complete."
+}
+
+_add_shell_config() {
+    RC_FILE="/root/$1"
+
+    if [ -f "$RC_FILE" ] && grep -q "Homebrew plugin configuration" "$RC_FILE" 2>/dev/null; then
+        return 0
+    fi
+
+    cat >> "$RC_FILE" << 'RC'
+# Homebrew plugin configuration
+if [ -f /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  brew() {
+    cd /home/linuxbrew
+    su linuxbrew -s /home/linuxbrew/.linuxbrew/bin/brew -- "$@"
+    cd - > /dev/null
+  }
+fi
+# End Homebrew plugin configuration
+RC
+}
+
+func_status() {
+    load_config
+
+    if [ -f "$BREW_BIN" ]; then
+        echo "installed=1"
+        VERSION=$(HOME="$BREW_HOME" su linuxbrew -s /bin/bash -c "cd $BREW_HOME && $BREW_BIN --version 2>/dev/null | head -1")
+        echo "version=$VERSION"
+    else
+        echo "installed=0"
+    fi
+
+    if mountpoint -q "$BREW_HOME" 2>/dev/null; then
+        echo "bind_mounted=1"
+    else
+        echo "bind_mounted=0"
+    fi
+
+    if id linuxbrew >/dev/null 2>&1; then
+        echo "linuxbrew_user=1"
+    else
+        echo "linuxbrew_user=0"
+    fi
+
+    echo "brew_storage=$BREW_STORAGE"
+    echo "brew_home=$BREW_HOME"
+    echo "autostart=$AUTOSTART"
+    echo "shell_integration=$SHELL_INTEGRATION"
+    echo "gcc_autoinstall=$GCC_AUTOINSTALL"
+
+    if command -v gcc >/dev/null 2>&1; then
+        echo "gcc_installed=1"
+    else
+        echo "gcc_installed=0"
+    fi
+}
+
+func_remove() {
+    echo "Removing Homebrew..."
+
+    if [ -f "$BREW_BIN" ]; then
+        _brew update-reset 2>/dev/null || true
+    fi
+
+    umount "$BREW_HOME" 2>/dev/null || true
+    userdel linuxbrew 2>/dev/null || true
+    rm -rf "$BREW_STORAGE" 2>/dev/null || true
+
+    # Remove shell integration
+    for RC in ".bashrc" ".zshrc"; do
+        if [ -f "/root/$RC" ]; then
+            sed -i '/^# Homebrew plugin configuration$/,/^# End Homebrew plugin configuration$/d' "/root/$RC" 2>/dev/null || true
+        fi
+    done
+
+    echo "Removed."
+}
+
+func_update() {
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "Homebrew is not installed."
+        return 1
+    fi
+    echo "Updating Homebrew..."
+    _brew update
+}
+
+func_upgrade() {
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "Homebrew is not installed."
+        return 1
+    fi
+    echo "Upgrading packages..."
+    _brew upgrade
+}
+
+func_list() {
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "[]"
+        return 0
+    fi
+    _brew list --formula 2>/dev/null | tr '\n' ' '
+}
+
+func_list_cask() {
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "[]"
+        return 0
+    fi
+    _brew list --cask 2>/dev/null | tr '\n' ' '
+}
+
+func_search() {
+    if [ $# -lt 1 ]; then
+        echo '{"error":"search query required"}'
+        return 1
+    fi
+    if [ ! -f "$BREW_BIN" ]; then
+        echo '{"error":"Homebrew not installed"}'
+        return 1
+    fi
+    _brew search "$1" 2>/dev/null
+}
+
+func_install_pkg() {
+    if [ $# -lt 1 ]; then
+        echo "Usage: $0 install_pkg <formula>"
+        return 1
+    fi
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "Homebrew is not installed."
+        return 1
+    fi
+    ensure_bind || return 1
+    _brew install "$@"
+}
+
+func_uninstall_pkg() {
+    if [ $# -lt 1 ]; then
+        echo "Usage: $0 uninstall_pkg <formula>"
+        return 1
+    fi
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "Homebrew is not installed."
+        return 1
+    fi
+    _brew uninstall "$@"
+}
+
+func_info() {
+    if [ $# -lt 1 ]; then
+        echo '{"error":"formula required"}'
+        return 1
+    fi
+    if [ ! -f "$BREW_BIN" ]; then
+        echo '{"error":"Homebrew not installed"}'
+        return 1
+    fi
+    _brew info --json=v2 "$1" 2>/dev/null || _brew info "$1" 2>/dev/null
+}
+
+func_outdated() {
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "[]"
+        return 0
+    fi
+    _brew outdated --formula 2>/dev/null
+}
+
+func_deps() {
+    if [ $# -lt 1 ]; then
+        echo "[]"
+        return 1
+    fi
+    if [ ! -f "$BREW_BIN" ]; then
+        echo "[]"
+        return 1
+    fi
+    _brew deps --tree "$1" 2>/dev/null
+}
+
+case "${1:-}" in
+    "version")
+        echo "2026.06.12"
+        ;;
+    "install")
+        func_install
+        ;;
+    "install_gcc")
+        func_install_gcc
+        ;;
+    "setup")
+        func_setup
+        ;;
+    "remove")
+        func_remove
+        ;;
+    "status")
+        func_status
+        ;;
+    "update")
+        func_update
+        ;;
+    "upgrade")
+        func_upgrade
+        ;;
+    "list")
+        func_list
+        ;;
+    "list_cask")
+        func_list_cask
+        ;;
+    "search")
+        shift
+        func_search "$@"
+        ;;
+    "install_pkg")
+        shift
+        func_install_pkg "$@"
+        ;;
+    "uninstall_pkg")
+        shift
+        func_uninstall_pkg "$@"
+        ;;
+    "info")
+        shift
+        func_info "$@"
+        ;;
+    "outdated")
+        func_outdated
+        ;;
+    "deps")
+        shift
+        func_deps "$@"
+        ;;
+    *)
+        echo "Usage: $0 {install|install_gcc|setup|remove|status|update|upgrade|list|list_cask|search|install_pkg|uninstall_pkg|info|outdated|deps|version}"
+        ;;
+esac

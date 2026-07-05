@@ -1,0 +1,14 @@
+FROM alpine:3.19
+
+RUN apk add --no-cache curl bash
+
+COPY server /app/server
+COPY mock-cli.sh /app/mock-cli.sh
+COPY mock-core.sh /app/mock-core.sh
+COPY test_mock.sh /test.sh
+
+RUN chmod +x /app/server /app/mock-cli.sh /app/mock-core.sh /test.sh
+
+EXPOSE 11216
+
+CMD ["/test.sh"]

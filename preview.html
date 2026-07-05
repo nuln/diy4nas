@@ -1,0 +1,216 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Tailscale App - 完整布局</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0f17;--bg2:#131822;--bg3:#1c2333;--card:#1a2130;--fg:#e8edf5;--fg2:#8892b0;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:16px;padding-bottom:80px}
+h2{font-size:1.1rem;margin-bottom:4px}
+.tab-bar{display:flex;gap:2px;background:var(--bg2);border-radius:8px;padding:3px;margin-bottom:12px;max-width:400px}
+.tab-bar button{padding:8px 24px;border:none;border-radius:6px;background:transparent;color:var(--fg2);cursor:pointer;font-size:.82rem}
+.tab-bar button.act{background:var(--blue);color:#fff}
+.card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:10px;border:1px solid rgba(255,255,255,.04)}
+.card h3{font-size:.82rem;color:var(--fg2);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.col{flex:1;min-width:260px}
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+@media(min-width:700px){.grid4{grid-template-columns:1fr 1fr 1fr 1fr}}
+.si{background:var(--bg3);border-radius:6px;padding:8px;text-align:center}
+.si .l{font-size:.58rem;color:var(--fg2)}
+.si .v{font-size:.82rem;font-weight:600}
+.si .sm{font-size:.6rem;font-weight:400;font-family:monospace;color:var(--blue)}
+.fg{margin-bottom:5px}
+.fg label{display:block;font-size:.65rem;color:var(--fg2);margin-bottom:2px}
+.inp{width:100%;padding:7px 10px;background:var(--bg3);border:1px solid transparent;border-radius:6px;color:var(--fg);font-size:.78rem;outline:none}
+.inp:focus{border-color:var(--blue)}
+.rw{display:flex;gap:6px}.rw>*{flex:1}
+.btn{width:100%;padding:7px;border:none;border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer}
+.btn.p{background:var(--blue);color:#fff}
+.btn.s{background:var(--bg3);color:var(--fg2)}
+.btn.r{background:rgba(239,68,68,.15);color:var(--red)}
+.cx{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;margin:6px 0}
+.cx label{font-size:.7rem;color:var(--fg2);display:flex;align-items:center;gap:3px}
+.box{background:var(--bg3);border-radius:6px;padding:8px;font:11px/1.4 monospace;color:var(--fg2);white-space:pre-wrap;max-height:180px;overflow-y:auto;margin-top:6px}
+.devices{display:grid;grid-template-columns:1fr;gap:4px}
+.device{background:var(--bg3);border-radius:6px;padding:6px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:.08s}
+.device:hover{background:#222b3d}
+.device .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.g{background:var(--green)}.dot.r{background:var(--red)}
+.devnm{font-size:.76rem;font-weight:500;flex:1}
+.devip{font-size:.6rem;color:var(--fg2);font-family:monospace;margin-right:4px}
+.lat{font-size:.6rem;padding:1px 5px;border-radius:3px}
+.lat.g{background:rgba(34,197,94,.12);color:var(--green)}
+.lat.r{background:rgba(239,68,68,.12);color:var(--red)}
+.chart{height:55px;background:var(--bg3);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--fg2);font-size:.6rem;margin:6px 0}
+.nav-btm{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);display:flex;border-top:1px solid rgba(255,255,255,.05);padding:4px 0}
+.nav-btm a{flex:1;text-align:center;padding:5px;font-size:.55rem;color:var(--fg2);text-decoration:none;cursor:pointer}
+.nav-btm a.act{color:var(--blue)}
+.nav-btm a svg{display:block;margin:0 auto 2px;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2}
+</style>
+</head>
+<body>
+
+<h2>📊 Tailscale App — 完整布局</h2>
+<div class="tab-bar">
+<button class="act" onclick="switchTab('ov')">概览</button>
+<button onclick="switchTab('tp')">拓扑</button>
+<button onclick="switchTab('lg')">日志</button>
+</div>
+
+<!-- ==================== 概览 ==================== -->
+<div class="page" id="pg-ov">
+
+<!-- 登录区 -->
+<div class="card"><h3>🔐 登录 <span style="font-weight:400;font-size:.65rem;color:var(--fg2)">未认证</span></h3>
+<input class="inp" placeholder="Auth Key（可选）" style="margin-bottom:5px">
+<input class="inp" placeholder="Login Server（Headscale，可选）" style="margin-bottom:6px">
+<div class="rw"><button class="btn p">Key 连接</button><button class="btn s">Web 认证</button></div>
+</div>
+
+<div class="row">
+<!-- 左栏 -->
+<div class="col">
+
+<!-- 已连接状态 -->
+<div class="card"><h3>📈 运行状态 <span class="btn s" style="width:auto;padding:2px 10px;font-size:.6rem;margin:0;display:inline-block">🟢 在线</span></h3>
+<div class="grid4">
+<div class="si"><div class="l">节点</div><div class="v">NAS</div></div>
+<div class="si"><div class="l">IP</div><div class="v sm">100.x.x.x</div></div>
+<div class="si"><div class="l">在线</div><div class="v">3/5</div></div>
+<div class="si"><div class="l">流量</div><div class="v">↓1.2MB↑300KB</div></div>
+<div class="si"><div class="l">账号</div><div class="v sm">user@github</div></div>
+<div class="si"><div class="l">DNS</div><div class="v sm">nas.xxx.ts.net</div></div>
+<div class="si"><div class="l">Netcheck</div><div class="v sm">hkg 45ms</div></div>
+<div class="si"><div class="l">版本</div><div class="v sm">1.80.0</div></div>
+</div>
+<div class="box" style="max-height:40px;font-size:.6rem;margin-top:4px">连接器路由: 10.0.0.0/24  ·  172.16.0.0/16</div>
+<div class="chart">📉 流量图（60 秒实时趋势）</div>
+<div class="rw"><button class="btn s" style="margin-top:0;flex:1">断开连接</button><button class="btn r" style="margin-top:0;flex:1">退出登录</button></div>
+</div>
+</div>
+
+<!-- 右栏 -->
+<div class="col">
+
+<div class="card"><h3>⚙️ 节点配置</h3>
+<div class="rw">
+<div class="fg"><label>主机名</label><input class="inp" placeholder="自定义名称" value="NAS"></div>
+<div class="fg"><label>子网路由</label><input class="inp" placeholder="192.168.1.0/24"></div>
+</div>
+<div class="rw">
+<div class="fg"><label>出口节点</label><select class="inp"><option>不指定</option><option>macbook 100.x.x.x</option><option>iphone 100.x.x.x</option></select></div>
+<div class="fg"><label>Netfilter</label><select class="inp"><option>默认</option><option>on</option><option>off</option><option>nodivert</option></select></div>
+</div>
+<div class="cx">
+<label><input type="checkbox" checked> 接受 DNS</label>
+<label><input type="checkbox"> Shields Up</label>
+<label><input type="checkbox" checked> 接受路由</label>
+<label><input type="checkbox"> 设为出口节点</label>
+<label><input type="checkbox"> 启用 SSH</label>
+<label><input type="checkbox"> 出口节点允许 LAN</label>
+<label><input type="checkbox" checked> SNAT 子网路由</label>
+<label><input type="checkbox" checked> 状态过滤</label>
+</div>
+<button class="btn p">应用</button>
+</div>
+
+</div></div></div>
+
+<!-- ==================== 拓扑 ==================== -->
+<div class="page" id="pg-tp" style="display:none">
+
+<div class="card"><h3><span>🔗 网络拓扑图</span>
+<span style="position:relative">
+<button onclick="alert('菜单: Ping/还原/锁定缩放')" style="background:none;border:none;color:var(--fg2);cursor:pointer;font-size:1rem">⚙</button>
+</span></h3>
+<div class="row">
+<!-- 左侧设备列表 -->
+<div style="width:185px;flex-shrink:0">
+<div style="font-size:.7rem;color:var(--fg2);margin-bottom:5px">设备 <span style="font-weight:400">(4)</span></div>
+<div class="devices">
+<div class="device" onclick="alert('显示 macbook 详情')"><div class="dot g"></div><span class="devnm">macbook</span><span class="devip">100.x.x.1</span><span class="lat g">12ms</span></div>
+<div class="device" onclick="alert('显示 iphone 详情')"><div class="dot g"></div><span class="devnm">iphone</span><span class="devip">100.x.x.2</span><span class="lat g">23ms</span></div>
+<div class="device" onclick="alert('显示 server 详情')"><div class="dot r"></div><span class="devnm">server</span><span class="devip">100.x.x.3</span><span class="lat r">超时</span></div>
+<div class="device" onclick="alert('显示 nas-01 详情')"><div class="dot g"></div><span class="devnm">nas-01</span><span class="devip">100.x.x.4</span><span class="lat g">8ms</span></div>
+</div>
+</div>
+<!-- 右侧拓扑图 -->
+<div style="flex:1;min-width:200px;height:280px;background:linear-gradient(135deg,var(--bg3),#162135);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--fg2);font-size:.65rem;position:relative;overflow:hidden">
+<div style="position:absolute;top:5px;left:5px;right:5px;bottom:5px;border:1px dashed rgba(255,255,255,.05);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px">
+<div style="font-size:.6rem;color:var(--fg2)">🖥️ NAS (中心)</div>
+<div style="display:flex;gap:30px;margin-top:10px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div><span style="font-size:.55rem">macbook</span><span style="font-size:.5rem;color:var(--green)">12ms</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div><span style="font-size:.55rem">iphone</span><span style="font-size:.5rem;color:var(--green)">23ms</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div><span style="font-size:.55rem">server</span><span style="font-size:.5rem;color:var(--red)">超时</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 设备详情面板（点击设备后显示，下方代替拓扑） -->
+<div class="card"><h3>macbook <span style="font-weight:400;font-size:.7rem;color:var(--fg2)">100.x.x.1</span>
+<button onclick="alert('返回拓扑')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.68rem;text-decoration:underline;float:right">返回拓扑</button></h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;font-size:.72rem">
+<span style="color:var(--fg2)">主机名:</span><span>macbook</span>
+<span style="color:var(--fg2)">IP:</span><span>100.x.x.1</span>
+<span style="color:var(--fg2)">系统:</span><span>macOS 14.5</span>
+<span style="color:var(--fg2)">在线:</span><span><span class="lat g">在线</span></span>
+<span style="color:var(--fg2)">延迟:</span><span><span class="lat g">12 ms</span></span>
+<span style="color:var(--fg2)">活跃:</span><span>活跃</span>
+<span style="color:var(--fg2)">流量:</span><span>↓45.2MB ↑12.8MB</span>
+<span style="color:var(--fg2)">端口测试:</span>
+<span><div class="rw"><input class="inp" placeholder="端口" style="font-size:.65rem;min-width:60px;padding:4px 8px"><button class="btn s" style="font-size:.65rem;width:auto;padding:4px 10px;margin:0">测试</button></div></span>
+</div>
+</div>
+
+</div>
+
+<!-- ==================== 日志 ==================== -->
+<div class="page" id="pg-lg" style="display:none">
+
+<div class="card">
+<div class="rw" style="margin-bottom:6px">
+<button class="btn s" style="margin-top:0;flex:1;background:var(--blue);color:#fff" onclick="switchLog('ts')">Tailscale 日志</button>
+<button class="btn s" style="margin-top:0;flex:1" onclick="switchLog('app')">应用操作日志</button>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+<span style="font-size:.65rem;color:var(--fg2)" id="log-title">Tailscale 日志 · 自动刷新中</span>
+<span style="position:relative">
+<button onclick="alert('菜单: 暂停刷新/立即刷新/清空')" style="background:none;border:none;color:var(--fg2);cursor:pointer;font-size:.9rem">⚙</button>
+</span>
+</div>
+<div class="box" style="max-height:300px;font-size:.65rem;line-height:1.6" id="log-content">
+06-15 14:23:01 tailscaled: Starting tailscaled<br>
+06-15 14:23:02 tailscaled: logtail started<br>
+06-15 14:23:02 tailscaled: Program starting: v1.80.0<br>
+06-15 14:23:03 tailscaled: Creating localAPI listener at /var/apps/tailscale/data/tailscaled.sock<br>
+06-15 14:23:03 tailscaled: Listening on 0.0.0.0:41641<br>
+06-15 14:23:04 tailscaled: Control connection established<br>
+06-15 14:23:04 tailscaled: Node is syncing with control plane<br>
+06-15 14:23:05 tailscaled: Connection state: Connected<br>
+06-15 14:23:05 app: up: hostname="NAS" routes="" loginServer="" exitNode=""<br>
+06-15 14:23:08 app: ping 100.x.x.1 (count=4): 12ms<br>
+06-15 14:23:10 app: down: OK<br>
+06-15 14:23:15 app: ping 100.x.x.2 (count=4): 23ms<br>
+06-15 14:23:20 tailscaled: Peer macbook disconnected<br>
+06-15 14:23:25 tailscaled: Peer macbook reconnected<br>
+</div>
+</div>
+
+</div>
+
+<!-- 底部导航 -->
+<div class="nav-btm">
+<a class="act" onclick="switchTab('ov')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>概览</a>
+<a onclick="switchTab('tp')"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="6.5" y2="16.5"/><line x1="12" y1="8" x2="17.5" y2="16.5"/><line x1="8" y1="19" x2="16" y2="19"/></svg>拓扑</a>
+<a onclick="switchTab('lg')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>日志</a>
+</div>
+
+<script>
+function switchTab(id){
+document.querySelectorAll('.tab-bar button, .nav-btm a').forEach(b=>b.classList.toggle('act',b.textContent.includes({ov:'概览',tp:'拓扑',lg:'日志'}[id])));
+document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+document.getElementById('pg-'+id).style.display='block';
+}
+function switchLog(t){const ts=document.querySelectorAll('.rw button');if(t==='ts'){ts[0].style.background='var(--blue)';ts[0].style.color='#fff';ts[1].style.background='var(--bg3)';ts[1].style.color='var(--fg2)';document.getElementById('log-title').textContent='Tailscale 日志 · 自动刷新中'}else{ts[1].style.background='var(--blue)';ts[1].style.color='#fff';ts[0].style.background='var(--bg3)';ts[0].style.color='var(--fg2)';document.getElementById('log-title').textContent='应用操作日志 · 自动刷新中'}}
+</script>
+</body></html>

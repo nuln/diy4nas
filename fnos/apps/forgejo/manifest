@@ -1,0 +1,14 @@
+appname         = forgejo
+version         = 0.0.0
+display_name    = Forgejo
+platform            = all
+maintainer         = Forgejo
+maintainer_url      = https://forgejo.org
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = forgejo.Application
+service_port    = 3005
+checkport           = false
+desc            = 轻量级 Git 托管服务器
+source          = thirdparty
+checksum        = 

@@ -1,0 +1,14 @@
+appname         = wg-easy
+version         = 0.0.0
+display_name    = WG Easy
+platform            = all
+maintainer         = WG Easy
+maintainer_url      = https://github.com/wg-easy/wg-easy
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = wg-easy.Application
+service_port    = 51821
+checkport           = false
+desc            = WireGuard VPN 管理
+source          = thirdparty
+checksum        = 

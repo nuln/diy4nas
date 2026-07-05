@@ -1,0 +1,11 @@
+services:
+  caddy:
+    image: ${DOCKER_MIRROR}docker.io/library/caddy:alpine
+    container_name: caddy
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/data
+      - ${TRIM_PKGVAR:?}/config:/etc/caddy
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped

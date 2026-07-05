@@ -299,8 +299,8 @@ func (s *Session) waitLoop() {
 		stillExited := s.exited
 		stillDetached := s.detached
 		mu.Unlock()
-		if stillExited && !stillDetached {
-			appLogf("auto-cleanup: removing exited session %s", id)
+		if stillExited {
+			appLogf("auto-cleanup: removing exited session %s (detached=%v)", id, stillDetached)
 			removeSession(id)
 		}
 	}()

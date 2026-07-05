@@ -1,0 +1,12 @@
+services:
+  freshrss:
+    image: ${DOCKER_MIRROR}docker.io/freshrss/freshrss:${VERSION}
+    container_name: freshrss
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/var/www/FreshRSS/data
+      - ${TRIM_PKGVAR:?}/extensions:/var/www/FreshRSS/extensions
+    environment:
+      - TZ=Asia/Shanghai
+      - CRON_MIN=1,31
+    restart: unless-stopped

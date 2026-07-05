@@ -1,0 +1,11 @@
+services:
+  syncthing:
+    image: ${DOCKER_MIRROR}docker.io/syncthing/syncthing:${VERSION}
+    container_name: syncthing
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/var/syncthing
+    environment:
+      - TZ=Asia/Shanghai
+      - STGUIADDRESS=0.0.0.0:8384
+    restart: unless-stopped

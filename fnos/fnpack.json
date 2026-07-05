@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-06-15",
+  "apps": [
+    {
+      "slug": "app-center",
+      "appname": "app-center",
+      "display_name": "App Center",
+      "desc": "diy4nas 应用中心",
+      "version": "0.0.0",
+      "service_port": 8011,
+      "homepage_url": "https://github.com/app-center/app-center",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "native",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/app-center-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/app-center/ICON_256.PNG"
+    },
+    {
+      "slug": "caddy",
+      "appname": "caddy",
+      "display_name": "Caddy",
+      "desc": "自动 HTTPS 的 Web 服务器",
+      "version": "0.0.0",
+      "service_port": 80,
+      "homepage_url": "https://github.com/caddy/caddy",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/caddy-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/caddy/ICON_256.PNG"
+    },
+    {
+      "slug": "cloudflared",
+      "appname": "cloudflared",
+      "display_name": "Cloudflare Tunnel",
+      "desc": "Cloudflare 内网穿透",
+      "version": "0.0.0",
+      "service_port": 14333,
+      "homepage_url": "https://github.com/cloudflared/cloudflared",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/cloudflared-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/cloudflared/ICON_256.PNG"
+    },
+    {
+      "slug": "easytier",
+      "appname": "easytier",
+      "display_name": "EasyTier",
+      "desc": "去中心化异地组网",
+      "version": "0.0.0",
+      "service_port": 11210,
+      "homepage_url": "https://github.com/easytier/easytier",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "native",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/easytier-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/easytier/ICON_256.PNG"
+    },
+    {
+      "slug": "scheduler",
+      "appname": "scheduler",
+      "display_name": "计划任务",
+      "desc": "基于 Go 的轻量级定时任务调度器，支持 cron 表达式与实时日志",
+      "version": "0.0.0",
+      "service_port": 7681,
+      "homepage_url": "https://github.com/dukangxu/diy4nas",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "native",
+      "category": "tool",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/scheduler-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/scheduler/ICON_256.PNG"
+    },
+    {
+      "slug": "terminal",
+      "appname": "terminal",
+      "display_name": "网页终端",
+      "desc": "纯 Go 实现的 Web 终端，自带 PTY 与 WebSocket 桥，无需 ttyd/tmux",
+      "version": "0.0.0",
+      "service_port": 7682,
+      "homepage_url": "https://github.com/dukangxu/diy4nas",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "native",
+      "category": "tool",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/terminal-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/terminal/ICON_256.PNG"
+    },
+    {
+      "slug": "forgejo",
+      "appname": "forgejo",
+      "display_name": "Forgejo",
+      "desc": "轻量级 Git 托管服务器",
+      "version": "0.0.0",
+      "service_port": 3005,
+      "homepage_url": "https://github.com/forgejo/forgejo",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/forgejo-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/forgejo/ICON_256.PNG"
+    },
+    {
+      "slug": "freshrss",
+      "appname": "freshrss",
+      "display_name": "FreshRSS",
+      "desc": "自托管 RSS 阅读器",
+      "version": "0.0.0",
+      "service_port": 8180,
+      "homepage_url": "https://github.com/freshrss/freshrss",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/freshrss-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/freshrss/ICON_256.PNG"
+    },
+    {
+      "slug": "garage",
+      "appname": "garage",
+      "display_name": "Garage",
+      "desc": "分布式 S3 兼容对象存储",
+      "version": "0.0.0",
+      "service_port": 3900,
+      "homepage_url": "https://github.com/garage/garage",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/garage-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/garage/ICON_256.PNG"
+    },
+    {
+      "slug": "headscale",
+      "appname": "headscale",
+      "display_name": "Headscale",
+      "desc": "Tailscale 自托管控制服务器",
+      "version": "0.0.0",
+      "service_port": 8480,
+      "homepage_url": "https://github.com/headscale/headscale",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/headscale-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/headscale/ICON_256.PNG"
+    },
+    {
+      "slug": "jellyfin",
+      "appname": "jellyfin",
+      "display_name": "Jellyfin",
+      "desc": "免费开源媒体系统",
+      "version": "0.0.0",
+      "service_port": 8097,
+      "homepage_url": "https://github.com/jellyfin/jellyfin",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/jellyfin-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/jellyfin/ICON_256.PNG"
+    },
+    {
+      "slug": "mihomo",
+      "appname": "mihomo",
+      "display_name": "Mihomo",
+      "desc": "Clash.Meta 多协议代理",
+      "version": "0.0.0",
+      "service_port": 9097,
+      "homepage_url": "https://github.com/mihomo/mihomo",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "native",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/mihomo-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/mihomo/ICON_256.PNG"
+    },
+    {
+      "slug": "pocket-id",
+      "appname": "pocket-id",
+      "display_name": "Pocket ID",
+      "desc": "轻量级 OIDC 身份提供者",
+      "version": "0.0.0",
+      "service_port": 8080,
+      "homepage_url": "https://github.com/pocket-id/pocket-id",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/pocket-id-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/pocket-id/ICON_256.PNG"
+    },
+    {
+      "slug": "postgres",
+      "appname": "postgres",
+      "display_name": "PostgreSQL",
+      "desc": "开源关系型数据库",
+      "version": "0.0.0",
+      "service_port": 5432,
+      "homepage_url": "https://github.com/postgres/postgres",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/postgres-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/postgres/ICON_256.PNG"
+    },
+    {
+      "slug": "rclone",
+      "appname": "rclone",
+      "display_name": "Rclone",
+      "desc": "云存储同步工具",
+      "version": "0.0.0",
+      "service_port": 5572,
+      "homepage_url": "https://github.com/rclone/rclone",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/rclone-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/rclone/ICON_256.PNG"
+    },
+    {
+      "slug": "redis",
+      "appname": "redis",
+      "display_name": "Redis",
+      "desc": "高性能内存数据库",
+      "version": "0.0.0",
+      "service_port": 6379,
+      "homepage_url": "https://github.com/redis/redis",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/redis-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/redis/ICON_256.PNG"
+    },
+    {
+      "slug": "rsshub",
+      "appname": "rsshub",
+      "display_name": "RSSHub",
+      "desc": "万物皆可 RSS",
+      "version": "0.0.0",
+      "service_port": 1200,
+      "homepage_url": "https://github.com/rsshub/rsshub",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/rsshub-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/rsshub/ICON_256.PNG"
+    },
+    {
+      "slug": "samba",
+      "appname": "samba",
+      "display_name": "Samba",
+      "desc": "SMB 文件共享",
+      "version": "0.0.0",
+      "service_port": 139,
+      "homepage_url": "https://github.com/samba/samba",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/samba-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/samba/ICON_256.PNG"
+    },
+    {
+      "slug": "syncthing",
+      "appname": "syncthing",
+      "display_name": "Syncthing",
+      "desc": "开源文件同步工具",
+      "version": "0.0.0",
+      "service_port": 8384,
+      "homepage_url": "https://github.com/syncthing/syncthing",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/syncthing-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/syncthing/ICON_256.PNG"
+    },
+    {
+      "slug": "tailscale",
+      "appname": "tailscale",
+      "display_name": "Tailscale",
+      "desc": "Tailscale VPN 客户端",
+      "version": "0.0.0",
+      "service_port": 8088,
+      "homepage_url": "https://github.com/tailscale/tailscale",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/tailscale-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/tailscale/ICON_256.PNG"
+    },
+    {
+      "slug": "transmission",
+      "appname": "transmission",
+      "display_name": "Transmission",
+      "desc": "轻量级 BT 客户端",
+      "version": "0.0.0",
+      "service_port": 9091,
+      "homepage_url": "https://github.com/transmission/transmission",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/transmission-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/transmission/ICON_256.PNG"
+    },
+    {
+      "slug": "vaultwarden",
+      "appname": "vaultwarden",
+      "display_name": "Vaultwarden",
+      "desc": "轻量级密码管理服务器",
+      "version": "0.0.0",
+      "service_port": 8880,
+      "homepage_url": "https://github.com/vaultwarden/vaultwarden",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/vaultwarden-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/vaultwarden/ICON_256.PNG"
+    },
+    {
+      "slug": "wg-easy",
+      "appname": "wg-easy",
+      "display_name": "WG Easy",
+      "desc": "WireGuard VPN 管理",
+      "version": "0.0.0",
+      "service_port": 51821,
+      "homepage_url": "https://github.com/wg-easy/wg-easy",
+      "platforms": [
+        "x86",
+        "arm"
+      ],
+      "app_type": "docker",
+      "category": "other",
+      "fpk_url": "https://github.com/dukangxu/diy4nas/releases/download/v1.0.0/wg-easy-0.0.0.fpk",
+      "icon_url": "https://github.com/dukangxu/diy4nas/raw/main/fnos/apps/wg-easy/ICON_256.PNG"
+    }
+  ]
+}

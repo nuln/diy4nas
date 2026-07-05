@@ -1,0 +1,1 @@
+{"port-config":{"protocol-file":"app-center.sc"},"data-share":{"shares":[{"name":"App Center","permission":{"rw":["app-center"]}}]},"systemd-unit":{}}

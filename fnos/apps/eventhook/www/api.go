@@ -24,6 +24,7 @@ func registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/hooks", handleHooks)
 	mux.HandleFunc("/api/hooks/", handleHookByID)
 	mux.HandleFunc("/api/events", handleEvents)
+	mux.HandleFunc("/api/event-types", handleEventTypes)
 	mux.HandleFunc("/api/settings", handleSettings)
 	mux.HandleFunc("/api/stats", handleStats)
 	mux.HandleFunc("/api/log", handleLog)
@@ -271,12 +272,28 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 	typeFilter := r.URL.Query().Get("type")
 	resultFilter := r.URL.Query().Get("result")
 
+	// Build category -> event types map from the server-side eventMetaMap
+	eventTypesByCategory := make(map[string][]string)
+	for etype, meta := range eventMetaMap {
+		eventTypesByCategory[meta.category] = append(eventTypesByCategory[meta.category], etype)
+	}
+
 	query := "SELECT id, event_id, type, detail, result, hook_name, error, created_at FROM event_log WHERE 1=1"
 	var args []any
 
 	if typeFilter != "" {
-		query += " AND LOWER(type)=LOWER(?)"
-		args = append(args, typeFilter)
+		// Check if typeFilter is a category name — if so, match any event type in that category
+		if types, ok := eventTypesByCategory[typeFilter]; ok && len(types) > 0 {
+			placeholders := make([]string, len(types))
+			for i, t := range types {
+				placeholders[i] = "?"
+				args = append(args, t)
+			}
+			query += " AND type IN (" + strings.Join(placeholders, ",") + ")"
+		} else {
+			query += " AND LOWER(type)=LOWER(?)"
+			args = append(args, typeFilter)
+		}
 	}
 	if resultFilter != "" {
 		query += " AND result=?"
@@ -308,6 +325,102 @@ func handleEvents(w http.ResponseWriter, r *http.Request) {
 		events = []EventRecord{}
 	}
 	jsonResponse(w, 200, events)
+}
+
+func handleEventTypes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		jsonError(w, 405, "method not allowed")
+		return
+	}
+	if settings.EventloggerDB == "" {
+		jsonResponse(w, 200, map[string]any{"types": []string{}, "error": "EventLogger DB not configured"})
+		return
+	}
+	dsn := settings.EventloggerDB + "?_pragma=query_only(true)&_pragma=busy_timeout(5000)"
+	eventDB, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		jsonError(w, 500, "open db: "+err.Error())
+		return
+	}
+	defer eventDB.Close()
+
+	// Try known table names
+	knownTables := []string{"event_log", "log", "events", "syslog", "event_logger", "t_log", "system_log"}
+	typeColumns := []string{"type", "event", "event_type", "eventid", "serviceid", "category"}
+
+	var types []string
+	found := false
+	for _, table := range knownTables {
+		for _, col := range typeColumns {
+			query := fmt.Sprintf("SELECT DISTINCT %s FROM \"%s\" WHERE %s IS NOT NULL AND %s != '' ORDER BY %s", col, table, col, col, col)
+			rows, err := eventDB.Query(query)
+			if err != nil {
+				continue
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var t string
+				if err := rows.Scan(&t); err == nil {
+					types = append(types, t)
+				}
+			}
+			if len(types) > 0 {
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+
+	if !found && len(types) == 0 {
+		// Try every table with any text column
+		tables, _ := eventDB.Query("SELECT name FROM sqlite_master WHERE type='table'")
+		if tables != nil {
+			defer tables.Close()
+			for tables.Next() {
+				var table string
+				tables.Scan(&table)
+				cols, _ := eventDB.Query(fmt.Sprintf("PRAGMA table_info(\"%s\")", table))
+				if cols == nil {
+					continue
+				}
+				for cols.Next() {
+					var cid int
+					var cname, ctype string
+					var notnull, pk int
+					var dflt interface{}
+					cols.Scan(&cid, &cname, &ctype, &notnull, &dflt, &pk)
+					if strings.Contains(strings.ToLower(ctype), "char") || strings.Contains(strings.ToLower(ctype), "text") {
+						query := fmt.Sprintf("SELECT DISTINCT \"%s\" FROM \"%s\" WHERE \"%s\" IS NOT NULL AND \"%s\" != '' ORDER BY \"%s\" LIMIT 1000", cname, table, cname, cname, cname)
+						rows, err := eventDB.Query(query)
+						if err != nil {
+							continue
+						}
+						for rows.Next() {
+							var t string
+							rows.Scan(&t)
+							types = append(types, t)
+						}
+						rows.Close()
+					}
+				}
+				cols.Close()
+				if len(types) > 0 {
+					break
+				}
+			}
+		}
+	}
+
+	if types == nil {
+		types = []string{}
+	}
+	jsonResponse(w, 200, map[string]any{
+		"types": types,
+		"count": len(types),
+	})
 }
 
 func handleSettings(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "freshrss.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "FreshRSS",
+        "permission": {
+          "rw": [
+            "freshrss"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "freshrss",
+        "path": "docker"
+      }
+    ]
+  }
+}

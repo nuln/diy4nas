@@ -1,0 +1,117 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name      "homebrew">
+  <!ENTITY author    "nuln">
+  <!ENTITY version   "2026.06.12">
+  <!ENTITY github   "nuln/nas">
+  <!ENTITY branch   "master">
+  <!ENTITY base     "https://raw.githubusercontent.com/&github;/&branch;/unraid/plugins/&name;">
+  <!ENTITY plgPATH  "/boot/config/plugins/&name;">
+  <!ENTITY emhttp   "/usr/local/emhttp/plugins/&name;">
+]>
+
+<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&base;/&name;.plg" min="6.9.0" support="https://github.com/&github;">
+
+<CHANGES>
+<![CDATA[
+###2026.06.12
+- Initial release
+- Install Homebrew with persistent storage on flash
+- Auto-setup on array start
+- WebUI package management (search, install, uninstall, update, upgrade)
+- GCC auto-install from Slackware
+]]>
+</CHANGES>
+
+<FILE Name="&plgPATH;/rc.&name;">
+<URL>&base;/rc.&name;</URL>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.&name;">
+<LOCAL>&plgPATH;/rc.&name;</LOCAL>
+</FILE>
+
+<FILE Name="&plgPATH;/event.disks_mounted">
+<URL>&base;/event.disks_mounted</URL>
+</FILE>
+
+<FILE Name="&emhttp;/event/disks_mounted">
+<LOCAL>&plgPATH;/event.disks_mounted</LOCAL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;.page">
+<URL>&base;/&name;.page</URL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;-1-Settings.page">
+<URL>&base;/&name;-1-Settings.page</URL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;-2-Packages.page">
+<URL>&base;/&name;-2-Packages.page</URL>
+</FILE>
+
+<FILE Name="&emhttp;/api.php">
+<URL>&base;/api.php</URL>
+</FILE>
+
+<FILE Name="&emhttp;/style.css">
+<URL>&base;/style.css</URL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;.js">
+<URL>&base;/&name;.js</URL>
+</FILE>
+
+<FILE Name="&plgPATH;/icon.png">
+<URL>&base;/logo.png</URL>
+</FILE>
+
+<FILE Name="&emhttp;/images/&name;.png">
+<LOCAL>&plgPATH;/icon.png</LOCAL>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
+<![CDATA[
+chmod +x /etc/rc.d/rc.&name; 2>/dev/null || true
+chmod +x &emhttp;/event/disks_mounted 2>/dev/null || true
+
+mkdir -p &plgPATH; 2>/dev/null || true
+
+if [ ! -f &plgPATH;/&name;.conf ]; then
+  cat > &plgPATH;/&name;.conf << 'CONF'
+# Homebrew plugin configuration
+BREW_STORAGE="/boot/config/plugins/homebrew/linuxbrew"
+AUTOSTART="yes"
+SHELL_INTEGRATION="bash"
+GCC_AUTOINSTALL="yes"
+CONF
+fi
+
+/etc/rc.d/rc.&name; install 2>/dev/null || true
+
+echo ""
+echo "--- &name; plugin installed (v&version;) ---"
+echo ""
+]]>
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+<![CDATA[
+rm -f /etc/rc.d/rc.&name;
+rm -rf &emhttp;
+umount /home/linuxbrew 2>/dev/null || true
+rm -f &plgPATH;/gcc-*.txz
+rm -f &plgPATH;/linuxbrew/gcc-*.txz
+
+echo ""
+echo "--- &name; plugin removed ---"
+echo ""
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>

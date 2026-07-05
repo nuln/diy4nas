@@ -1,0 +1,9 @@
+services:
+  rsshub:
+    image: ${DOCKER_MIRROR}docker.io/DIYgod/RSSHub:${VERSION}
+    container_name: rsshub
+    network_mode: host
+    environment:
+      - TZ=Asia/Shanghai
+      - NODE_ENV=production
+    restart: unless-stopped

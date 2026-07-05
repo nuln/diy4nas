@@ -1,0 +1,14 @@
+appname         = caddy
+version         = 0.0.0
+display_name    = Caddy
+platform            = all
+maintainer         = Caddy
+maintainer_url      = https://caddyserver.com
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = caddy.Application
+service_port    = 80
+checkport           = false
+desc            = 自动 HTTPS 的 Web 服务器
+source          = thirdparty
+checksum        = 

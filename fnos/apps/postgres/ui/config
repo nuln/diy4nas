@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "postgres.Application": {
+            "title": "PostgreSQL",
+            "desc": "\u5f00\u6e90\u5173\u7cfb\u578b\u6570\u636e\u5e93",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "5432",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

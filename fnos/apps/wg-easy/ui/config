@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "wg-easy.Application": {
+            "title": "WG Easy",
+            "desc": "WireGuard VPN \u7ba1\u7406",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "51821",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

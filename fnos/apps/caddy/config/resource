@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "caddy.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Caddy",
+        "permission": {
+          "rw": [
+            "caddy"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "caddy",
+        "path": "docker"
+      }
+    ]
+  }
+}

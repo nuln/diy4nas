@@ -1,0 +1,14 @@
+appname         = pocket-id
+version         = 0.0.0
+display_name    = Pocket ID
+platform            = all
+maintainer         = Pocket ID
+maintainer_url      = https://pocket-id.org
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = pocket-id.Application
+service_port    = 8080
+checkport           = false
+desc            = 轻量级 OIDC 身份提供者
+source          = thirdparty
+checksum        = 

@@ -1,0 +1,14 @@
+appname         = vaultwarden
+version         = 0.0.0
+display_name    = Vaultwarden
+platform            = all
+maintainer         = Vaultwarden
+maintainer_url      = https://github.com/dani-garcia/vaultwarden
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = vaultwarden.Application
+service_port    = 8880
+checkport           = false
+desc            = 轻量级密码管理服务器
+source          = thirdparty
+checksum        = 

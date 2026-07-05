@@ -1,0 +1,1 @@
+[{"stepTitle":"Caddy 安装说明","items":[{"type":"tips","helpText":"Caddy 安装完成后，访问 http://<NAS-IP>:80 打开管理界面。首次启动需要拉取 Docker 镜像，请确保网络通畅。"}]}]

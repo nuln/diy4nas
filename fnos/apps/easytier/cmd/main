@@ -1,0 +1,48 @@
+#!/bin/sh
+NAME="easytier"
+APP_VAR="${TRIM_PKGVAR:-/var/apps/$NAME/data}"
+APP_DEST="${TRIM_APPDEST:-/var/apps/$NAME}"
+PID_FILE="$APP_VAR/server.pid"
+LOG_FILE="$APP_VAR/easytier.log"
+
+mkdir -p "$APP_VAR" 2>/dev/null || true
+
+find_bin() {
+    for d in "$APP_DEST/app" "$APP_DEST"; do [ -x "$d/$1" ] && echo "$d/$1" && return 0; done; return 1
+}
+SRV="$(find_bin server)"
+
+start() {
+    [ -f "$PID_FILE" ] && kill "$(cat "$PID_FILE")" 2>/dev/null || true; rm -f "$PID_FILE"
+
+    if [ -z "$SRV" ]; then echo "server not found" > "${TRIM_TEMP_LOGFILE}"; exit 1; fi
+
+    # Go server manages easytier-core lifecycle internally
+    EASYTIER_PORT="${TRIM_SERVICE_PORT:-11210}" "$SRV" >> "$LOG_FILE" 2>&1 &
+    echo $! > "$PID_FILE"
+
+    PORT="${TRIM_SERVICE_PORT:-11210}"; [ -f /tmp/easytier-port ] && PORT=$(cat /tmp/easytier-port)
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        /usr/bin/curl -s "http://127.0.0.1:$PORT/api/traffic" >/dev/null 2>&1 && break
+        sleep 1
+    done
+    exit 0
+}
+
+stop() {
+    [ -f "$PID_FILE" ] && kill "$(cat "$PID_FILE")" 2>/dev/null || true
+    pkill -x server 2>/dev/null || true
+    pkill -x easytier-core 2>/dev/null || true
+    pkill -x easytier-web-embed 2>/dev/null || true
+    exit 0
+}
+
+case "${1:-}" in
+    start) start ;;
+    stop) stop ;;
+    restart) stop; sleep 1; start ;;
+    status)
+        [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null && exit 0
+        exit 3 ;;
+    *) echo "Usage: $0 {start|stop|status|restart}" > "${TRIM_TEMP_LOGFILE}"; exit 1 ;;
+esac

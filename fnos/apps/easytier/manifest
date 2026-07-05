@@ -1,0 +1,14 @@
+appname         = easytier
+version         = 0.0.0
+display_name    = EasyTier
+platform        = x86
+maintainer         = EasyTier
+maintainer_url      = https://easytier.io
+distributor         = nuln
+desktop_uidir   = app/ui
+desktop_applaunchname = easytier.Application
+service_port    = 11210
+checkport       = false
+desc            = 去中心化异地组网
+source          = thirdparty
+checksum        = 

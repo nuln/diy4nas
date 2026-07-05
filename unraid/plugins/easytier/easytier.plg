@@ -1,0 +1,122 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+  <!ENTITY name      "easytier">
+  <!ENTITY author    "nuln">
+  <!ENTITY version   "2026.06.07">
+  <!ENTITY github   "nuln/nas">
+  <!ENTITY branch   "master">
+  <!ENTITY base     "https://raw.githubusercontent.com/&github;/&branch;/unraid/plugins/&name;">
+  <!ENTITY plgPATH  "/boot/config/plugins/&name;">
+  <!ENTITY emhttp   "/usr/local/emhttp/plugins/&name;">
+]>
+
+<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&base;/&name;.plg" min="6.9.0" support="https://github.com/&github;">
+
+<CHANGES>
+<![CDATA[
+###2026.06.07
+- Upgrade easytier to v2.6.4
+- Remove easytier-web-embed dependency
+- Use easytier-cli for status
+- Tailscale-style settings page
+]]>
+</CHANGES>
+
+<FILE Name="&plgPATH;/&name;-&version;.tgz" Run="installpkg">
+<URL>&base;/&name;-&version;.tgz</URL>
+</FILE>
+
+<FILE Name="&plgPATH;/rc.&name;">
+<URL>&base;/rc.&name;</URL>
+</FILE>
+
+<FILE Name="/etc/rc.d/rc.&name;">
+<LOCAL>&plgPATH;/rc.&name;</LOCAL>
+</FILE>
+
+<FILE Name="&plgPATH;/event.disks_mounted">
+<URL>&base;/event.disks_mounted</URL>
+</FILE>
+
+<FILE Name="&emhttp;/event/disks_mounted">
+<LOCAL>&plgPATH;/event.disks_mounted</LOCAL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;.page">
+<URL>&base;/&name;.page</URL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;-1-Settings.page">
+<URL>&base;/&name;-1-Settings.page</URL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;-2-Manage.page">
+<URL>&base;/&name;-2-Manage.page</URL>
+</FILE>
+
+<FILE Name="&emhttp;/api.php">
+<URL>&base;/api.php</URL>
+</FILE>
+
+<FILE Name="&emhttp;/style.css">
+<URL>&base;/style.css</URL>
+</FILE>
+
+<FILE Name="&emhttp;/&name;.js">
+<URL>&base;/&name;.js</URL>
+</FILE>
+
+<FILE Name="&plgPATH;/icon.png">
+<URL>&base;/logo.png</URL>
+</FILE>
+
+<FILE Name="&emhttp;/images/&name;.png">
+<LOCAL>&plgPATH;/icon.png</LOCAL>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
+<![CDATA[
+chmod +x /etc/rc.d/rc.&name; 2>/dev/null || true
+chmod +x &emhttp;/event/disks_mounted 2>/dev/null || true
+
+mkdir -p &plgPATH; 2>/dev/null || true
+
+# Cleanup old binaries
+find &plgPATH; -maxdepth 1 -name "&name;-*.tgz" ! -name "&name;-&version;.tgz" -delete 2>/dev/null || true
+
+if [ ! -f &plgPATH;/&name;.conf ]; then
+  echo 'NETWORK_NAME="easytier"' > &plgPATH;/&name;.conf
+  echo 'NETWORK_SECRET=""' >> &plgPATH;/&name;.conf
+  echo 'DHCP="yes"' >> &plgPATH;/&name;.conf
+  echo 'VIRTUAL_IPV4=""' >> &plgPATH;/&name;.conf
+  echo 'HOSTNAME=""' >> &plgPATH;/&name;.conf
+  echo 'PEER_URLS=""' >> &plgPATH;/&name;.conf
+  echo 'LISTENER_URLS="tcp://0.0.0.0:11010, udp://0.0.0.0:11010"' >> &plgPATH;/&name;.conf
+  echo 'PROXY_CIDRS=""' >> &plgPATH;/&name;.conf
+  echo 'AUTOSTART="yes"' >> &plgPATH;/&name;.conf
+fi
+
+echo ""
+echo "--- &name; plugin installed (v&version;) ---"
+echo ""
+]]>
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+<![CDATA[
+removepkg &name;-*
+rm -f /etc/rc.d/rc.&name;
+rm -rf &emhttp;
+rm -f &plgPATH;/&name;-*.tgz
+
+echo ""
+echo "--- &name; plugin removed ---"
+echo ""
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>

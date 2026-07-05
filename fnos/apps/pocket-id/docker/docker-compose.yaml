@@ -1,0 +1,11 @@
+services:
+  pocket-id:
+    image: ${DOCKER_MIRROR}ghcr.io/pocket-id/pocket-id:${VERSION}
+    container_name: pocket-id
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/app/backend/data
+    environment:
+      - TZ=Asia/Shanghai
+      - PUBLIC_APP_URL=http://localhost:8080
+    restart: unless-stopped

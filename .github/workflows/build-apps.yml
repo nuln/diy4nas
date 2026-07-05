@@ -1,0 +1,90 @@
+# 自动构建 fnOS 应用 fpk 包
+# 用法:
+#   - push 到 apps/ 目录: 自动构建变更的 app
+#   - workflow_dispatch: 指定 app 名称构建单个 app
+#   - push 到 main: 全部构建
+
+name: Build fnOS Apps
+
+on:
+  push:
+    paths:
+      - 'fnos/apps/**'
+      - 'fnos/build.sh'
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      app:
+        description: '应用 slug（留空=全部）'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.detect.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: detect
+        run: |
+          if [ -n "${{ github.event.inputs.app }}" ]; then
+            echo 'apps=["${{ github.event.inputs.app }}"]' >> $GITHUB_OUTPUT
+          else
+            # 找变更的目录
+            CHANGED=$(git diff --name-only HEAD~1 -- fnos/apps/ 2>/dev/null | grep -oP 'fnos/apps/\K[^/]+' | sort -u | tr '\n' ',' | sed 's/,$//')
+            if [ -z "$CHANGED" ]; then
+              # 首次或无变更 → 全部
+              APPS=$(ls -d fnos/apps/*/ | sed 's|fnos/apps/||;s|/||' | tr '\n' ',' | sed 's/,$//')
+              echo "apps=[\"${APPS//,/\",\"}\"]" >> $GITHUB_OUTPUT
+            else
+              echo "apps=[\"${CHANGED//,/\",\"}\"]" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  build:
+    needs: detect
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJson(needs.detect.outputs.apps) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Read version
+        id: ver
+        run: |
+          V=$(grep "^version" "fnos/apps/${{ matrix.app }}/manifest" 2>/dev/null | cut -d= -f2- | xargs || echo "0.0.0")
+          echo "version=${V:-0.0.0}" >> $GITHUB_OUTPUT
+      
+      - name: Build
+        run: cd fnos && bash build.sh "${{ matrix.app }}"
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}
+          path: fnos/dist/*.fpk
+      
+      - name: Release
+        run: |
+          TAG="${{ matrix.app }}/v${{ steps.ver.outputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" fnos/dist/*.fpk --clobber
+          else
+            gh release create "$TAG" fnos/dist/*.fpk \
+              --title "${{ matrix.app }} v${{ steps.ver.outputs.version }}" \
+              --notes "自动构建"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: fnos

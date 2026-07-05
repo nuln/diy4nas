@@ -1,0 +1,25 @@
+{
+  "port-config": {
+    "protocol-file": "jellyfin.sc"
+  },
+  "data-share": {
+    "shares": [
+      {
+        "name": "Jellyfin",
+        "permission": {
+          "rw": [
+            "jellyfin"
+          ]
+        }
+      }
+    ]
+  },
+  "docker-project": {
+    "projects": [
+      {
+        "name": "jellyfin",
+        "path": "docker"
+      }
+    ]
+  }
+}

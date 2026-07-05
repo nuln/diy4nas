@@ -101,6 +101,8 @@
   .stat-icon { font-size: 22px; margin-bottom: 4px; }
   .value-lg { font-size: 28px; font-weight: 700; }
   .value-sm { font-size: 20px; font-weight: 600; }
+  .cat-badge { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+  .cat-count { font-size: 10px; background: rgba(255,255,255,0.2); border-radius: 8px; padding: 0 4px; line-height: 14px; margin-left: 2px; }
 </style>
 </head>
 <body>
@@ -159,7 +161,7 @@
     </div>
     <div class="card">
       <table>
-        <thead><tr><th style="width:40px">启用</th><th>名称</th><th>类型</th><th>目标</th><th>监听事件</th><th style="width:120px" class="text-right">操作</th></tr></thead>
+        <thead><tr><th style="width:40px">启用</th><th>名称</th><th>类型</th><th>监听事件</th><th style="width:120px" class="text-right">操作</th></tr></thead>
         <tbody id="hooks-tbody"></tbody>
       </table>
       <div id="hooks-empty" class="empty" style="display:none">暂无钩子，点击右上角"新建钩子"开始</div>
@@ -212,6 +214,10 @@
           </div>
           <div style="margin-top:16px;">
             <button class="btn" onclick="saveSettings()">保存设置</button>
+          </div>
+          <div style="margin-top:16px; border-top:1px solid #21262d; padding-top:16px;">
+            <button class="btn secondary" onclick="discoverEventTypes()">扫描全部事件类型</button>
+            <div id="event-types-result" class="muted" style="font-size:12px; margin-top:8px;"></div>
           </div>
         </div>
         <div class="card">
@@ -288,7 +294,7 @@ let refreshTimer = null;
 
 const EVENT_TRANSLATIONS = {
   'LoginSucc':'登录成功','LoginSucc2FA1':'两步验证登录','LoginFail':'登录失败','Logout':'登出',
-  'SSH_INVALID_USER':'SSH 无效用户','SSH_AUTH_FAILED':'SSH 认证失败','SSH_LOGIN_SUCCESS':'SSH 登录成功','SSH_DISCONNECTED':'SSH 断开连接',
+  'SshdLoginSucc':'SSH 登录成功','SshdLoginFail':'SSH 登录失败','SSH_INVALID_USER':'SSH 无效用户','SSH_AUTH_FAILED':'SSH 认证失败','SSH_LOGIN_SUCCESS':'SSH 登录成功','SSH_DISCONNECTED':'SSH 断开连接',
   'FoundDisk':'发现新硬盘','DiskWakeup':'硬盘唤醒','DiskSpindown':'硬盘休眠','DISK_IO_ERR':'硬盘 IO 错误',
   'UPS_ONBATT':'UPS 电池供电','UPS_ONBATT_LOWBATT':'UPS 电池电量低','UPS_ONLINE':'UPS 恢复正常','UPS_ENABLE':'UPS 已启用','UPS_DISABLE':'UPS 已禁用',
   'APP_CRASH':'应用崩溃','APP_STARTED':'应用已启动','APP_STOPPED':'应用已停止','APP_UPDATED':'应用已更新','APP_INSTALLED':'应用已安装','APP_UNINSTALLED':'应用已卸载','APP_UPDATE_FAILED':'应用更新失败','APP_START_FAILED':'应用启动失败','APP_AUTO_START_FAILED':'应用自启失败',
@@ -299,7 +305,7 @@ const EVENT_TRANSLATIONS = {
 
 const EVENT_CATEGORIES = {
   '登录': ['LoginSucc','LoginSucc2FA1','LoginFail','Logout'],
-  'SSH': ['SSH_INVALID_USER','SSH_AUTH_FAILED','SSH_LOGIN_SUCCESS','SSH_DISCONNECTED'],
+  'SSH': ['SshdLoginSucc','SshdLoginFail','SSH_INVALID_USER','SSH_AUTH_FAILED','SSH_LOGIN_SUCCESS','SSH_DISCONNECTED'],
   '硬盘': ['FoundDisk','DiskWakeup','DiskSpindown','DISK_IO_ERR'],
   'UPS': ['UPS_ONBATT','UPS_ONBATT_LOWBATT','UPS_ONLINE','UPS_ENABLE','UPS_DISABLE'],
   '应用': ['APP_CRASH','APP_STARTED','APP_STOPPED','APP_UPDATED','APP_INSTALLED','APP_UNINSTALLED','APP_UPDATE_FAILED','APP_START_FAILED','APP_AUTO_START_FAILED'],
@@ -374,14 +380,16 @@ async function api(path, opts) {
   } catch (e) { toast('请求失败: ' + e.message, 'error'); throw e; }
 }
 
-function eventTypeBadge(type) {
+function eventCategoryBadge(type) {
   if (!type) return '<span class="badge muted">未知</span>';
-  const label = EVENT_TRANSLATIONS[type] || type;
   const colors = {'登录':'info','SSH':'warning','硬盘':'danger','UPS':'warning','应用':'purple','硬件':'danger','存储':'danger','虚拟机':'info'};
+  // 如果直接传入分类名
+  if (colors[type]) return `<span class="badge ${colors[type]}">${type}</span>`;
+  // 如果是事件类型，查找所属分类
   for (const [cat, types] of Object.entries(EVENT_CATEGORIES)) {
-    if (types.includes(type)) return `<span class="badge ${colors[cat]||'muted'}">${label}</span>`;
+    if (types.includes(type)) return `<span class="badge ${colors[cat]||'muted'}">${cat}</span>`;
   }
-  return `<span class="badge muted">${label}</span>`;
+  return `<span class="badge muted">${EVENT_TRANSLATIONS[type]||type}</span>`;
 }
 
 function eventResultBadge(r) {
@@ -448,7 +456,7 @@ async function loadStats() {
       document.getElementById('recent-events').innerHTML = msg;
     } else {
       let html = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>时间</th><th>事件类型</th><th>详情</th><th>结果</th></tr></thead><tbody>';
-      list.forEach(e => { html += `<tr><td><span class="muted">#${e.id}</span></td><td class="nowrap">${e.timestamp}</td><td>${eventTypeBadge(e.type)}</td><td>${escapeHtml(e.detail||'')}</td><td>${eventResultBadge(e.result||'pending')}</td></tr>`; });
+      list.forEach(e => { html += `<tr><td><span class="muted">#${e.id}</span></td><td class="nowrap">${e.timestamp}</td><td>${eventCategoryBadge(e.type)}</td><td style="max-width:500px;word-break:break-all;white-space:pre-wrap">${escapeHtml(e.detail||'')}</td><td>${eventResultBadge(e.result||'pending')}</td></tr>`; });
       html += '</tbody></table></div>';
       document.getElementById('recent-events').innerHTML = html;
     }
@@ -458,11 +466,11 @@ async function loadStats() {
 async function loadEvents() {
   const type = document.getElementById('events-filter-type').value;
   const result = document.getElementById('events-filter-result').value;
-  // 初始化事件类型筛选器
+  // 初始化事件类型筛选器 - 只显示分类名称
   const sel = document.getElementById('events-filter-type');
   if (sel.options.length <= 1) {
     for (const [cat, types] of Object.entries(EVENT_CATEGORIES)) {
-      types.forEach(t => { sel.add(new Option(EVENT_TRANSLATIONS[t]||t, t)); });
+      sel.add(new Option(cat, cat));
     }
   }
   try {
@@ -493,7 +501,7 @@ async function loadEvents() {
     } else {
       empty.style.display = 'none';
     }
-    tbody.innerHTML = eventsCache.map(e => `<tr><td><span class="muted">#${e.id}</span></td><td class="nowrap">${e.timestamp}</td><td>${eventTypeBadge(e.type)}</td><td>${escapeHtml((e.detail||'').substring(0,80))}</td><td>${eventResultBadge(e.result||'pending')}</td></tr>`).join('');
+    tbody.innerHTML = eventsCache.map(e => `<tr><td><span class="muted">#${e.id}</span></td><td class="nowrap">${e.timestamp}</td><td>${eventCategoryBadge(e.type)}</td><td style="max-width:500px;word-break:break-all;white-space:pre-wrap">${escapeHtml(e.detail||'')}</td><td>${eventResultBadge(e.result||'pending')}</td></tr>`).join('');
   } catch (e) {}
 }
 
@@ -501,19 +509,40 @@ async function loadHooks() {
   try { hooksCache = await api('/api/hooks') || []; renderHooks(); } catch (e) { hooksCache = []; renderHooks(); }
 }
 
+function getEventCategory(type) {
+  for (const [cat, types] of Object.entries(EVENT_CATEGORIES)) {
+    if (types.includes(type)) return cat;
+  }
+  return null;
+}
+
+function getChannelLabel(h) {
+  const labels = { webhook: 'Webhook', bark: 'Bark', telegram: 'Telegram', script: '本地脚本' };
+  return labels[h.type] || h.type;
+}
+
 function renderHooks() {
   const tbody = document.getElementById('hooks-tbody');
   document.getElementById('hooks-empty').style.display = hooksCache.length === 0 ? 'block' : 'none';
-  tbody.innerHTML = hooksCache.map(h => `
+  tbody.innerHTML = hooksCache.map(h => {
+    const types = Array.isArray(h.event_types) ? h.event_types : (typeof h.event_types === 'string' ? h.event_types.split(',') : []);
+    const catCount = {};
+    types.forEach(t => {
+      const cat = getEventCategory(t);
+      if (cat) catCount[cat] = (catCount[cat] || 0) + 1;
+    });
+    const catKeys = Object.keys(catCount);
+    return `
     <tr>
       <td><label class="switch"><input type="checkbox" ${h.enabled?'checked':''} onchange="toggleHook(${h.id}, this.checked)"><span class="slider"></span></label></td>
       <td><strong>${escapeHtml(h.name)}</strong></td>
       <td>${hookTypeBadge(h.type)}</td>
-      <td><code>${escapeHtml((h.url||h.cmd||'').substring(0,50))}</code></td>
-      <td>${(h.event_types||[]).slice(0,3).map(t => eventTypeBadge(t)).join(' ')}${(h.event_types||[]).length > 3 ? `<span class="muted"> +${h.event_types.length-3}</span>` : ''}</td>
+      <td>${catKeys.map(c => {
+        return `<span class="cat-badge">${eventCategoryBadge(c)}<span class="cat-count">${catCount[c]}</span></span>`;
+      }).join(' ')}</td>
       <td class="text-right"><div class="actions-group" style="justify-content:flex-end"><button class="btn small secondary" onclick="openHookModal(${h.id})">编辑</button><button class="btn small danger" onclick="deleteHook(${h.id})">删除</button></div></td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function hookTypeBadge(t) {
@@ -624,6 +653,19 @@ async function loadSettings() {
     document.getElementById('set-dnd-end').value = s.dnd_end || '';
     document.getElementById('set-db-path').value = s.eventlogger_db || '/usr/trim/var/eventlogger_service/logger_data.db3';
   } catch (e) {}
+}
+
+async function discoverEventTypes() {
+  const el = document.getElementById('event-types-result');
+  el.textContent = '扫描中...';
+  try {
+    const r = await api('/api/event-types');
+    if (r.error) { el.textContent = '错误: ' + r.error; return; }
+    if (!r.types || r.types.length === 0) { el.textContent = '未找到事件类型'; return; }
+    const missing = r.types.filter(t => !EVENT_TRANSLATIONS[t] && !getEventCategory(t));
+    el.innerHTML = `<div>共 ${r.count} 个事件类型，<span style="color:${missing.length > 0 ? '#d29922' : '#3fb950'}">${missing.length} 个未匹配</span></div>`
+      + (missing.length > 0 ? '<div style="margin-top:4px;max-height:200px;overflow-y:auto;font-family:monospace;font-size:11px;">' + missing.join('<br>') + '</div>' : '');
+  } catch (e) { el.textContent = '请求失败: ' + e.message; }
 }
 
 async function saveSettings() {

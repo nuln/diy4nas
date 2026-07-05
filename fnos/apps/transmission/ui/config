@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "transmission.Application": {
+            "title": "Transmission",
+            "desc": "\u8f7b\u91cf\u7ea7 BT \u5ba2\u6237\u7aef",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "port": "9091",
+            "protocol": "http",
+            "url": "/",
+            "allUsers": true
+        }
+    }
+}

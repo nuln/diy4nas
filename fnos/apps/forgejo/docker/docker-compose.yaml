@@ -1,0 +1,13 @@
+services:
+  forgejo:
+    image: ${DOCKER_MIRROR}codeberg.org/forgejo/forgejo:${VERSION}
+    container_name: forgejo
+    network_mode: host
+    volumes:
+      - ${TRIM_PKGVAR:?}/data:/data
+      - ${TRIM_PKGVAR:?}/config:/etc/forgejo
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
