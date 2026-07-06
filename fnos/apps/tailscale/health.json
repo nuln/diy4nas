@@ -1,0 +1,28 @@
+{
+  "schema": "2.0",
+  "title": "Tailscale 健康检查",
+  "description": "检查 Go 管理服务是否响应",
+  "checks": [
+    {
+      "name": "service_listening",
+      "type": "port",
+      "host": "127.0.0.1",
+      "port": 8088,
+      "timeout": 20,
+      "interval": 30,
+      "fail_threshold": 3,
+      "recovery_threshold": 2
+    },
+    {
+      "name": "api_healthz",
+      "type": "http",
+      "method": "GET",
+      "host": "127.0.0.1",
+      "port": 8088,
+      "path": "/api/healthz",
+      "timeout": 20,
+      "interval": 30,
+      "expected_status": 200
+    }
+  ]
+}

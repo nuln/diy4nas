@@ -61,7 +61,7 @@ for slug in "${TARGETS[@]}"; do
         cp -r "$base/ui/"* "$BUILD/app/ui/" 2>/dev/null || true
     fi
     
-    (cd "$BUILD" && COPYFILE_DISABLE=1 tar --no-mac-metadata -czf "$BASE/app.tgz" app/ 2>/dev/null)
+    (cd "$BUILD" && COPYFILE_DISABLE=1 tar --no-mac-metadata --format=ustar -czf "$BASE/app.tgz" app/ 2>/dev/null)
     
     echo "  packaging fpk..."
     FPK="$BUILD/fpk"
@@ -80,7 +80,7 @@ for slug in "${TARGETS[@]}"; do
     echo "checksum = $ck" >> "$FPK/manifest"
     
     OUTFILE="$BASE/dist/${slug}-${version}.fpk"
-    (cd "$FPK" && COPYFILE_DISABLE=1 tar --no-mac-metadata -czf "$OUTFILE" ./*)
+    (cd "$FPK" && COPYFILE_DISABLE=1 tar --no-mac-metadata --format=ustar -czf "$OUTFILE" ./*)
     rm -rf "$BUILD"
     echo "  -> ${slug}-${version}.fpk"
 done

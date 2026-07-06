@@ -3,6 +3,7 @@ mkdir -p "${TRIM_PKGVAR}/data" 2>/dev/null || true
 # 授予 tailscaled 创建 TUN 设备的能力（FnDepot 方式）
 for base in "${TRIM_APPDEST}" "${TRIM_APPDEST}/app"; do
     if [ -f "$base/tailscaled" ]; then
+        chmod 0755 "$base/tailscaled" "$base/tailscale" "$base/fnos-tailscale" 2>/dev/null || true
         if command -v setcap >/dev/null 2>&1; then
             setcap 'cap_net_admin,cap_net_raw+eip' "$base/tailscaled" 2>/dev/null || true
             setcap 'cap_net_admin+eip' "$base/tailscale" 2>/dev/null || true

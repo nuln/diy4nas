@@ -63,7 +63,7 @@ start() {
     kill_by_pid >/dev/null 2>&1
     rm -f "$PID_FILE"
 
-    if [ -z "$SRV" ]; then echo "$NAME binary not found at $APP_DEST/app/$NAME" > "${TRIM_TEMP_LOGFILE}"; exit 1; fi
+    if [ -z "$SRV" ]; then echo "$NAME binary not found at $APP_DEST/app/$NAME" > "${TRIM_TEMP_LOGFILE:-/dev/null}"; exit 1; fi
 
     # 显式导出 env 给 Go server
     export TRIM_APPDEST="$APP_DEST"
@@ -80,12 +80,12 @@ start() {
         echo "  detected fnOS user: $FNOS_USER" >> "$LOG_FILE" 2>/dev/null
     fi
 
-    "$SRV" >> "$LOG_FILE" 2>&1 &
+    nohup "$SRV" >> "$LOG_FILE" 2>&1 &
     PID=$!
     echo $PID > "$PID_FILE"
     sleep 1.5
     if ! kill -0 "$PID" 2>/dev/null; then
-        echo "$NAME failed to start, see $LOG_FILE" > "${TRIM_TEMP_LOGFILE}"
+        echo "$NAME failed to start, see $LOG_FILE" > "${TRIM_TEMP_LOGFILE:-/dev/null}"
         rm -f "$PID_FILE"
         exit 1
     fi
@@ -117,5 +117,5 @@ case "${1:-}" in
         fi
         /usr/bin/curl -s "http://127.0.0.1:7682/api/healthz" >/dev/null 2>&1 && exit 0
         exit 3 ;;
-    *) echo "Usage: $0 {start|stop|status|restart}" > "${TRIM_TEMP_LOGFILE}"; exit 1 ;;
+    *) echo "Usage: $0 {start|stop|status|restart}" > "${TRIM_TEMP_LOGFILE:-/dev/null}"; exit 1 ;;
 esac

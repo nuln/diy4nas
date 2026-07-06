@@ -33,6 +33,7 @@ var proxyFile = appVar + "/proxy.conf"
 var upLock sync.Mutex
 var lastUpErr string
 var lastUpOut string
+var lastUpFlags []string
 
 var logBuf bytes.Buffer
 var logMu sync.Mutex
@@ -47,6 +48,8 @@ var (
 	cachedNetcheck    []byte
 	cachedNetcheckErr error
 )
+
+var tsdStartErr string // 记录 tailscaled 启动失败的原因，非空表示未成功
 
 func fetchStatus() ([]byte, error) {
 	out, err := ts("status", "--json")
@@ -127,7 +130,7 @@ func findBin(name, prefer string) string {
 	if prefer != "" { return prefer }
 	dest := os.Getenv("TRIM_APPDEST")
 	if dest == "" { dest = "/var/apps/tailscale" }
-	for _, d := range []string{dest + "/app", dest} {
+	for _, d := range []string{dest + "/app", dest + "/target/app", dest} {
 		p := d + "/" + name
 		if _, err := os.Stat(p); err == nil { return p }
 	}
@@ -235,12 +238,60 @@ func stopTailscaled() {
 	}
 }
 
+// retryTailscaled 在后台定期重试启动 tailscaled（首次启动失败时调用）
+func retryTailscaled() {
+	for i := 0; i < 30; i++ { // 最多重试 30 次（约 5 分钟）
+		time.Sleep(10 * time.Second)
+		appLogf("正在重试启动 tailscaled (第 %d 次)...", i+1)
+		if err := startTailscaled(); err != nil {
+			appLogf("重试失败: %v", err)
+			continue
+		}
+		appLogf("tailscaled 启动成功！")
+		tsdStartErr = ""
+		// 立即刷新缓存
+		go fetchStatus()
+		go fetchNetcheckData()
+		return
+	}
+	appLogf("tailscaled 重试 30 次后仍失败，请手动检查 TUN 模块和 setcap 配置")
+}
+
 func main() {
+	// === 诊断日志：写到固定路径，确保任何情况下都能看到 ===
+	debugLog, _ := os.OpenFile("/tmp/fnos-tailscale-debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if debugLog != nil {
+		log.SetOutput(io.MultiWriter(os.Stderr, debugLog))
+		defer debugLog.Close()
+	}
+	log.Printf("====== fnos-tailscale 启动 ======")
+	log.Printf("PID=%d", os.Getpid())
+	log.Printf("TRIM_APPDEST=%s", os.Getenv("TRIM_APPDEST"))
+	log.Printf("TRIM_PKGVAR=%s", os.Getenv("TRIM_PKGVAR"))
+	log.Printf("TAILSCALE_BIN=%s", os.Getenv("TAILSCALE_BIN"))
+	log.Printf("TAILSCALED_BIN=%s", os.Getenv("TAILSCALED_BIN"))
+	log.Printf("TAILSCALE_SOCKET=%s", os.Getenv("TAILSCALE_SOCKET"))
+	log.Printf("TAILSCALE_PORT=%s", os.Getenv("TAILSCALE_PORT"))
+	log.Printf("resolved tsBin=%s", tsBin)
+	log.Printf("resolved tsdBin=%s", tsdBin)
+	log.Printf("resolved appVar=%s", appVar)
+	log.Printf("resolved sockPath=%s", sockPath)
+
 	port := os.Getenv("TAILSCALE_PORT")
 	if port == "" { port = "8088" }
 
 	if err := startTailscaled(); err != nil {
-		log.Fatalf("failed to start tailscaled: %v", err)
+		// 不要 Fatalf！继续启动 HTTP 服务器，让用户能看到 UI 和错误信息
+		log.Printf("WARNING: tailscaled 启动失败: %v — HTTP 服务仍将启动", err)
+		appLogf("tailscaled 启动失败: %v", err)
+		appLogf("HTTP 服务将继续启动，您可以在此页面查看错误信息")
+		appLogf("常见原因: 1) TUN 模块未加载(modprobe tun) 2) setcap 未生效 3) 二进制路径错误")
+		appLogf("tailscaled 路径: %s", tsdBin)
+		appLogf("tailscale 路径: %s", tsBin)
+		appLogf("数据目录: %s", appVar)
+		tsdStartErr = err.Error()
+		// 后台定期重试启动 tailscaled
+		go retryTailscaled()
 	}
 	defer stopTailscaled()
 
@@ -284,6 +335,7 @@ func main() {
 	mux.HandleFunc("/api/log/clear", handleLogClear)
 	mux.HandleFunc("/api/events", handleEvents)
 	mux.HandleFunc("/api/proxy", handleProxy)
+	mux.HandleFunc("/api/healthz", handleHealthz)
 
 	startBackgroundFetchers()
 
@@ -439,9 +491,28 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 		if !req.SnatSubnetRoutes { a = append(a, "--snat-subnet-routes=false") }
 		if !req.StatefulFiltering { a = append(a, "--stateful-filtering=false") }
 		if req.NetfilterMode != "" { a = append(a, "--netfilter-mode="+req.NetfilterMode) }
+		// 保存 flags（不含 authkey，一次性密钥重连不可用）
+		flags := []string{"up"}
+		for _, f := range a[1:] {
+			if !strings.HasPrefix(f, "--authkey=") {
+				flags = append(flags, f)
+			}
+		}
+		lastUpFlags = flags
 	}
 
 	setLastUpErr("", "")
+
+	if req.Reconnect && readProxy() != "" {
+		appLogf("重新连接时重启 tailscaled（应用代理配置）")
+		if err := restartTailscaled(); err != nil {
+			appLogf("重启 tailscaled 失败: %v", err)
+		}
+		if len(lastUpFlags) > 0 {
+			a = lastUpFlags
+		}
+	}
+
 	cmd := exec.Command(tsBin, append([]string{"--socket=" + sockPath}, a...)...)
 	outPipe, _ := cmd.StdoutPipe()
 	cmd.Stderr = cmd.Stdout
@@ -519,12 +590,8 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, map[string]string{"error": "保存代理配置失败: " + err.Error()})
 			return
 		}
-		go func() {
-			if err := restartTailscaled(); err != nil {
-				appLogf("重启 tailscaled 失败: %v", err)
-			}
-		}()
-		writeJSON(w, map[string]string{"output": "代理配置已保存，tailscaled 重启中..."})
+		appLogf("代理配置已保存: %q", proxy)
+		writeJSON(w, map[string]string{"output": "代理配置已保存，断开后重新连接即可生效"})
 	default:
 		http.Error(w, "", 405)
 	}
@@ -671,3 +738,8 @@ func calcTraffic(raw map[string]any) (float64, float64) {
 func gf(m map[string]any, k string) float64 { v,_:=m[k].(float64); return v }
 func writeJSON(w http.ResponseWriter, v any) { w.Header().Set("Content-Type","application/json"); json.NewEncoder(w).Encode(v) }
 func mustJSON(v any) string { b,_:=json.Marshal(v); return string(b); }
+
+func handleHealthz(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, map[string]any{"ok": true, "time": time.Now().Format("2006-01-02 15:04:05")})
+}
+

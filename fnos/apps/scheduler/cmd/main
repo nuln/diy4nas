@@ -81,7 +81,7 @@ start() {
         echo "  detected fnOS user: $FNOS_USER" >> "$LOG_FILE" 2>/dev/null
     fi
 
-    "$SRV" >> "$LOG_FILE" 2>&1 &
+    nohup "$SRV" >> "$LOG_FILE" 2>&1 &
     PID=$!
     echo $PID > "$PID_FILE"
     sleep 1.5

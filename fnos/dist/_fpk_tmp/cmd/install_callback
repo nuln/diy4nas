@@ -1,0 +1,4 @@
+#!/bin/sh
+# post-install: nothing special
+mkdir -p "${TRIM_PKGVAR:-/var/apps/terminal/data}" 2>/dev/null || true
+exit 0
