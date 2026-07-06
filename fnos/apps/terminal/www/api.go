@@ -455,6 +455,22 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		return conn.WriteControl(websocket.PongMessage, []byte(appData), time.Now().Add(5*time.Second))
 	})
 
+	// 定期发送 PING 保持 WebSocket 存活，防止 fnOS 反向代理（nginx）因 proxy_read_timeout 切断空闲连接
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := conn.WriteControl(websocket.PingMessage, []byte("keepalive"), time.Now().Add(5*time.Second)); err != nil {
+					return
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	for {
 		msgType, data, err := conn.ReadMessage()
 		if err != nil {
