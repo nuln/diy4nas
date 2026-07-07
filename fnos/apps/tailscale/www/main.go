@@ -224,14 +224,12 @@ func startTailscaled() error {
 			time.Sleep(500 * time.Millisecond)
 
 			// 用 tailscale CLI 连接
-			upOut, upErr := runCLI("up", "--accept-routes")
+			upOut, upErr := 			runCLI("up", "--accept-routes", "--reset", "--operator=www-data")
 			if upErr != nil {
 				writeLogf("自动连接失败: %v\n%s", upErr, upOut)
 			} else {
 				writeLogf("自动连接成功")
 			}
-
-			runCLI("set", "--operator=www-data")
 
 			writeLogf("auto-up done")
 			return nil
