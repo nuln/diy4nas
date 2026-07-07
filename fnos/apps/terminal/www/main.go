@@ -61,9 +61,6 @@ func appLogf(format string, args ...any) {
 	ts := time.Now().Format("2006-01-02 15:04:05")
 	line := "[" + ts + "] " + fmt.Sprintf(format, args...)
 	log.Print(line)
-	if appLogFile != nil {
-		appLogFile.WriteString(line + "\n")
-	}
 }
 
 func loadSettings() {
