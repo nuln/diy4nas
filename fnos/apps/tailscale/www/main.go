@@ -155,13 +155,25 @@ func getEnv(key, def string) string {
 	if v := os.Getenv(key); v != "" { return v }
 	return def
 }
+func writeLogf(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	logBuf.Write([]byte(msg + "\n"))
+	appLogf(format, args...)
+}
+
+func runCLI(args ...string) (string, error) {
+	cmd := exec.Command(tsBin, args...)
+	cmd.Env = append(os.Environ(),
+		"TAILSCALE_SOCKET="+sockPath,
+	)
+	b, err := cmd.CombinedOutput()
+	return string(b), err
+}
+
 func startTailscaled() error {
 	os.MkdirAll(appVar, 0755)
 	exec.Command("modprobe", "tun").Run()
 	os.Remove(sockPath)
-
-	log.Printf("startTailscaled: tsdBin=%q sockPath=%q stateFile=%q", tsdBin, sockPath, stateFile)
-	appLogf("启动 tailscaled: %s --state=%s --socket=%s --port=41641", tsdBin, stateFile, sockPath)
 
 	tsdCmd = exec.Command(tsdBin,
 		"--state="+stateFile,
@@ -174,78 +186,35 @@ func startTailscaled() error {
 	tsdCmd.Stdout = &logBuf
 	tsdCmd.Stderr = &logBuf
 	if err := tsdCmd.Start(); err != nil {
-		log.Printf("startTailscaled: tsdCmd.Start error: %v", err)
 		return fmt.Errorf("start tailscaled: %w", err)
 	}
-	log.Printf("startTailscaled: tailscaled started (pid %d)", tsdCmd.Process.Pid)
-	appLogf("tailscaled 已启动 (pid %d)", tsdCmd.Process.Pid)
+	writeLogf("tailscaled 已启动 (pid %d)", tsdCmd.Process.Pid)
 
-	// 等待 socket 出现
+	// 等待 socket 就绪
 	for i := 0; i < 10; i++ {
-		s, statErr := os.Stat(sockPath)
-		log.Printf("startTailscaled: stat(%q) attempt %d: exists=%v err=%v", sockPath, i+1, s != nil, statErr)
-		if s != nil {
-			log.Printf("startTailscaled: socket found, calling localAPIPatch")
-			appLogf("tailscaled socket 就绪")
-			upResp, upErr := localAPIPatch(sockPath, map[string]any{
-				"Prefs": map[string]any{"WantRunning": true},
-				"Mask":  map[string]any{"WantRunning": true},
-			})
+		if s, _ := os.Stat(sockPath); s != nil {
+			writeLogf("socket 就绪 (尝试 %d)", i+1)
+			time.Sleep(500 * time.Millisecond) // 给 tailscaled 一个喘息
+
+			// 用 tailscale CLI 连接（已验证能工作）
+			upOut, upErr := runCLI("up", "--accept-routes")
 			if upErr != nil {
-				log.Printf("startTailscaled: localAPIPatch(WantRunning) error: %v", upErr)
-				appLogf("自动连接失败: %v", upErr)
+				writeLogf("自动连接失败: %v\n%s", upErr, upOut)
 			} else {
-				log.Printf("startTailscaled: localAPIPatch(WantRunning) success: %s", upResp)
-				appLogf("自动连接成功: %s", upResp)
+				writeLogf("自动连接成功")
 			}
-			opResp, opErr := localAPIPatch(sockPath, map[string]any{
-				"Prefs": map[string]any{"OperatorUser": "www-data"},
-				"Mask":  map[string]any{"OperatorUser": true},
-			})
-			if opErr != nil {
-				log.Printf("startTailscaled: localAPIPatch(OperatorUser) error: %v", opErr)
-			} else {
-				log.Printf("startTailscaled: localAPIPatch(OperatorUser) success: %s", opResp)
-			}
+
+			// 设置 operator（让 UI 能通过 socket 发命令）
+			runCLI("set", "--operator=www-data")
+
+			// 追加日志到 tailscaled 的 logBuff，让 "Tailscale 日志" 能看见
+			fmt.Fprintf(&logBuf, "--- [server] auto-up: WantRunning=true via tailscale up ---\n")
 			return nil
 		}
 		time.Sleep(time.Second)
 	}
 
-	log.Printf("startTailscaled: socket not ready after 10s")
 	return fmt.Errorf("tailscaled socket not ready after 10s")
-}
-
-func localAPIPatch(sock string, prefs map[string]any) (string, error) {
-	client := &http.Client{
-		Transport: &http.Transport{
-			Dial: func(network, addr string) (net.Conn, error) {
-				return net.Dial("unix", sock)
-			},
-		},
-		Timeout: 10 * time.Second,
-	}
-	var body bytes.Buffer
-	json.NewEncoder(&body).Encode(prefs)
-
-	var lastErr error
-	for i := 0; i < 3; i++ {
-		req, err := http.NewRequest("PATCH", "http://localhost/localapi/v0/prefs", bytes.NewReader(body.Bytes()))
-		if err != nil {
-			return "", err
-		}
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := client.Do(req)
-		if err != nil {
-			lastErr = err
-			time.Sleep(500 * time.Millisecond)
-			continue
-		}
-		b, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		return fmt.Sprintf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(b))), nil
-	}
-	return "", lastErr
 }
 
 func stopTailscaled() {
