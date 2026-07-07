@@ -506,6 +506,18 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.detachSub(sub) // 关闭 sub.ch → write goroutine 退出 → done 关闭 → 防止 goroutine 泄漏
+
+	// WebSocket 断开时自动杀非 detached 的 session
+	// 处理: 关闭浏览器tab / 刷新页面 / 导航离开等前端不调用 /kill 的场景
+	s.mu.Lock()
+	detached := s.detached
+	exited := s.exited
+	s.mu.Unlock()
+	if !detached && !exited {
+		appLogf("ws disconnected, auto-killing session %s", s.ID)
+		killSession(s.ID)
+	}
+
 	<-done
 }
 
