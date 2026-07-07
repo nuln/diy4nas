@@ -108,6 +108,18 @@
   .ctx-submenu > .submenu { display: none; position: absolute; left: 100%; top: 0; background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 4px 0; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); max-height: 400px; overflow-y: auto; }
   .ctx-submenu.open > .submenu { display: block; }
   .ctx-submenu > .item::after { content: "▶"; float: right; opacity: 0.5; margin-left: 12px; }
+  /* ── 日志面板 ── */
+  .log-panel { position: fixed; right: 12px; bottom: 32px; width: 520px; max-height: 320px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 6px 6px 0 0; box-shadow: 0 -4px 16px rgba(0,0,0,0.5); display: none; flex-direction: column; z-index: 100; }
+  .log-panel.open { display: flex; }
+  .log-panel .header { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #3a3a3a; font-size: 12px; color: #86909c; cursor: ns-resize; user-select: none; }
+  .log-panel .header .title { display: flex; align-items: center; gap: 6px; }
+  .log-panel .header .title .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00b42a; }
+  .log-panel .header .close { background: none; border: none; color: #86909c; cursor: pointer; font-size: 16px; padding: 0 4px; line-height: 1; }
+  .log-panel .header .close:hover { color: #fff; }
+  .log-panel .body { flex: 1; overflow-y: auto; padding: 8px 12px; font-family: 'Menlo', 'Monaco', 'Courier New', monospace; font-size: 11px; line-height: 1.6; color: #b0b0b0; min-height: 60px; max-height: 260px; white-space: pre-wrap; word-break: break-all; }
+  .log-panel .body::-webkit-scrollbar { width: 4px; }
+  .log-panel .body::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 2px; }
+  .log-panel .body .empty { color: #555; text-align: center; padding: 20px 0; }
   /* ── 响应式：手机端适配 ── */
   @media (max-width: 640px) {
     .toolbar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
@@ -163,6 +175,8 @@
     <div class="item">大小: <span class="v" id="status-size">—</span></div>
     <div class="item">Shell: <span class="v" id="status-shell">—</span></div>
     <div class="item">用户: <span class="v" id="status-user">—</span></div>
+    <div class="spacer"></div>
+    <div class="item"><a href="#" onclick="toggleLogPanel();return false" style="color:#86909c;text-decoration:none" title="服务端日志">📋 日志</a></div>
   </div>
   <div class="kb-toolbar" id="kb-toolbar">
     <button class="key" data-key="tab" title="Tab">⇥</button>
@@ -176,6 +190,14 @@
     <button class="key" data-key="arrow-left" title="←">←</button>
     <button class="key" data-key="arrow-right" title="→">→</button>
   </div>
+</div>
+
+<div class="log-panel" id="log-panel">
+  <div class="header" id="log-header">
+    <div class="title"><span class="dot"></span>服务端日志</div>
+    <button class="close" onclick="toggleLogPanel()" title="关闭">×</button>
+  </div>
+  <div class="body" id="log-body"><div class="empty">打开日志面板查看服务端日志</div></div>
 </div>
 
 <script src="vendor/xterm.js"></script>
@@ -1196,6 +1218,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 默认开一个 terminal
   newSession();
 });
+
+// ── 日志面板 ──
+let logTimer = null;
+
+function toggleLogPanel() {
+  const panel = document.getElementById('log-panel');
+  const open = panel.classList.toggle('open');
+  if (open) {
+    loadLog();
+    logTimer = setInterval(loadLog, 3000);
+  } else {
+    if (logTimer) { clearInterval(logTimer); logTimer = null; }
+  }
+}
+
+async function loadLog() {
+  try {
+    const r = await fetch(API + '/api/log?lines=200');
+    const text = await r.text();
+    const body = document.getElementById('log-body');
+    body.textContent = text || '（无日志）';
+    body.scrollTop = body.scrollHeight;
+  } catch (e) {
+    // ignore
+  }
+}
 </script>
 
 <!-- 右侧栏 #1：脚本 -->

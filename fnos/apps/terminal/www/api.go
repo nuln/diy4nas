@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +18,7 @@ func registerRoutes(mux *http.ServeMux) {
 	api.HandleFunc("/api/sessions/", handleSessionByID)
 	api.HandleFunc("/api/ws", handleWS)
 	api.HandleFunc("/api/settings", handleSettings)
+	api.HandleFunc("/api/log", handleLog)
 	api.HandleFunc("/api/scripts", handleScripts)
 	api.HandleFunc("/api/scripts/", handleScriptByID)
 	mux.Handle("/api/", api)
@@ -296,6 +299,24 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeErr(w, 405, "method not allowed")
 	}
+}
+
+func handleLog(w http.ResponseWriter, r *http.Request) {
+	lines := 200
+	if n, err := strconv.Atoi(r.URL.Query().Get("lines")); err == nil && n > 0 && n <= 2000 {
+		lines = n
+	}
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	all := strings.Split(string(data), "\n")
+	if len(all) > lines {
+		all = all[len(all)-lines:]
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte(strings.Join(all, "\n")))
 }
 
 // handleScripts: GET 列表 / POST 新建
