@@ -441,8 +441,16 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 		if req.LoginServer != "" { a = append(a, "--login-server="+req.LoginServer) }
 		if req.ExitNode != "" { a = append(a, "--exit-node="+req.ExitNode) }
 		if req.ExitNodeAllowLan { a = append(a, "--exit-node-allow-lan-access") }
-		if req.AdvertiseExitNode { a = append(a, "--advertise-exit-node") }
-		if req.Ssh { a = append(a, "--ssh") }
+		if req.AdvertiseExitNode {
+			a = append(a, "--advertise-exit-node")
+		} else {
+			a = append(a, "--advertise-exit-node=false")
+		}
+		if req.Ssh {
+			a = append(a, "--ssh")
+		} else {
+			a = append(a, "--ssh=false")
+		}
 		if !req.AcceptDNS { a = append(a, "--accept-dns=false") }
 		if req.ShieldsUp { a = append(a, "--shields-up") }
 		if !req.AcceptRoutes { a = append(a, "--accept-routes=false") }

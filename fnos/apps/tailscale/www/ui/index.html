@@ -312,8 +312,8 @@ $('login-area').style.display = showDashboard ? 'none' : 'block';
 $('dashboard-area').style.display = showDashboard ? 'block' : 'none';
 $('login-prompt').style.display = (!showDashboard && !pending) ? 'block' : 'none';
 $('pending-prompt').style.display = pending ? 'block' : 'none';
-$('reconnect-prompt').style.display = 'none';
-$('reauth-prompt').style.display = 'none';
+	$('reconnect-prompt').style.display = (!showDashboard && !pending && hasSelf) ? 'block' : 'none';
+	$('reauth-prompt').style.display = 'none';
 const btnConn = $('btn-connect');
 if (btnConn) {
     if (online) {

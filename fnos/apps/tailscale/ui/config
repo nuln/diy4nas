@@ -2,10 +2,12 @@
     ".url": {
         "tailscale.App": {
             "title": "Tailscale",
-            "desc": "Tailscale VPN \u5ba2\u6236\u7aef",
+            "desc": "Tailscale VPN \u5ba2\u6237\u7aef",
             "icon": "images/icon_{0}.png",
             "type": "iframe",
-            "url": "/index.cgi",
+            "port": "8088",
+            "protocol": "http",
+            "url": "/",
             "allUsers": false
         }
     }
