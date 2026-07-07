@@ -467,11 +467,11 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 			if err := restartTailscaled(); err != nil {
 				appLogf("重启 tailscaled 失败: %v", err)
 			}
-			time.Sleep(2 * time.Second) // 等 tailscaled socket 就绪
+			time.Sleep(3 * time.Second) // 等 tailscaled socket 就绪
 		}
-		// 裸 `tailscale up`：不加任何 flag，从 state 文件恢复全部配置
-		// 避免 "changing settings requires mentioning all non-default flags" 错误
-		a = []string{"up"}
+		// 保留 --accept-risk=all --operator=www-data（这两个不是"settings"，不会触发 flag 检查）
+		// 其余配置从 state 文件恢复
+		a = []string{"up", "--accept-risk=all", "--operator=www-data"}
 	}
 
 	cmd := exec.Command(tsBin, append([]string{"--socket=" + sockPath}, a...)...)
@@ -522,9 +522,15 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDown(w http.ResponseWriter, r *http.Request) {
-	out, _ := ts("down")
-	appLogf("down: %s", string(out))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, tsBin, "--socket="+sockPath, "down").Output()
+	appLogf("down: %s err=%v", string(out), err)
 	fetchStatus()
+	if err != nil {
+		writeJSON(w, map[string]string{"error": err.Error(), "output": string(out)})
+		return
+	}
 	writeJSON(w, map[string]string{"output": string(out)})
 }
 
