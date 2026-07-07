@@ -38,6 +38,7 @@ var logBuf bytes.Buffer
 var logMu sync.Mutex
 var appLog bytes.Buffer
 var appLogMu sync.Mutex
+var logFile *os.File
 var tsdCmd *exec.Cmd
 
 var (
@@ -155,9 +156,28 @@ func getEnv(key, def string) string {
 	if v := os.Getenv(key); v != "" { return v }
 	return def
 }
+func initLog() {
+	os.MkdirAll(appVar, 0755)
+	f, err := os.OpenFile(appVar+"/server.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		log.Printf("initLog: open error: %v", err)
+		return
+	}
+	logFile = f
+	existing, _ := os.ReadFile(appVar + "/server.log")
+	if len(existing) > 0 {
+		logBuf.Write(existing)
+		if !bytes.HasSuffix(existing, []byte("\n")) {
+			logBuf.Write([]byte("\n"))
+		}
+	}
+}
 func writeLogf(format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-	logBuf.Write([]byte(msg + "\n"))
+	msg := fmt.Sprintf(format, args...) + "\n"
+	logBuf.Write([]byte(msg))
+	if logFile != nil {
+		logFile.Write([]byte(msg))
+	}
 	appLogf(format, args...)
 }
 
@@ -175,6 +195,8 @@ func startTailscaled() error {
 	exec.Command("modprobe", "tun").Run()
 	os.Remove(sockPath)
 
+	writeLogf("启动 tailscaled: bin=%s sock=%s state=%s port=41641", tsdBin, sockPath, stateFile)
+
 	tsdCmd = exec.Command(tsdBin,
 		"--state="+stateFile,
 		"--socket="+sockPath,
@@ -183,8 +205,14 @@ func startTailscaled() error {
 
 	tsdCmd.Env = os.Environ()
 
-	tsdCmd.Stdout = &logBuf
-	tsdCmd.Stderr = &logBuf
+	var writers []io.Writer
+	writers = append(writers, &logBuf)
+	if logFile != nil {
+		writers = append(writers, logFile)
+	}
+	mw := io.MultiWriter(writers...)
+	tsdCmd.Stdout = mw
+	tsdCmd.Stderr = mw
 	if err := tsdCmd.Start(); err != nil {
 		return fmt.Errorf("start tailscaled: %w", err)
 	}
@@ -192,11 +220,12 @@ func startTailscaled() error {
 
 	// 等待 socket 就绪
 	for i := 0; i < 10; i++ {
-		if s, _ := os.Stat(sockPath); s != nil {
+		s, stErr := os.Stat(sockPath)
+		if s != nil {
 			writeLogf("socket 就绪 (尝试 %d)", i+1)
-			time.Sleep(500 * time.Millisecond) // 给 tailscaled 一个喘息
+			time.Sleep(500 * time.Millisecond)
 
-			// 用 tailscale CLI 连接（已验证能工作）
+			// 用 tailscale CLI 连接
 			upOut, upErr := runCLI("up", "--accept-routes")
 			if upErr != nil {
 				writeLogf("自动连接失败: %v\n%s", upErr, upOut)
@@ -204,13 +233,12 @@ func startTailscaled() error {
 				writeLogf("自动连接成功")
 			}
 
-			// 设置 operator（让 UI 能通过 socket 发命令）
 			runCLI("set", "--operator=www-data")
 
-			// 追加日志到 tailscaled 的 logBuff，让 "Tailscale 日志" 能看见
-			fmt.Fprintf(&logBuf, "--- [server] auto-up: WantRunning=true via tailscale up ---\n")
+			writeLogf("auto-up done")
 			return nil
 		}
+		writeLogf("socket 未就绪 (尝试 %d): %v", i+1, stErr)
 		time.Sleep(time.Second)
 	}
 
@@ -226,6 +254,7 @@ func stopTailscaled() {
 }
 
 func main() {
+	initLog()
 	port := os.Getenv("TAILSCALE_PORT")
 	if port == "" { port = "8088" }
 
@@ -233,10 +262,7 @@ func main() {
 	// HTTP 服务立即启动，UI 可正常访问；tailscaled 就绪前 status 显示未连接
 	go func() {
 		if err := startTailscaled(); err != nil {
-			log.Printf("WARNING: tailscaled 启动失败: %v", err)
-			appLogf("tailscaled 启动失败: %v", err)
-			appLogf("tailscaled 路径: %s", tsdBin)
-			appLogf("数据目录: %s", appVar)
+			writeLogf("tailscaled 启动失败: %v", err)
 		}
 	}()
 
