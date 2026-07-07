@@ -1,3 +1,0 @@
-#!/bin/sh
-# pre-upgrade: nothing to do
-exit 0

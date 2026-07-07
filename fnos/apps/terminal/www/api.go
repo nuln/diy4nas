@@ -107,10 +107,17 @@ func handleSessions(w http.ResponseWriter, r *http.Request) {
 		maxN := settings.MaxSessions
 		settingsMu.RUnlock()
 		sessionsMu.RLock()
-		count := len(sessions)
+		activeCount := 0
+		for _, s := range sessions {
+			s.mu.Lock()
+			if !s.exited {
+				activeCount++
+			}
+			s.mu.Unlock()
+		}
 		sessionsMu.RUnlock()
-		if count >= maxN {
-			appLogf("create session blocked: count=%d maxN=%d", count, maxN)
+		if activeCount >= maxN {
+			appLogf("create session blocked: active=%d maxN=%d", activeCount, maxN)
 			writeErr(w, 429, "session limit reached")
 			return
 		}
@@ -427,7 +434,6 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sub := s.attach()
-	defer s.detachSub(sub)
 
 	conn.SetReadLimit(64 * 1024)
 
@@ -499,6 +505,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	s.detachSub(sub) // 关闭 sub.ch → write goroutine 退出 → done 关闭 → 防止 goroutine 泄漏
 	<-done
 }
 

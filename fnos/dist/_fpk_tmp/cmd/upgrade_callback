@@ -1,9 +1,0 @@
-#!/bin/sh
-# post-upgrade: restore settings.json from backup, then start
-APP_DEST=${TRIM_APPDEST:-/var/apps/terminal}
-APP_VAR=${TRIM_PKGVAR:-$APP_DEST/data}
-if [ -f "$APP_VAR/terminal.settings.json.bak" ] && [ ! -f "$APP_VAR/terminal.settings.json" ]; then
-    mv "$APP_VAR/terminal.settings.json.bak" "$APP_VAR/terminal.settings.json" 2>/dev/null || true
-fi
-"$APP_DEST/cmd/main" start 2>/dev/null || true
-exit 0

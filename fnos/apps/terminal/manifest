@@ -1,5 +1,5 @@
 appname         = terminal
-version         = 0.0.0
+version         = 0.0.1
 display_name    = 网页终端
 platform        = x86
 maintainer      = diy4nas

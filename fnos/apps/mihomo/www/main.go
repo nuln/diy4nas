@@ -1197,7 +1197,13 @@ func readLog(buf *LogBuffer, maxLines int) string {
 }
 
 func handleAppLog(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]string{"log": readLog(&logBuf, 500)})
+	appLog := readLog(&logBuf, 500)
+	mihomoLog := readLog(&mihomoLogBuf, 500)
+	combined := appLog
+	if mihomoLog != "" && mihomoLog != "no logs" {
+		combined += "\n--- mihomo stderr ---\n" + mihomoLog
+	}
+	writeJSON(w, map[string]string{"log": combined})
 }
 
 func handleMihomoLog(w http.ResponseWriter, r *http.Request) {
