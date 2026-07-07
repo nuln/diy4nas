@@ -28,7 +28,6 @@ var tsBin = findBin("tailscale", getEnv("TAILSCALE_BIN", ""))
 var tsdBin = findBin("tailscaled", getEnv("TAILSCALED_BIN", ""))
 var appVar = getEnv("TRIM_PKGVAR", "/var/apps/tailscale/data")
 var stateFile = appVar + "/tailscaled.state"
-// (proxy removed)
 
 var upLock sync.Mutex
 var lastUpErr string
@@ -181,6 +180,8 @@ func startTailscaled() error {
 	for i := 0; i < 10; i++ {
 		if s, _ := os.Stat(sockPath); s != nil {
 			exec.Command(tsBin, "--socket="+sockPath, "set", "--operator=www-data").Run()
+			// 自动连接（非阻塞），处理 want=false 的状态
+			exec.Command(tsBin, "--socket="+sockPath, "up", "--accept-risk=all", "--operator=www-data").Start()
 			return nil
 		}
 		time.Sleep(time.Second)
