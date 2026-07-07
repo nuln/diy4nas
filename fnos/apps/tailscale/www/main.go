@@ -49,8 +49,6 @@ var (
 	cachedNetcheckErr error
 )
 
-var tsdStartErr string // 记录 tailscaled 启动失败的原因，非空表示未成功
-
 func fetchStatus() ([]byte, error) {
 	out, err := ts("status", "--json")
 	cacheMu.Lock()
@@ -130,7 +128,7 @@ func findBin(name, prefer string) string {
 	if prefer != "" { return prefer }
 	dest := os.Getenv("TRIM_APPDEST")
 	if dest == "" { dest = "/var/apps/tailscale" }
-	for _, d := range []string{dest + "/app", dest + "/target/app", dest} {
+	for _, d := range []string{dest + "/app", dest} {
 		p := d + "/" + name
 		if _, err := os.Stat(p); err == nil { return p }
 	}
@@ -220,6 +218,7 @@ func startTailscaled() error {
 	}
 	log.Printf("tailscaled started (pid %d)", tsdCmd.Process.Pid)
 
+	// 等待 socket 出现（tailscaled 在后台启动，这里阻塞 10s 是安全的）
 	for i := 0; i < 10; i++ {
 		if s, _ := os.Stat(sockPath); s != nil {
 			exec.Command(tsBin, "--socket="+sockPath, "set", "--operator=www-data").Run()
@@ -238,62 +237,20 @@ func stopTailscaled() {
 	}
 }
 
-// retryTailscaled 在后台定期重试启动 tailscaled（首次启动失败时调用）
-func retryTailscaled() {
-	for i := 0; i < 30; i++ { // 最多重试 30 次（约 5 分钟）
-		time.Sleep(10 * time.Second)
-		appLogf("正在重试启动 tailscaled (第 %d 次)...", i+1)
-		if err := startTailscaled(); err != nil {
-			appLogf("重试失败: %v", err)
-			continue
-		}
-		appLogf("tailscaled 启动成功！")
-		tsdStartErr = ""
-		// 立即刷新缓存
-		go fetchStatus()
-		go fetchNetcheckData()
-		return
-	}
-	appLogf("tailscaled 重试 30 次后仍失败，请手动检查 TUN 模块和 setcap 配置")
-}
-
 func main() {
-	// === 诊断日志：写到固定路径，确保任何情况下都能看到 ===
-	debugLog, _ := os.OpenFile("/tmp/fnos-tailscale-debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if debugLog != nil {
-		log.SetOutput(io.MultiWriter(os.Stderr, debugLog))
-		defer debugLog.Close()
-	}
-	log.Printf("====== fnos-tailscale 启动 ======")
-	log.Printf("PID=%d", os.Getpid())
-	log.Printf("TRIM_APPDEST=%s", os.Getenv("TRIM_APPDEST"))
-	log.Printf("TRIM_PKGVAR=%s", os.Getenv("TRIM_PKGVAR"))
-	log.Printf("TAILSCALE_BIN=%s", os.Getenv("TAILSCALE_BIN"))
-	log.Printf("TAILSCALED_BIN=%s", os.Getenv("TAILSCALED_BIN"))
-	log.Printf("TAILSCALE_SOCKET=%s", os.Getenv("TAILSCALE_SOCKET"))
-	log.Printf("TAILSCALE_PORT=%s", os.Getenv("TAILSCALE_PORT"))
-	log.Printf("resolved tsBin=%s", tsBin)
-	log.Printf("resolved tsdBin=%s", tsdBin)
-	log.Printf("resolved appVar=%s", appVar)
-	log.Printf("resolved sockPath=%s", sockPath)
-
 	port := os.Getenv("TAILSCALE_PORT")
 	if port == "" { port = "8088" }
 
-	if err := startTailscaled(); err != nil {
-		// 不要 Fatalf！继续启动 HTTP 服务器，让用户能看到 UI 和错误信息
-		log.Printf("WARNING: tailscaled 启动失败: %v — HTTP 服务仍将启动", err)
-		appLogf("tailscaled 启动失败: %v", err)
-		appLogf("HTTP 服务将继续启动，您可以在此页面查看错误信息")
-		appLogf("常见原因: 1) TUN 模块未加载(modprobe tun) 2) setcap 未生效 3) 二进制路径错误")
-		appLogf("tailscaled 路径: %s", tsdBin)
-		appLogf("tailscale 路径: %s", tsBin)
-		appLogf("数据目录: %s", appVar)
-		tsdStartErr = err.Error()
-		// 后台定期重试启动 tailscaled
-		go retryTailscaled()
-	}
-	defer stopTailscaled()
+	// tailscaled 在后台 goroutine 启动，不阻塞 HTTP 服务
+	// HTTP 服务立即启动，UI 可正常访问；tailscaled 就绪前 status 显示未连接
+	go func() {
+		if err := startTailscaled(); err != nil {
+			log.Printf("WARNING: tailscaled 启动失败: %v", err)
+			appLogf("tailscaled 启动失败: %v", err)
+			appLogf("tailscaled 路径: %s", tsdBin)
+			appLogf("数据目录: %s", appVar)
+		}
+	}()
 
 	// Graceful shutdown on signal
 	sigCh := make(chan os.Signal, 1)
@@ -303,6 +260,7 @@ func main() {
 		stopTailscaled()
 		os.Exit(0)
 	}()
+	defer stopTailscaled() // 安全网：main 异常退出时也尝试停 tailscaled
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serveUI)
@@ -503,14 +461,17 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 
 	setLastUpErr("", "")
 
-	if req.Reconnect && readProxy() != "" {
-		appLogf("重新连接时重启 tailscaled（应用代理配置）")
-		if err := restartTailscaled(); err != nil {
-			appLogf("重启 tailscaled 失败: %v", err)
+	if req.Reconnect {
+		if readProxy() != "" {
+			appLogf("重新连接时重启 tailscaled（应用代理配置）")
+			if err := restartTailscaled(); err != nil {
+				appLogf("重启 tailscaled 失败: %v", err)
+			}
+			time.Sleep(2 * time.Second) // 等 tailscaled socket 就绪
 		}
-		if len(lastUpFlags) > 0 {
-			a = lastUpFlags
-		}
+		// 裸 `tailscale up`：不加任何 flag，从 state 文件恢复全部配置
+		// 避免 "changing settings requires mentioning all non-default flags" 错误
+		a = []string{"up"}
 	}
 
 	cmd := exec.Command(tsBin, append([]string{"--socket=" + sockPath}, a...)...)
@@ -590,8 +551,12 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, map[string]string{"error": "保存代理配置失败: " + err.Error()})
 			return
 		}
-		appLogf("代理配置已保存: %q", proxy)
-		writeJSON(w, map[string]string{"output": "代理配置已保存，断开后重新连接即可生效"})
+		go func() {
+			if err := restartTailscaled(); err != nil {
+				appLogf("重启 tailscaled 失败: %v", err)
+			}
+		}()
+		writeJSON(w, map[string]string{"output": "代理配置已保存，tailscaled 重启中..."})
 	default:
 		http.Error(w, "", 405)
 	}

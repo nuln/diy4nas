@@ -1,9 +1,12 @@
 #!/bin/sh
 # post-upgrade: restore and start
-APP_DEST=${TRIM_APPDEST:-/var/apps/tailscale}
-APP_VAR=${TRIM_PKGVAR:-$APP_DEST/data}
+APP_SLUG="tailscale"
+APP_BASE="/var/apps/$APP_SLUG"
+APP_DEST="${TRIM_APPDEST:-$(readlink -f "$APP_BASE/target" 2>/dev/null || echo "$APP_BASE")}"
+APP_VAR="${TRIM_PKGVAR:-$(readlink -f "$APP_BASE/var" 2>/dev/null || echo "$APP_BASE/data")}"
 if [ -f "$APP_VAR/settings.json.bak" ] && [ ! -f "$APP_VAR/settings.json" ]; then
     mv "$APP_VAR/settings.json.bak" "$APP_VAR/settings.json" 2>/dev/null || true
 fi
-"$APP_DEST/cmd/main" start 2>/dev/null || true
+# cmd/main 在 /var/apps/<slug>/cmd/ 不在 TRIM_APPDEST
+"$APP_BASE/cmd/main" start 2>&1 || true
 exit 0
