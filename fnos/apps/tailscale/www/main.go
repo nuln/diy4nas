@@ -180,8 +180,10 @@ func startTailscaled() error {
 	for i := 0; i < 10; i++ {
 		if s, _ := os.Stat(sockPath); s != nil {
 			exec.Command(tsBin, "--socket="+sockPath, "set", "--operator=www-data").Run()
-			// 自动连接（非阻塞），处理 want=false 的状态
-			exec.Command(tsBin, "--socket="+sockPath, "up", "--accept-risk=all", "--operator=www-data").Start()
+			// 自动连接（5s 超时），确保 want=false→true 写入 state 文件
+			ctxUp, cancelUp := context.WithTimeout(context.Background(), 5*time.Second)
+			exec.CommandContext(ctxUp, tsBin, "--socket="+sockPath, "up", "--accept-risk=all", "--operator=www-data").Run()
+			cancelUp()
 			return nil
 		}
 		time.Sleep(time.Second)
