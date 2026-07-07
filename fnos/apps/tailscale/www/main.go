@@ -179,11 +179,12 @@ func startTailscaled() error {
 	// 等待 socket 出现（tailscaled 在后台启动，这里阻塞 10s 是安全的）
 	for i := 0; i < 10; i++ {
 		if s, _ := os.Stat(sockPath); s != nil {
-			exec.Command(tsBin, "--socket="+sockPath, "set", "--operator=www-data").Run()
-			// 自动连接（5s 超时），确保 want=false→true 写入 state 文件
-			ctxUp, cancelUp := context.WithTimeout(context.Background(), 5*time.Second)
-			exec.CommandContext(ctxUp, tsBin, "--socket="+sockPath, "up", "--accept-risk=all", "--operator=www-data").Run()
+			ctxUp, cancelUp := context.WithTimeout(context.Background(), 15*time.Second)
+			out, err := exec.CommandContext(ctxUp, tsBin, "--socket="+sockPath, "up", "--accept-risk=all", "--operator=www-data").CombinedOutput()
 			cancelUp()
+			if err != nil {
+				log.Printf("auto-up: %v, output: %s", err, strings.TrimSpace(string(out)))
+			}
 			return nil
 		}
 		time.Sleep(time.Second)
