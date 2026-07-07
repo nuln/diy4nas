@@ -3,8 +3,8 @@
 # 进程名: fnos-mihomo (独特命名避免误杀)
 NAME="fnos-mihomo"          # 进程名（用 fnos- 前缀避免冲突）
 APP_SLUG="mihomo"           # app 路径用的 slug
-APP_VAR="${TRIM_PKGVAR:-/var/apps/$APP_SLUG/data}"
-APP_DEST="${TRIM_APPDEST:-/var/apps/$APP_SLUG}"
+APP_VAR="${APP_VAR:-${TRIM_PKGVAR:-/var/apps/$APP_SLUG/data}}"
+APP_DEST="${APP_DEST:-${TRIM_APPDEST:-/var/apps/$APP_SLUG}}"
 SOCKET="$APP_VAR/mihomo.sock"
 PID_FILE="$APP_VAR/server.pid"
 LOG_FILE="$APP_VAR/mihomo.log"

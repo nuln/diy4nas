@@ -28,3 +28,4 @@ apps/*/app/fnos-mihomo
 apps/*/app/fnos-tailscale
 apps/*/app/fnos-scheduler
 apps/*/app/fnos-eventhook
+dist/_fpk_tmp/

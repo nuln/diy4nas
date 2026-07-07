@@ -32,11 +32,12 @@ var (
 	mihomoAPI  = "http://127.0.0.1:19090"
 	servicePort = "9097"
 
-	mihomoCmd    *exec.Cmd
-	mihomoMu     sync.Mutex
-	opMu         sync.Mutex
-	logBuf       LogBuffer
-	mihomoLogBuf LogBuffer
+	mihomoCmd      *exec.Cmd
+	mihomoMu       sync.Mutex
+	opMu           sync.Mutex
+	logBuf         LogBuffer
+	mihomoLogBuf   LogBuffer
+	mihomoLogPath  string
 
 	configDir   string
 	profilesDir string
@@ -512,14 +513,14 @@ func generateDefaultConfig() string {
 	return `mixed-port: 7890
 log-level: info
 mode: rule
-allow-lan: true
+bind-address: "127.0.0.1"
 external-controller: 127.0.0.1:19090
 secret: ""
 geo-auto-update: false
 
 dns:
   enable: true
-  listen: 0.0.0.0:53
+  listen: 127.0.0.1:53
   enhanced-mode: fake-ip
   default-nameserver:
     - 223.5.5.5
@@ -938,9 +939,19 @@ func startMihomoLocked() error {
 		return fmt.Errorf("write config: %w", err)
 	}
 
+	var mihomoWriters []io.Writer
+	mihomoWriters = append(mihomoWriters, &mihomoLogBuf)
+	if mihomoLogPath != "" {
+		f, err := os.OpenFile(mihomoLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err == nil {
+			mihomoWriters = append(mihomoWriters, f)
+		}
+	}
+	mw := io.MultiWriter(mihomoWriters...)
+
 	cmd := exec.Command(mihomoBin, "-d", configDir)
-	cmd.Stdout = &mihomoLogBuf
-	cmd.Stderr = &mihomoLogBuf
+	cmd.Stdout = mw
+	cmd.Stderr = mw
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start mihomo: %w", err)
 	}
@@ -949,6 +960,23 @@ func startMihomoLocked() error {
 	mihomoMu.Lock()
 	mihomoCmd = cmd
 	mihomoMu.Unlock()
+
+	go func() {
+		err := cmd.Wait()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode = exitErr.ExitCode()
+			}
+		}
+		log.Printf("mihomo exited (pid %d, code %d): %v", cmd.Process.Pid, exitCode, err)
+		mihomoMu.Lock()
+		if mihomoCmd == cmd {
+			mihomoCmd = nil
+		}
+		mihomoMu.Unlock()
+	}()
 
 	go func() {
 		for i := 0; i < 30; i++ {
@@ -995,6 +1023,7 @@ func main() {
 	profilesDir = configDir + "/profiles"
 	activeFile = configDir + "/.active"
 	settingsPath = configDir + "/settings.json"
+	mihomoLogPath = appVar + "/mihomo.log"
 
 	log.SetOutput(&logBuf)
 
