@@ -442,7 +442,7 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 		AcceptDNS, ShieldsUp, AcceptRoutes, AdvertiseExitNode, Ssh, ExitNodeAllowLan, SnatSubnetRoutes, StatefulFiltering bool
 	}
 	json.Unmarshal(b, &req); a := []string{"up","--accept-risk=all","--operator=www-data"}
-	appLogf("up: reconnect=%v hostname=%q routes=%q loginServer=%q exitNode=%q authKey=%v", req.Reconnect, req.Hostname, req.Routes, req.LoginServer, req.ExitNode, req.AuthKey != "")
+	writeLogf("up: reconnect=%v hostname=%q routes=%q loginServer=%q exitNode=%q authKey=%v", req.Reconnect, req.Hostname, req.Routes, req.LoginServer, req.ExitNode, req.AuthKey != "")
 	if !req.Reconnect {
 		if req.AuthKey != "" { a = append(a, "--authkey="+req.AuthKey) }
 		if req.Hostname != "" { a = append(a, "--hostname="+req.Hostname) }
@@ -479,9 +479,8 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 	setLastUpErr("", "")
 
 	if req.Reconnect {
-		// 保留 --accept-risk=all --operator=www-data（这两个不是"settings"，不会触发 flag 检查）
-		// 其余配置从 state 文件恢复
-		a = []string{"up", "--accept-risk=all", "--operator=www-data"}
+		// 用 --reset 清除之前 up 的校验，带 --accept-routes --operator=www-data
+		a = []string{"up", "--accept-risk=all", "--operator=www-data", "--reset", "--accept-routes"}
 	}
 
 	cmd := exec.Command(tsBin, append([]string{"--socket=" + sockPath}, a...)...)
@@ -511,7 +510,7 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 	case <-time.After(10 * time.Second):
 	}
 
-	appLogf("up 响应: output=%q (URL=%v)", output, strings.Contains(output, "https://"))
+	writeLogf("up 响应: output=%q (URL=%v)", output, strings.Contains(output, "https://"))
 
 	// 后台等待认证完成，捕获任何错误
 	go func() {
@@ -524,7 +523,7 @@ func handleUp(w http.ResponseWriter, r *http.Request) {
 			if m > 0 { outStr = output + string(rest[:m]) }
 			setLastUpErr(err.Error(), outStr)
 		}
-		appLogf("up 完成: err=%v output=%q", err, output)
+		writeLogf("up 完成: err=%v output=%q", err, output)
 		fetchStatus()
 	}()
 
@@ -535,7 +534,7 @@ func handleDown(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, tsBin, "--socket="+sockPath, "down").Output()
-	appLogf("down: %s err=%v", string(out), err)
+	writeLogf("down: %s err=%v", string(out), err)
 	fetchStatus()
 	if err != nil {
 		writeJSON(w, map[string]string{"error": err.Error(), "output": string(out)})
