@@ -155,11 +155,13 @@ func getEnv(key, def string) string {
 	if v := os.Getenv(key); v != "" { return v }
 	return def
 }
-
 func startTailscaled() error {
 	os.MkdirAll(appVar, 0755)
 	exec.Command("modprobe", "tun").Run()
 	os.Remove(sockPath)
+
+	log.Printf("startTailscaled: tsdBin=%q sockPath=%q stateFile=%q", tsdBin, sockPath, stateFile)
+	appLogf("启动 tailscaled: %s --state=%s --socket=%s --port=41641", tsdBin, stateFile, sockPath)
 
 	tsdCmd = exec.Command(tsdBin,
 		"--state="+stateFile,
@@ -172,33 +174,45 @@ func startTailscaled() error {
 	tsdCmd.Stdout = &logBuf
 	tsdCmd.Stderr = &logBuf
 	if err := tsdCmd.Start(); err != nil {
+		log.Printf("startTailscaled: tsdCmd.Start error: %v", err)
 		return fmt.Errorf("start tailscaled: %w", err)
 	}
+	log.Printf("startTailscaled: tailscaled started (pid %d)", tsdCmd.Process.Pid)
 	appLogf("tailscaled 已启动 (pid %d)", tsdCmd.Process.Pid)
 
 	// 等待 socket 出现
 	for i := 0; i < 10; i++ {
-		if s, _ := os.Stat(sockPath); s != nil {
+		s, statErr := os.Stat(sockPath)
+		log.Printf("startTailscaled: stat(%q) attempt %d: exists=%v err=%v", sockPath, i+1, s != nil, statErr)
+		if s != nil {
+			log.Printf("startTailscaled: socket found, calling localAPIPatch")
 			appLogf("tailscaled socket 就绪")
-			// 通过本地 API 直接设置 WantRunning=true
 			upResp, upErr := localAPIPatch(sockPath, map[string]any{
 				"Prefs": map[string]any{"WantRunning": true},
 				"Mask":  map[string]any{"WantRunning": true},
 			})
 			if upErr != nil {
+				log.Printf("startTailscaled: localAPIPatch(WantRunning) error: %v", upErr)
 				appLogf("自动连接失败: %v", upErr)
 			} else {
+				log.Printf("startTailscaled: localAPIPatch(WantRunning) success: %s", upResp)
 				appLogf("自动连接成功: %s", upResp)
 			}
-			// 同时也设置 operator（确保 www-data 能访问 socket）
-			localAPIPatch(sockPath, map[string]any{
+			opResp, opErr := localAPIPatch(sockPath, map[string]any{
 				"Prefs": map[string]any{"OperatorUser": "www-data"},
 				"Mask":  map[string]any{"OperatorUser": true},
 			})
+			if opErr != nil {
+				log.Printf("startTailscaled: localAPIPatch(OperatorUser) error: %v", opErr)
+			} else {
+				log.Printf("startTailscaled: localAPIPatch(OperatorUser) success: %s", opResp)
+			}
 			return nil
 		}
 		time.Sleep(time.Second)
 	}
+
+	log.Printf("startTailscaled: socket not ready after 10s")
 	return fmt.Errorf("tailscaled socket not ready after 10s")
 }
 
@@ -213,18 +227,25 @@ func localAPIPatch(sock string, prefs map[string]any) (string, error) {
 	}
 	var body bytes.Buffer
 	json.NewEncoder(&body).Encode(prefs)
-	req, err := http.NewRequest("PATCH", "http://localhost/localapi/v0/prefs", &body)
-	if err != nil {
-		return "", err
+
+	var lastErr error
+	for i := 0; i < 3; i++ {
+		req, err := http.NewRequest("PATCH", "http://localhost/localapi/v0/prefs", bytes.NewReader(body.Bytes()))
+		if err != nil {
+			return "", err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		b, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return fmt.Sprintf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(b))), nil
 	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	b, _ := io.ReadAll(resp.Body)
-	return fmt.Sprintf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(b))), nil
+	return "", lastErr
 }
 
 func stopTailscaled() {
