@@ -182,10 +182,8 @@ func writeLogf(format string, args ...any) {
 }
 
 func runCLI(args ...string) (string, error) {
-	cmd := exec.Command(tsBin, args...)
-	cmd.Env = append(os.Environ(),
-		"TAILSCALE_SOCKET="+sockPath,
-	)
+	fullArgs := append([]string{"--socket=" + sockPath}, args...)
+	cmd := exec.Command(tsBin, fullArgs...)
 	b, err := cmd.CombinedOutput()
 	return string(b), err
 }
