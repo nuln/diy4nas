@@ -213,7 +213,12 @@ func localAPIPatch(sock string, prefs map[string]any) (string, error) {
 	}
 	var body bytes.Buffer
 	json.NewEncoder(&body).Encode(prefs)
-	resp, err := client.Post("http://localhost/localapi/v0/prefs", "application/json", &body)
+	req, err := http.NewRequest("PATCH", "http://localhost/localapi/v0/prefs", &body)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
