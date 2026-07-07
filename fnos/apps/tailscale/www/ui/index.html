@@ -92,11 +92,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <button id="btn-connect" class="btnw s" style="margin-top:0;flex:1" onclick="toggleConnect()">断开连接</button>
 <button class="btnw s" style="margin-top:0;flex:1;background:rgba(239,68,68,0.15);color:var(--red)" onclick="logout()">退出登录</button>
 </div>
-<div style="border-top:1px solid rgba(255,255,255,.05);padding-top:8px;margin-top:8px">
-<div class="fg" style="margin:0"><label>代理地址（用于连接 DERP 中继）</label>
-<div class="rw"><input id="proxy-input" placeholder="http://127.0.0.1:7890，留空=直连"><button class="btnw s" style="margin-top:0;flex:0;padding:9px 16px;white-space:nowrap" onclick="saveProxy()">保存</button></div>
-</div>
-</div>
+	<div style="border-top:1px solid rgba(255,255,255,.05);padding-top:8px;margin-top:8px">
+	</div>
 </div>
 </div>
 <div class="col" style="flex:1;min-width:0">
@@ -492,7 +489,6 @@ const runLoop=async()=>{if(!pingIntervalId)return;await runOnePing();if(pingInte
 pingIntervalId=true;runLoop();
 };
 const logout=async()=>{if(!confirm('确定要退出登录（清除所有认证状态）吗？'))return;isInitialized=false;const r=await api('logout','POST');if(r&&r.error){showErr(r.error)}else{toast('已退出登录');setTimeout(st,1000)}};
-const saveProxy=async()=>{const p=$('proxy-input').value.trim();toast('正在保存代理...');const r=await api('proxy','POST',{proxy:p});if(r&&r.error){showErr(r.error)}else{toast('代理已保存，断开后重新连接即可生效');setTimeout(()=>st(true),1000)}};
 let visLoaded=false;
 const loadVisNetwork=()=>{return new Promise((resolve,reject)=>{if(window.vis){resolve();return}const oldDefine=window.define;window.define=undefined;const script=document.createElement('script');script.src='vis-network.min.js';script.onload=()=>{window.define=oldDefine;if(window.vis){visLoaded=true;resolve()}else{reject(new Error('拓扑图库对象未定义'))}};script.onerror=()=>{window.define=oldDefine;reject(new Error('无法加载拓扑图库'))};document.head.appendChild(script)})};
 let topoNetwork=null;let peersData={};let zoomEnabled=false;let topoOptions={};
@@ -587,7 +583,6 @@ if(newIndex!==currentIndex){const nextTabId=tabs[newIndex];const nextLink=docume
 };
 document.addEventListener('click',e=>{const m=$('topo-menu');if(m&&!e.target.closest('#topo-menu')&&!e.target.closest('button[onclick*="toggleTopoMenu"]'))m.style.display='none';const lm=$('lg-menu');if(lm&&!e.target.closest('#lg-menu')&&!e.target.closest('button[onclick*="toggleLogMenu"]'))lm.style.display='none'});
 st();stIntervalId=setInterval(st,3000);
-api('proxy').then(r=>{if(r&&r.proxy!==undefined)$('proxy-input').value=r.proxy});
 window.addEventListener('resize',()=>{const a=document.querySelector('.bn a.act');if(a&&a.dataset.p==='ov')drawChart()});
 </script>
 </body></html>
