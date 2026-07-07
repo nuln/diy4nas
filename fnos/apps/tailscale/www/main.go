@@ -174,22 +174,52 @@ func startTailscaled() error {
 	if err := tsdCmd.Start(); err != nil {
 		return fmt.Errorf("start tailscaled: %w", err)
 	}
-	log.Printf("tailscaled started (pid %d)", tsdCmd.Process.Pid)
+	appLogf("tailscaled 已启动 (pid %d)", tsdCmd.Process.Pid)
 
-	// 等待 socket 出现（tailscaled 在后台启动，这里阻塞 10s 是安全的）
+	// 等待 socket 出现
 	for i := 0; i < 10; i++ {
 		if s, _ := os.Stat(sockPath); s != nil {
-			ctxUp, cancelUp := context.WithTimeout(context.Background(), 15*time.Second)
-			out, err := exec.CommandContext(ctxUp, tsBin, "--socket="+sockPath, "up", "--accept-risk=all", "--operator=www-data").CombinedOutput()
-			cancelUp()
-			if err != nil {
-				log.Printf("auto-up: %v, output: %s", err, strings.TrimSpace(string(out)))
+			appLogf("tailscaled socket 就绪")
+			// 通过本地 API 直接设置 WantRunning=true
+			upResp, upErr := localAPIPatch(sockPath, map[string]any{
+				"Prefs": map[string]any{"WantRunning": true},
+				"Mask":  map[string]any{"WantRunning": true},
+			})
+			if upErr != nil {
+				appLogf("自动连接失败: %v", upErr)
+			} else {
+				appLogf("自动连接成功: %s", upResp)
 			}
+			// 同时也设置 operator（确保 www-data 能访问 socket）
+			localAPIPatch(sockPath, map[string]any{
+				"Prefs": map[string]any{"OperatorUser": "www-data"},
+				"Mask":  map[string]any{"OperatorUser": true},
+			})
 			return nil
 		}
 		time.Sleep(time.Second)
 	}
 	return fmt.Errorf("tailscaled socket not ready after 10s")
+}
+
+func localAPIPatch(sock string, prefs map[string]any) (string, error) {
+	client := &http.Client{
+		Transport: &http.Transport{
+			Dial: func(network, addr string) (net.Conn, error) {
+				return net.Dial("unix", sock)
+			},
+		},
+		Timeout: 10 * time.Second,
+	}
+	var body bytes.Buffer
+	json.NewEncoder(&body).Encode(prefs)
+	resp, err := client.Post("http://localhost/localapi/v0/prefs", "application/json", &body)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return fmt.Sprintf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(b))), nil
 }
 
 func stopTailscaled() {
