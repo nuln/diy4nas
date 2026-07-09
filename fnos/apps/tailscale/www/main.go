@@ -339,7 +339,7 @@ func serveVisNetwork(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func ts(args ...string) ([]byte, error) { return exec.Command(tsBin, append([]string{"--socket="+sockPath}, args...)...).Output() }
+func ts(args ...string) ([]byte, error) { return exec.Command(tsBin, append([]string{"--socket="+sockPath}, args...)...).CombinedOutput() }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
 	upErr, upOut := getAndClearLastUpErr()
