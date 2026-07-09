@@ -51,7 +51,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .modal.show{display:flex}
 .modal-c{background:var(--card);border-radius:var(--radius);width:90%;max-width:400px;padding:16px;max-height:60vh;overflow-y:auto}
 .modal-c h3{margin-bottom:6px;font-size:.9rem}.modal-c .mb{font-size:.78rem;color:var(--fg2)}
-@media(max-width:640px){.ct{padding:6px 10px}.cd{padding:12px}.sg{grid-template-columns:1fr 1fr!important}.cx{gap:10px}.cx label{font-size:.7rem}.bn a{font-size:.5rem}.bn a svg{width:18px;height:18px}.col{flex-basis:100%}.lb{font-size:11px;max-height:180px}#pt-tp.act>div>div{flex-direction:column}#pt-tp.act>div>div>div:first-child{width:100%!important;height:auto!important;max-height:200px;min-height:auto!important}#topo-container{height:50vh!important;min-height:300px!important}.dv{padding:8px}.si{padding:10px}.si .v{font-size:.85rem}.hd{padding:10px 12px 4px}.hd h1{font-size:1rem}.st{font-size:.65rem}.btnw{font-size:.72rem}}
+@media(max-width:768px){.row{flex-direction:column}.ct{padding:6px 10px}.cd{padding:12px}.sg{grid-template-columns:1fr 1fr!important}.cx{gap:10px}.cx label{font-size:.7rem}.bn a{font-size:.5rem}.bn a svg{width:18px;height:18px}.lb{font-size:11px;max-height:180px}#pt-tp.act>div>div{flex-direction:column}#pt-tp.act>div>div>div:first-child{width:100%!important;height:auto!important;max-height:200px;min-height:auto!important}#topo-container{height:50vh!important;min-height:300px!important}.dv{padding:8px}.si{padding:10px}.si .v{font-size:.85rem}.hd{padding:10px 12px 4px}.hd h1{font-size:1rem}.st{font-size:.65rem}.btnw{font-size:.72rem}}
 </style>
 </head>
 <body>
@@ -80,8 +80,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </div>
 </div>
 <div id="dashboard-area" style="display:none">
-<div class="row" style="display:flex;gap:12px">
-<div class="col" style="flex:1;min-width:0">
+<div class="row">
+<div class="col">
 <div class="cd">
 <h3 style="display:flex;justify-content:space-between;align-items:center;">
 <span>📈 运行状态</span>
@@ -97,7 +97,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 	</div>
 </div>
 </div>
-<div class="col" style="flex:1;min-width:0">
+<div class="col">
 <div class="cd"><h3>⚙️ 节点配置</h3>
 <div class="fg"><div class="rw"><div><label>主机名</label><input id="hn" placeholder="自定义名称"></div><div><label>子网路由</label><input id="rt" placeholder="192.168.1.0/24"></div></div></div>
 <div class="fg"><label>出口节点</label><select id="ex"><option value="">不指定</option></select></div>
