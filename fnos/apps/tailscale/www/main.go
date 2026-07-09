@@ -298,6 +298,7 @@ func main() {
 	mux.HandleFunc("/api/nc", handleNC)
 	mux.HandleFunc("/api/bugreport", handleBugReport)
 	mux.HandleFunc("/api/update/check", handleUpdateCheck)
+	mux.HandleFunc("/api/update/do", handleUpdateDo)
 	mux.HandleFunc("/api/log/ts", handleLogTs)
 	mux.HandleFunc("/api/log/app", handleLogApp)
 	mux.HandleFunc("/api/log/clear", handleLogClear)
@@ -642,7 +643,101 @@ func handleAppcRoutes(w http.ResponseWriter, r *http.Request) {
 }
 func handleNC(w http.ResponseWriter, r *http.Request) { target := r.URL.Query().Get("target"); if target == "" { writeJSON(w, map[string]string{"error": "target required"}); return }; out, e := ts("nc", target); if e != nil { writeJSON(w, map[string]string{"error": e.Error()}); return }; writeJSON(w, map[string]string{"output": string(out)}) }
 func handleBugReport(w http.ResponseWriter, r *http.Request) { out, e := ts("bugreport"); if e != nil { writeJSON(w, map[string]string{"error": e.Error()}); return }; writeJSON(w, map[string]string{"output": string(out)}) }
-func handleUpdateCheck(w http.ResponseWriter, r *http.Request) { out, e := ts("update", "--check"); if e != nil { writeJSON(w, map[string]string{"error": e.Error()}); return }; writeJSON(w, map[string]string{"output": string(out)}) }
+func handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
+	out, e := ts("update", "--check")
+	if e != nil {
+		writeJSON(w, map[string]any{"error": e.Error(), "output": string(out)})
+		return
+	}
+	s := strings.TrimSpace(string(out))
+	avail := !strings.Contains(s, "Already up to date")
+	var current, latest string
+	if avail {
+		parts := strings.Split(s, " (current: ")
+		if len(parts) == 2 {
+			latest = parts[0]
+			current = strings.TrimSuffix(parts[1], ")")
+		}
+	}
+	writeJSON(w, map[string]any{"available": avail, "current": current, "latest": latest, "output": s})
+}
+
+var updateMu sync.Mutex
+
+func handleUpdateDo(w http.ResponseWriter, r *http.Request) {
+	if !updateMu.TryLock() {
+		writeJSON(w, map[string]any{"error": "升级任务正在进行中"})
+		return
+	}
+	defer updateMu.Unlock()
+
+	backup := func(src string) string {
+		dst := fmt.Sprintf("/tmp/%s.bak.%d", strings.ReplaceAll(src, "/", "_"), time.Now().Unix())
+		input, _ := os.ReadFile(src)
+		if input == nil {
+			return ""
+		}
+		os.WriteFile(dst, input, 0755)
+		return dst
+	}
+	restore := func(src, dst string) {
+		input, err := os.ReadFile(src)
+		if err != nil {
+			writeLogf("回滚失败: 读取备份 %s 错误: %v", src, err)
+			return
+		}
+		os.WriteFile(dst, input, 0755)
+		writeLogf("已从备份 %s 恢复 %s", src, dst)
+	}
+
+	writeLogf("开始升级 tailscale...")
+
+	tsdBinBak := backup(tsdBin)
+	tsBinBak := backup(tsBin)
+
+	out, err := ts("update", "--yes")
+	if err != nil {
+		msg := fmt.Sprintf("升级下载失败: %v\n%s", err, string(out))
+		writeLogf("%s", msg)
+		if tsdBinBak != "" {
+			restore(tsdBinBak, tsdBin)
+		}
+		if tsBinBak != "" {
+			restore(tsBinBak, tsBin)
+		}
+		writeJSON(w, map[string]any{"error": msg})
+		return
+	}
+	writeLogf("升级下载完成: %s", strings.TrimSpace(string(out)))
+
+	// 停止旧 tailscaled
+	writeLogf("正在停止旧 tailscaled...")
+	stopTailscaled()
+	time.Sleep(2 * time.Second)
+
+	// 启动新 tailscaled
+	writeLogf("正在启动新 tailscaled...")
+	if err := startTailscaled(); err != nil {
+		msg := fmt.Sprintf("新版本启动失败: %v", err)
+		writeLogf("%s", msg)
+		// 回滚
+		if tsdBinBak != "" {
+			restore(tsdBinBak, tsdBin)
+		}
+		if tsBinBak != "" {
+			restore(tsBinBak, tsBin)
+		}
+		writeLogf("正在回滚后重新启动...")
+		stopTailscaled()
+		time.Sleep(2 * time.Second)
+		startTailscaled()
+		writeJSON(w, map[string]any{"error": msg, "rolledBack": true})
+		return
+	}
+
+	writeLogf("升级成功，旧版备份在 /tmp/，新版本已运行")
+	writeJSON(w, map[string]any{"success": true, "output": strings.TrimSpace(string(out))})
+}
 
 func readLog(buf *bytes.Buffer, mu *sync.Mutex) string {
 	mu.Lock()

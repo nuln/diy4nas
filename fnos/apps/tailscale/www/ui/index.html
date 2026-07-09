@@ -207,6 +207,7 @@ const goto=p=>{document.querySelectorAll('.bn a').forEach(x=>x.classList.toggle(
 
 let lastUpError = ''; let connecting = false; let stIntervalId = null; let ncResult = ''; let ncTimer = null; let ncLast = 0;
 let appcRoutes = ''; let selfRoutes = ''; let isInitialized = false;
+let upcomingVersion = '';
 const cleanVersion = (v) => {
     if (!v) return '-';
     return v.split('-')[0].split('+')[0] || '-';
@@ -269,6 +270,16 @@ const fetchRoutes=()=>{
         }
     }).catch(()=>{})
 };
+const fetchUpdateCheck = async () => {
+    try {
+        const r = await api('update/check');
+        if (r && r.available && r.latest) {
+            upcomingVersion = r.latest;
+        } else {
+            upcomingVersion = '';
+        }
+    } catch(e) { upcomingVersion = ''; }
+};
 let refreshing = false;
 const forceRefreshStatus = async () => {
     if (refreshing) return;
@@ -279,7 +290,8 @@ const forceRefreshStatus = async () => {
     try {
         await Promise.all([
             st(true),
-            fetchNetcheck(true)
+            fetchNetcheck(true),
+            fetchUpdateCheck()
         ]);
         toast('数据已刷新');
     } catch(e) {
@@ -365,7 +377,7 @@ if (!isInitialized) {
 
 const uObj = d.User && (d.User[String(s.UserID)] || d.User[s.UserID]);
 const acc = uObj ? (uObj.LoginName || uObj.DisplayName) : (s.User || (d.User && Object.values(d.User)[0]?.LoginName) || '-');
-$('sg').innerHTML=`<div class=si><div class=l>节点</div><div class=v>${nm(myn)}</div></div><div class=si><div class=l>IP</div><div class="v ip">${ip(s)}</div></div><div class=si><div class=l>在线</div><div class=v>${ps.filter(x=>x.Online).length}/${ps.length}</div></div><div class=si><div class=l>流量</div><div class=v>↓${F(d.totalRx)}↑${F(d.totalTx)}</div></div><div class=si><div class=l>账号</div><div class="v ip" style=font-size:.65rem>${acc}</div></div><div class=si><div class=l>DNS</div><div class="v ip" style=font-size:.65rem>${nm(s.DNSName)||'-'}</div></div><div class=si><div class=l>Netcheck</div><div class="v ip" id="nc-val" style=font-size:.65rem>${ncResult||'检测中...'}</div></div><div class=si><div class=l>版本</div><div class="v ip" style=font-size:.65rem>${cleanVersion(d.Version)}</div></div><div class=si><div class=l>路由</div><div class="v ip" id="rt-val" style="font-size:.65rem;word-break:break-all;white-space:normal;line-height:1.2;">-</div></div>`;$('sg').style.gridTemplateColumns='repeat(auto-fill,minmax(110px,1fr))';
+$('sg').innerHTML=`<div class=si><div class=l>节点</div><div class=v>${nm(myn)}</div></div><div class=si><div class=l>IP</div><div class="v ip">${ip(s)}</div></div><div class=si><div class=l>在线</div><div class=v>${ps.filter(x=>x.Online).length}/${ps.length}</div></div><div class=si><div class=l>流量</div><div class=v>↓${F(d.totalRx)}↑${F(d.totalTx)}</div></div><div class=si><div class=l>账号</div><div class="v ip" style=font-size:.65rem>${acc}</div></div><div class=si><div class=l>DNS</div><div class="v ip" style=font-size:.65rem>${nm(s.DNSName)||'-'}</div></div><div class=si><div class=l>Netcheck</div><div class="v ip" id="nc-val" style=font-size:.65rem>${ncResult||'检测中...'}</div></div><div class=si><div class=l>版本 ${upcomingVersion?`<span onclick="doUpgrade()" style="cursor:pointer;color:var(--blue);font-size:.65rem;text-decoration:underline">⬆升级</span>`:''}</div><div class="v ip" style=font-size:.65rem>${cleanVersion(d.Version)}</div></div><div class=si><div class=l>路由</div><div class="v ip" id="rt-val" style="font-size:.65rem;word-break:break-all;white-space:normal;line-height:1.2;">-</div></div>`;$('sg').style.gridTemplateColumns='repeat(auto-fill,minmax(110px,1fr))';
 updateRoutesUI();
 // 异步加载路由和 netcheck
 fetchNetcheck();
@@ -451,6 +463,7 @@ const toggleConnect=()=>{
     }
 };
 const ck=()=>{const k=$('ak').value.trim();if(!k){toast('请输入 Auth Key');return}conn(gvWithKey())};
+const doUpgrade=async()=>{if(!confirm('确定升级 Tailscale 到 '+upcomingVersion+' 吗？\n升级过程中会短暂断开连接。'))return;toast('正在升级...');const r=await api('update/do');if(r&&r.error){showErr(r.error)}else if(r&&r.rolledBack){showErr('升级失败，已自动回滚到旧版本')}else{toast('升级成功！');upcomingVersion='';st(true)}};
 let pingIntervalId=null;let pingStats={tx:0,rx:0,min:999999,max:0,sum:0};
 const stopPing=()=>{if(pingIntervalId){clearTimeout(pingIntervalId);pingIntervalId=null}$('btn-ping-stop').style.display='none'};
 const closePing=()=>{stopPing();$('pm').classList.remove('show')};
